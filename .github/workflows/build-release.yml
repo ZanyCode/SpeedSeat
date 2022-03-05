@@ -43,12 +43,19 @@ jobs:
         draft: false
         prerelease: false
         
+    - name: Archive Binaries
+      uses: thedoctor0/zip-release@master
+      with:
+        type: 'zip'
+        filename: 'speedseat.zip'
+        path: './backend/publish'
+        
     - name: Upload Release Artifact
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ github.token }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./backend/publish/speedseat.exe
-        asset_name: speedseat.exe
+        asset_path: ./speedseat.zip
+        asset_name: speedseat.zip
         asset_content_type: application/zip
