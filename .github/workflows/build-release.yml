@@ -9,20 +9,11 @@ on:
 jobs:
   build:
 
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 6.0.x
-    - name: Build Backend
-      run: |
-        cd backend
-        dotnet restore
-        #dotnet build --no-restore
-        #dotnet publish -c Release -o publish -p:PublishReadyToRun=true -p:PublishSingleFile=true --self-contained true -r win-x64
+   
    
     - name: Changelog
       uses: scottbrenner/generate-changelog-action@master
