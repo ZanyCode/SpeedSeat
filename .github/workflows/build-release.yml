@@ -11,8 +11,22 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    strategy:
+        matrix:
+          node-version: [12.x, 14.x, 16.x]
+          # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+    
     steps:
     - uses: actions/checkout@v2
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - run: npm ci
+    - run: npm run build --if-present
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
@@ -43,19 +57,12 @@ jobs:
         draft: false
         prerelease: false
         
-    - name: Archive Binaries
-      uses: thedoctor0/zip-release@master
-      with:
-        type: 'zip'
-        filename: 'speedseat.zip'
-        path: './backend/publish'
-        
     - name: Upload Release Artifact
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ github.token }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./speedseat.zip
-        asset_name: speedseat-binaries-win64.zip
-        asset_content_type: application/zip
+        asset_path: ./backend/publish/speedseat.exe
+        asset_name: speedseat-win64.exe
+        asset_content_type: application/octet-stream
