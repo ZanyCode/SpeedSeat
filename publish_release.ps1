@@ -70,7 +70,7 @@ function Step-SemVer {
 
 
 
-$currentVersion = git tag -l --sort -version:refname | select -index 1 | Out-String
+$currentVersion = git tag -l --sort -version:refname | select -index 0 | Out-String
 echo "Old Version: $currentVersion"
 echo $updateType
 $newVersion = Step-SemVer -Version $currentVersion
