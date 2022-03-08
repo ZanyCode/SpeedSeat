@@ -75,5 +75,5 @@ echo "Old Version: $currentVersion"
 echo $updateType
 $newVersion = Step-SemVer -Version $currentVersion
 echo "New Version: $newVersion"
-git tag -a %1 -m "Release %1"
-git push origin %1
+git tag -a $newVersion -m "Release $newVersion"
+git push origin $newVersion
