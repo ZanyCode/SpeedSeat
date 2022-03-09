@@ -11,6 +11,7 @@ export class ManualControlComponent implements OnInit, OnDestroy {
   constructor(public data: ManualControlDataService) { }
 
   ngOnInit(): void {
+    this.data.init();
   }
  
   ngOnDestroy(): void {

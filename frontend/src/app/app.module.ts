@@ -15,6 +15,8 @@ import { SettingsComponent } from './settings/settings.component';
 import { ConnectionComponent } from './connection/connection.component';
 import {MatCardModule} from '@angular/material/card';
 import {MatSliderModule} from '@angular/material/slider';
+import {MatSelectModule} from '@angular/material/select';
+
 
 
 @NgModule({
@@ -35,7 +37,8 @@ import {MatSliderModule} from '@angular/material/slider';
     MatIconModule,
     MatListModule,
     MatCardModule,
-    MatSliderModule
+    MatSliderModule,
+    MatSelectModule
   ],
   providers: [],
   bootstrap: [AppComponent]

@@ -1,8 +1,12 @@
+using System.IO.Ports;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSignalR();
 builder.Services.AddCors();
+builder.Services.AddSingleton<SpeedseatSettings>();
+builder.Services.AddDbContext<SpeedseatContext>(options => options.UseSqlite("Data Source=speedseat.sqlite3"));
 
 var app = builder.Build();
 
@@ -32,4 +36,5 @@ app.UseEndpoints(endpoints =>
     endpoints.MapGet("/", async http => { http.Response.Redirect("/index.html"); });
 });
 app.MapHub<ManualControlHub>("/manual");
+app.MapHub<ConnectionHub>("/connection");
 app.Run();
