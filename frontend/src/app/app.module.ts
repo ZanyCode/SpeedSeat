@@ -10,10 +10,19 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
+import { ManualControlComponent } from './manual-control/manual-control.component';
+import { SettingsComponent } from './settings/settings.component';
+import { ConnectionComponent } from './connection/connection.component';
+import {MatCardModule} from '@angular/material/card';
+import {MatSliderModule} from '@angular/material/slider';
+
 
 @NgModule({
   declarations: [
     AppComponent,
+    ManualControlComponent,
+    SettingsComponent,
+    ConnectionComponent,
   ],
   imports: [
     BrowserModule,
@@ -24,7 +33,9 @@ import { MatListModule } from '@angular/material/list';
     MatButtonModule,
     MatSidenavModule,
     MatIconModule,
-    MatListModule
+    MatListModule,
+    MatCardModule,
+    MatSliderModule
   ],
   providers: [],
   bootstrap: [AppComponent]

@@ -1,6 +1,8 @@
 using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSignalR();
+builder.Services.AddCors();
 
 var app = builder.Build();
 
@@ -11,9 +13,13 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-var provider = new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot");
-System.Console.WriteLine(provider.GetDirectoryContents("wwwroot").Exists);
-System.Console.WriteLine(provider.GetFileInfo("index.html").Exists);
+
+app.UseCors(o => {
+    o.AllowAnyHeader();
+    o.AllowAnyMethod();
+    o.AllowCredentials();
+    o.SetIsOriginAllowed(origin => true);
+});
 
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -25,5 +31,5 @@ app.UseEndpoints(endpoints =>
 {
     endpoints.MapGet("/", async http => { http.Response.Redirect("/index.html"); });
 });
-
+app.MapHub<ManualControlHub>("/manual");
 app.Run();
