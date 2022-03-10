@@ -5,7 +5,8 @@ using Microsoft.Extensions.FileProviders;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSignalR();
 builder.Services.AddCors();
-builder.Services.AddSingleton<SpeedseatSettings>();
+// builder.Services.AddSingleton<SpeedseatSettings>();
+builder.Services.AddSingleton<Speedseat>();
 builder.Services.AddDbContext<SpeedseatContext>(options => options.UseSqlite("Data Source=speedseat.sqlite3"));
 
 var app = builder.Build();

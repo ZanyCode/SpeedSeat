@@ -6,18 +6,27 @@
               <mat-card-title>Port Settings</mat-card-title>
             </mat-card-header>
             <mat-card-content>
-                <div class="row align-items-center">
-                    <mat-form-field appearance="fill">
+                <div class="row align-items-start">
+                    <div class="col-10">
+                      <mat-form-field appearance="fill" class="w-100">
                         <mat-label>Select Port</mat-label>
-                        <mat-select>                        
-                          <mat-option *ngFor="let port of data.serialPorts$ | async" [value]="port">{{port}}</mat-option>                    
+                        <mat-select [(value)]="selectedPort">                        
+                          <mat-option *ngFor="let port of ports" [value]="port">{{port}}</mat-option>                    
                         </mat-select>
                       </mat-form-field>
+                    </div>
+                    <div class="col-2">
+                      <button (click)="refreshPorts()" mat-icon-button>
+                        <mat-icon>refresh</mat-icon>
+                      </button>
+                    </div>
+                    
                 </div>              
             </mat-card-content> 
             <mat-divider inset></mat-divider>
             <mat-card-actions>
-              <button mat-raised-button color="primary" (click)="data.connect()">Connect</button>
+              <button *ngIf="!isConnected" [disabled]="!selectedPort" mat-raised-button color="primary" (click)="connect()">Connect</button>
+              <button *ngIf="isConnected" mat-raised-button color="primary" (click)="disconnect()">Disconnect</button>
             </mat-card-actions>
         </mat-card>
       </div>    

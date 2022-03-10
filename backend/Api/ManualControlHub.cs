@@ -3,66 +3,39 @@ using Microsoft.AspNetCore.SignalR;
 
 public class ManualControlHub : Hub
 {
-    private readonly SpeedseatSettings settings;
+    private readonly Speedseat seat;
     private readonly IHubContext<ManualControlHub> context;
 
-    public ManualControlHub(SpeedseatSettings settings, IHubContext<ManualControlHub> context)
+    public ManualControlHub(Speedseat seat, IHubContext<ManualControlHub> context)
     {
-        this.settings = settings;
+        this.seat = seat;
         this.context = context;
     }
 
-    public override async Task OnConnectedAsync()
+    public void SetFrontLeftMotorPosition(double position)
     {
-        await base.OnConnectedAsync();
-
-        var id = this.Context.ConnectionId;
-        settings.Motor0Position.Subscribe(x => {
-            context.Clients.Client(id).SendAsync("motor0Position", x);
-        });
-
-        settings.Motor1Position.Subscribe(x => {
-            context.Clients.Client(id).SendAsync("motor1Position", x);
-        });
-
-        settings.Motor2Position.Subscribe(x => {
-            context.Clients.Client(id).SendAsync("motor2Position", x);
-        });
-
-        settings.FrontTilt.Subscribe(x => {
-            context.Clients.Client(id).SendAsync("frontTilt", x);
-        });
-
-        settings.SideTilt.Subscribe(x => {
-            context.Clients.Client(id).SendAsync("sideTilt", x);
-        });
-
-        settings.FrontTilt.CombineLatest(settings.SideTilt).Subscribe(x => {
-            var (frontTilt, sideTilt) = x;
-            var frontMotorPositions = frontTilt;
-            var backMotorPosition = 1 - frontTilt;
-            settings.SetMotor0Position(frontMotorPositions);
-            settings.SetMotor1Position(frontMotorPositions);
-            settings.SetMotor2Position(backMotorPosition);
-        });
+        System.Console.WriteLine($"Updating FrontLeftMotor to position {position}");
+        seat.FrontLeftMotorPosition = position;    
     }
 
-    public async Task UpdateMotorValue(int motorIdx, double position)
+    public void SetFrontRightMotorPosition(double position)
     {
-        System.Console.WriteLine($"Updating motor with idx {motorIdx} to position {position}");
-        var setPosition = new [] { settings.SetMotor0Position, settings.SetMotor1Position, settings.SetMotor2Position};
-        setPosition[motorIdx](position);        
+        System.Console.WriteLine($"Updating FrontRightMotor to position {position}");
+        seat.FrontRightMotorPosition = position;    
     }
 
-    public async Task UpdateFrontTilt(double position) {
-        System.Console.WriteLine($"Updating front tilt to {position}");
-        var frontMotorPositions = position;
-        var backMotorPosition = 1 - position;
-        settings.SetFrontTilt(position);     
+    public void SetBackMotorPosition(double position)
+    {
+        System.Console.WriteLine($"Updating BackMotor to position {position}");
+        seat.BackMotorPosition = position;    
     }
 
-     public async Task UpdateSideTilt(double position) {
-        System.Console.WriteLine($"Updating side tilt to {position}");     
-        settings.SetSideTilt(position);
+    public void SetTilt(double frontTilt, double sideTilt) {
+        System.Console.WriteLine($"Updating tilt to front: {frontTilt}, side: {sideTilt}");
+        seat.SetTilt(frontTilt, sideTilt);
+    }
+
+    public Speedseat GetCurrentState() {
+        return seat;
     }
 }

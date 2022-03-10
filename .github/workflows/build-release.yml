@@ -36,7 +36,7 @@ jobs:
         cd backend
         dotnet restore
         dotnet build --no-restore
-        dotnet publish -c Release -o publish -p:PublishReadyToRun=true -p:PublishSingleFile=true --self-contained true -r win-x64
+        dotnet publish -c Release -o publish -p:PublishReadyToRun=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --self-contained true -r win-x64
    
     - name: Changelog
       uses: scottbrenner/generate-changelog-action@master

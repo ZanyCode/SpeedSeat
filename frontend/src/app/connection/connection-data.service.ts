@@ -10,23 +10,28 @@ import { environment } from 'src/environments/environment';
 export class ConnectionDataService {
   connection!: HubConnection;
 
-  private serialPortsSubject = new Subject<string[]>();   
-  public serialPorts$!: Observable<string[]>;  
-
   constructor() {
   }
  
-  public connect() {
-    this.connection.invoke("Connect", "COM3");
+  public async connect(port: string) {
+    await this.connection.invoke("Connect", port, 9600);
   }
 
-  public init() {
-    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}connection`).build();
-    this.connection.on('serialPorts', ports => {
-      this.serialPortsSubject.next(ports);
-    });  
-    this.connection.start();
-    this.serialPorts$ = this.serialPortsSubject.asObservable();   
+  public async disconnect() {
+    await this.connection.invoke("Disconnect");
+  }
+
+  public async getPorts() {
+    return await this.connection.invoke<string[]>("GetPorts");
+  }
+
+  public async getIsConnected() {
+    return await this.connection.invoke<boolean>("GetIsConnected");
+  }
+
+  public async init() {
+    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}connection`).build();   
+    await this.connection.start();
   }
 
   public async destroy() {

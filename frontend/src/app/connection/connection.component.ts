@@ -7,13 +7,35 @@ import { ConnectionDataService } from './connection-data.service';
   styleUrls: ['./connection.component.scss']
 })
 export class ConnectionComponent implements OnInit, OnDestroy {
-  selected = 'option2';
+  ports: string[] = [];
+  selectedPort: string | undefined = undefined;
+  isConnected = false;
 
   constructor(public data: ConnectionDataService) { }
 
+  async connect() {
+    if(this.selectedPort){
+      await this.data.connect(this.selectedPort);
+      this.isConnected = true;    
+    }
+  }
+
+  async disconnect() {
+    await this.data.disconnect();
+    this.isConnected = false;
+  }
+
+  async refreshPorts() {
+    this.ports = await this.data.getPorts();
+    this.selectedPort = this.ports.length > 0? this.ports[0] : undefined;
+  }
+
   ngOnInit(): void {
-    this.data.init();
-    this.data.serialPorts$.subscribe(console.log)
+    this.data.init().then(async () => {
+      this.ports = await this.data.getPorts();
+      this.selectedPort = this.ports.length > 0? this.ports[0] : undefined;
+      this.isConnected = await this.data.getIsConnected();
+    });
   }
 
   ngOnDestroy(): void {
