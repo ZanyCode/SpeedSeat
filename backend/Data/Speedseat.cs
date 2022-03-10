@@ -12,6 +12,8 @@ public class Speedseat
     private double backMotorPosition;
     private SerialPort serialPort;
 
+    private bool canSend = true;
+
     private ISubject<bool> publishPositionQueue = Subject.Synchronize(new Subject<bool>());
 
     public double FrontLeftMotorPosition { get => frontLeftMotorPosition; set {
@@ -33,7 +35,7 @@ public class Speedseat
 
     public Speedseat()
     {
-        this.publishPositionQueue.Sample(TimeSpan.FromMilliseconds(80)).Subscribe(x => this.UpdatePosition());
+        this.publishPositionQueue.Sample(TimeSpan.FromMilliseconds(1)).Subscribe(x => this.UpdatePosition());
     }
 
     public void SetTilt(double frontTilt, double sideTilt)
@@ -60,8 +62,18 @@ public class Speedseat
         // Set the read/write timeouts
         serialPort.ReadTimeout = 500;
         serialPort.WriteTimeout = 500;
-
-        serialPort.Open();
+        serialPort.DataReceived += (sender, args) => {
+            byte[] data = new byte[serialPort.BytesToRead];
+            serialPort.Read(data, 0, data.Length);
+            foreach(var b in data) {
+                if(b == 255) {
+                    System.Console.WriteLine($"{b}");
+                    canSend = true;
+                }
+            }
+              
+        };
+        serialPort.Open();        
         IsConnected = true;   
         return true;   
     }
@@ -75,14 +87,19 @@ public class Speedseat
     }
 
     private void UpdatePosition() {
-        if(this.IsConnected) {
+        if(this.IsConnected && this.canSend) {
+            this.canSend = false;
             try {
-                string msg = $"0 {(int)(this.FrontLeftMotorPosition * 180)}";
-                serialPort.WriteLine(msg);
-                msg = $"1 {(int)(this.FrontRightMotorPosition * 180)}";
-                serialPort.WriteLine(msg);
-                msg = $"2 {(int)(this.BackMotorPosition * 180)}";
-                serialPort.WriteLine(msg);                
+                var bytes = new byte[] {0, 0, 0, 0, 0, 0, 0};
+                serialPort.Write(bytes, 0, 7);
+                // var response = serialPort.ReadExisting();
+                // System.Console.WriteLine(response);
+                // string msg = $"0 {(int)(this.FrontLeftMotorPosition * 180)}";
+                // serialPort.WriteLine(msg);
+                // msg = $"1 {(int)(this.FrontRightMotorPosition * 180)}";
+                // serialPort.WriteLine(msg);
+                // msg = $"2 {(int)(this.BackMotorPosition * 180)}";
+                // serialPort.WriteLine(msg);                
             }
             catch {
                 this.Disconnect();
