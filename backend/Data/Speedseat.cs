@@ -1,5 +1,7 @@
 using System;
 using System.IO.Ports;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 
 public class Speedseat
 {
@@ -10,31 +12,29 @@ public class Speedseat
     private double backMotorPosition;
     private SerialPort serialPort;
 
+    private ISubject<bool> publishPositionQueue = Subject.Synchronize(new Subject<bool>());
+
     public double FrontLeftMotorPosition { get => frontLeftMotorPosition; set {
         frontLeftMotorPosition = value;
-        if(IsConnected) {
-            string msg = $"0 {(int)(value * 180)}";
-            serialPort.WriteLine(msg);
-        }      
+        this.publishPositionQueue.OnNext(true);
     }}
 
     public double FrontRightMotorPosition { get => frontRightMotorPosition; set {
         frontRightMotorPosition = value;
-        if(IsConnected) {
-            string msg = $"1 {(int)(value * 180)}";
-            serialPort.WriteLine(msg);
-        }      
+        this.publishPositionQueue.OnNext(true);    
     }}
 
     public double BackMotorPosition { get => backMotorPosition; set {
         backMotorPosition = value;
-        if(IsConnected) {
-            string msg = $"2 {(int)(value * 180)}";
-            serialPort.WriteLine(msg);
-        }      
+        this.publishPositionQueue.OnNext(true);    
     }}
 
     public bool IsConnected { get; set; }
+
+    public Speedseat()
+    {
+        this.publishPositionQueue.Sample(TimeSpan.FromMilliseconds(80)).Subscribe(x => this.UpdatePosition());
+    }
 
     public void SetTilt(double frontTilt, double sideTilt)
     {        
@@ -72,5 +72,22 @@ public class Speedseat
         
         this.serialPort.Close();
         this.IsConnected = false;
+    }
+
+    private void UpdatePosition() {
+        if(this.IsConnected) {
+            try {
+                string msg = $"0 {(int)(this.FrontLeftMotorPosition * 180)}";
+                serialPort.WriteLine(msg);
+                msg = $"1 {(int)(this.FrontRightMotorPosition * 180)}";
+                serialPort.WriteLine(msg);
+                msg = $"2 {(int)(this.BackMotorPosition * 180)}";
+                serialPort.WriteLine(msg);                
+            }
+            catch {
+                this.Disconnect();
+            }
+         
+        }
     }
 }
