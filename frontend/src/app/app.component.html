@@ -33,6 +33,16 @@
     </mat-toolbar>
     <div class="col">
       <router-outlet></router-outlet>
+      <div class="position-absolute bottom-0 end-0 " *ngIf="url && !(isHandset$ | async)">
+        <mat-card class="me-3 mb-3">
+          <mat-card-header>
+            <mat-card-title>Scan for mobile access</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <qrcode [qrdata]="url" [width]="256" [errorCorrectionLevel]="'M'"></qrcode>
+          </mat-card-content>
+        </mat-card>
+      </div>    
     </div>
   </mat-sidenav-content>
 </mat-sidenav-container>

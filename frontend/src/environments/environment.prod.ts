@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  backendUrl: '/'
+  backendUrl: `http://${location.hostname}:5000/`
 };

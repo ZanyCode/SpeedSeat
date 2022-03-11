@@ -35,7 +35,7 @@ public class Speedseat
 
     public Speedseat()
     {
-        this.publishPositionQueue.Sample(TimeSpan.FromMilliseconds(1)).Subscribe(x => this.UpdatePosition());
+        this.publishPositionQueue.Subscribe(x => this.UpdatePosition());
     }
 
     public void SetTilt(double frontTilt, double sideTilt)
@@ -88,9 +88,13 @@ public class Speedseat
 
     private void UpdatePosition() {
         if(this.IsConnected && this.canSend) {
+            System.Console.WriteLine("Updating position");
             this.canSend = false;
             try {
-                var bytes = new byte[] {0, 0, 0, 0, 0, 0, 0};
+                var (frontLeftMsb, frontLeftLsb) = ScaleToUshortRange(frontLeftMotorPosition);
+                var (frontRightMsb, frontRightLsb) = ScaleToUshortRange(frontRightMotorPosition);
+                var (backMsb, backLsb) = ScaleToUshortRange(backMotorPosition);
+                var bytes = new byte[] {0, frontLeftMsb, frontLeftLsb, frontRightMsb, frontRightLsb, backMsb, backLsb};
                 serialPort.Write(bytes, 0, 7);
                 // var response = serialPort.ReadExisting();
                 // System.Console.WriteLine(response);
@@ -106,5 +110,11 @@ public class Speedseat
             }
          
         }
+    }
+
+    private (byte msb, byte lsb) ScaleToUshortRange(double percentage) {
+        ushort value = (ushort)Math.Clamp(percentage * ushort.MaxValue, 0, ushort.MaxValue);
+        var bytes = BitConverter.GetBytes(value);
+        return (bytes[1], bytes[0]);
     }
 }

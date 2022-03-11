@@ -16,6 +16,7 @@ import { ConnectionComponent } from './connection/connection.component';
 import {MatCardModule} from '@angular/material/card';
 import {MatSliderModule} from '@angular/material/slider';
 import {MatSelectModule} from '@angular/material/select';
+import { QRCodeModule } from 'angularx-qrcode';
 
 
 
@@ -38,7 +39,8 @@ import {MatSelectModule} from '@angular/material/select';
     MatListModule,
     MatCardModule,
     MatSliderModule,
-    MatSelectModule
+    MatSelectModule,
+    QRCodeModule
   ],
   providers: [],
   bootstrap: [AppComponent]
