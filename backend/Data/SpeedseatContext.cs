@@ -14,7 +14,10 @@ public class SpeedseatContext: DbContext
         return this.Settings.Find(id)?.Value;
     }
 
-    public void Set(string id, string value) {
+    public void Set(string id, string? value) {
+        if(value == null)
+            return;
+            
         var setting = this.Settings.Find(id);
         if(setting != null) {
             setting.Value = value.ToString();

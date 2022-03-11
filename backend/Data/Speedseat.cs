@@ -15,6 +15,7 @@ public class Speedseat
     private bool canSend = true;
 
     private ISubject<bool> publishPositionQueue = Subject.Synchronize(new Subject<bool>());
+    private readonly SpeedseatSettings settings;
 
     public double FrontLeftMotorPosition { get => frontLeftMotorPosition; set {
         frontLeftMotorPosition = value;
@@ -33,9 +34,15 @@ public class Speedseat
 
     public bool IsConnected { get; set; }
 
-    public Speedseat()
+    public Speedseat(SpeedseatSettings settings)
     {
-        this.publishPositionQueue.Subscribe(x => this.UpdatePosition());
+        this.publishPositionQueue.WithLatestFrom(
+            settings.FrontLeftMotorIdxObs.CombineLatest(settings.FrontRightMotorIdxObs, settings.BackMotorIdxObs)
+        ).Subscribe(x => {
+            var (frontLeftIdx, frontRightIdx, backIdx) = x.Second;
+            this.UpdatePosition(frontLeftIdx, frontRightIdx, backIdx);
+        });
+        this.settings = settings;
     }
 
     public void SetTilt(double frontTilt, double sideTilt)
@@ -67,7 +74,6 @@ public class Speedseat
             serialPort.Read(data, 0, data.Length);
             foreach(var b in data) {
                 if(b == 255) {
-                    System.Console.WriteLine($"{b}");
                     canSend = true;
                 }
             }
@@ -86,24 +92,27 @@ public class Speedseat
         this.IsConnected = false;
     }
 
-    private void UpdatePosition() {
+    private void UpdatePosition(int frontLeftIdx, int frontRightIdx, int backIdx) {
         if(this.IsConnected && this.canSend) {
-            System.Console.WriteLine("Updating position");
             this.canSend = false;
             try {
                 var (frontLeftMsb, frontLeftLsb) = ScaleToUshortRange(frontLeftMotorPosition);
                 var (frontRightMsb, frontRightLsb) = ScaleToUshortRange(frontRightMotorPosition);
                 var (backMsb, backLsb) = ScaleToUshortRange(backMotorPosition);
-                var bytes = new byte[] {0, frontLeftMsb, frontLeftLsb, frontRightMsb, frontRightLsb, backMsb, backLsb};
-                serialPort.Write(bytes, 0, 7);
-                // var response = serialPort.ReadExisting();
-                // System.Console.WriteLine(response);
-                // string msg = $"0 {(int)(this.FrontLeftMotorPosition * 180)}";
-                // serialPort.WriteLine(msg);
-                // msg = $"1 {(int)(this.FrontRightMotorPosition * 180)}";
-                // serialPort.WriteLine(msg);
-                // msg = $"2 {(int)(this.BackMotorPosition * 180)}";
-                // serialPort.WriteLine(msg);                
+
+                var bytes = new byte[7];
+                bytes[0] = 0;
+                bytes[frontLeftIdx * 2 + 1] = frontLeftMsb;
+                bytes[frontLeftIdx * 2 + 2] = frontLeftLsb;
+                bytes[frontRightIdx * 2 + 1] = frontRightMsb;
+                bytes[frontRightIdx * 2 + 2] = frontRightLsb;
+                bytes[backIdx * 2 + 1] = backMsb;
+                bytes[backIdx * 2 + 2] = backLsb;
+                serialPort.Write(bytes, 0, 7);           
+                System.Console.WriteLine($"FrontLeft(Idx{frontLeftIdx}): {frontLeftMotorPosition}%\n" +
+                                         $"FrontRight(Idx{frontRightIdx}): {frontRightMotorPosition}%\n" + 
+                                         $"Back(Idx{backIdx}): {backMotorPosition}%\n" +
+                                         $"Binary Message: {Convert.ToHexString(bytes, 0, 7)}\n");
             }
             catch {
                 this.Disconnect();

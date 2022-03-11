@@ -7,7 +7,7 @@ using Microsoft.Extensions.FileProviders;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSignalR();
 builder.Services.AddCors();
-// builder.Services.AddSingleton<SpeedseatSettings>();
+builder.Services.AddSingleton<SpeedseatSettings>();
 builder.Services.AddSingleton<Speedseat>();
 builder.Services.AddDbContext<SpeedseatContext>(options => options.UseSqlite("Data Source=speedseat.sqlite3"));
 builder.Services.AddHttpContextAccessor();
@@ -47,6 +47,7 @@ app.UseEndpoints(endpoints =>
 app.MapHub<ManualControlHub>("/manual");
 app.MapHub<ConnectionHub>("/connection");
 app.MapHub<InfoHub>("/info");
+app.MapHub<SettingsHub>("/settings");
 
 // Open in browser
 if(!app.Environment.IsDevelopment()) {

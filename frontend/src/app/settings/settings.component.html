@@ -1,1 +1,43 @@
-Settings
+<div class="container h-100">
+    <div class="row align-items-center justify-content-center">
+      <div class="col col-md-4">
+        <mat-card class="example-card mt-3">
+            <mat-card-header>    
+              <mat-card-title>Motor Mapping</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+                <div class="row align-items-start">
+                    <mat-form-field appearance="fill" class="w-100">
+                        <mat-label>Front/Left Motor Index</mat-label>
+                        <mat-select [(value)]="frontLeftMotorIdx">                        
+                          <mat-option [value]="0">0</mat-option>                    
+                          <mat-option [value]="1">1</mat-option>                    
+                          <mat-option [value]="2">2</mat-option>                    
+                        </mat-select>
+                      </mat-form-field>                    
+                </div>              
+                <div class="row align-items-start">
+                    <mat-form-field appearance="fill" class="w-100">
+                        <mat-label>Front/Right Motor Index</mat-label>
+                        <mat-select [(value)]="frontRightMotorIdx">                        
+                          <mat-option [value]="0">0</mat-option>                    
+                          <mat-option [value]="1">1</mat-option>                    
+                          <mat-option [value]="2">2</mat-option>                    
+                        </mat-select>
+                      </mat-form-field>                    
+                </div>              
+                <div class="row align-items-start">
+                    <mat-form-field appearance="fill" class="w-100">
+                        <mat-label>Back Motor Index</mat-label>
+                        <mat-select [(value)]="backMotorIdx">                        
+                          <mat-option [value]="0">0</mat-option>                    
+                          <mat-option [value]="1">1</mat-option>                    
+                          <mat-option [value]="2">2</mat-option>                    
+                        </mat-select>
+                      </mat-form-field>                    
+                </div>              
+            </mat-card-content>            
+        </mat-card>
+      </div>    
+    </div>  
+  </div>
