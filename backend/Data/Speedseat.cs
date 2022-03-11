@@ -109,9 +109,9 @@ public class Speedseat
                 bytes[backIdx * 2 + 1] = backMsb;
                 bytes[backIdx * 2 + 2] = backLsb;
                 serialPort.Write(bytes, 0, 7);           
-                System.Console.WriteLine($"FrontLeft(Idx{frontLeftIdx}): {frontLeftMotorPosition}%\n" +
-                                         $"FrontRight(Idx{frontRightIdx}): {frontRightMotorPosition}%\n" + 
-                                         $"Back(Idx{backIdx}): {backMotorPosition}%\n" +
+                System.Console.WriteLine($"FrontLeft(Idx{frontLeftIdx}): {frontLeftMotorPosition*100}%\n" +
+                                         $"FrontRight(Idx{frontRightIdx}): {frontRightMotorPosition*100}%\n" + 
+                                         $"Back(Idx{backIdx}): {backMotorPosition*100}%\n" +
                                          $"Binary Message: {Convert.ToHexString(bytes, 0, 7)}\n");
             }
             catch {
