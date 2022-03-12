@@ -76,6 +76,9 @@ public class Speedseat
                 if(b == 255) {
                     canSend = true;
                 }
+                else {
+                    System.Console.WriteLine($"Serial received: {b}");
+                }
             }
               
         };
