@@ -43,6 +43,7 @@ export class ManualControlComponent implements OnInit, OnDestroy {
   }
   public set frontTilt(value: number | null) {
     this._frontTilt = value;
+    this.data.setTilt(value?? 0, this.sideTilt ?? 0);
   }
 
   private _sideTilt: number | null = 0.5;
@@ -51,6 +52,7 @@ export class ManualControlComponent implements OnInit, OnDestroy {
   }
   public set sideTilt(value: number | null) {
     this._sideTilt = value;
+    this.data.setTilt(this.frontTilt ?? 0, value ?? 0);
   }
 
   constructor(public data: ManualControlDataService) { }

@@ -12,43 +12,55 @@ public class Speedseat
     private double backMotorPosition;
     private SerialPort serialPort;
 
-    private bool canSend = true;
-
-    private ISubject<bool> publishPositionQueue = Subject.Synchronize(new Subject<bool>());
+    private ISubject<Guid> publishPositionQueue = Subject.Synchronize(new Subject<Guid>());
+    private ISubject<bool> canPublish = Subject.Synchronize(new Subject<bool>());
     private readonly SpeedseatSettings settings;
 
     public double FrontLeftMotorPosition { get => frontLeftMotorPosition; set {
         frontLeftMotorPosition = value;
-        this.publishPositionQueue.OnNext(true);
+        this.RequestPositionPublish();
     }}
 
     public double FrontRightMotorPosition { get => frontRightMotorPosition; set {
         frontRightMotorPosition = value;
-        this.publishPositionQueue.OnNext(true);    
+        this.RequestPositionPublish();
+
     }}
 
     public double BackMotorPosition { get => backMotorPosition; set {
         backMotorPosition = value;
-        this.publishPositionQueue.OnNext(true);    
+        this.RequestPositionPublish();
+
     }}
 
     public bool IsConnected { get; set; }
 
     public Speedseat(SpeedseatSettings settings)
     {
-        this.publishPositionQueue.WithLatestFrom(
+        var publishIfPossible = publishPositionQueue
+                                    .CombineLatest(canPublish.StartWith(true))
+                                    .Where(x => x.Second)
+                                    .Select(x => x.First)
+                                    .DistinctUntilChanged();
+
+        publishIfPossible.WithLatestFrom(
             settings.FrontLeftMotorIdxObs.CombineLatest(settings.FrontRightMotorIdxObs, settings.BackMotorIdxObs)
         ).Subscribe(x => {
             var (frontLeftIdx, frontRightIdx, backIdx) = x.Second;
             this.UpdatePosition(frontLeftIdx, frontRightIdx, backIdx);
         });
+        
         this.settings = settings;
     }
 
+    // Tilt Range is 0 to 1
     public void SetTilt(double frontTilt, double sideTilt)
     {        
-        FrontLeftMotorPosition = FrontRightMotorPosition = frontTilt;
-        BackMotorPosition = 1 - frontTilt;
+        frontLeftMotorPosition = sideTilt;
+        frontRightMotorPosition = 1 - sideTilt;
+        backMotorPosition = 1 - frontTilt;
+        this.RequestPositionPublish();
+
     }
 
     public bool Connect(string port, int baudrate)
@@ -74,7 +86,7 @@ public class Speedseat
             serialPort.Read(data, 0, data.Length);
             foreach(var b in data) {
                 if(b == 255) {
-                    canSend = true;
+                    this.EnablePublishing();
                 }
                 else {
                     System.Console.WriteLine($"Serial received: {b}");
@@ -96,8 +108,8 @@ public class Speedseat
     }
 
     private void UpdatePosition(int frontLeftIdx, int frontRightIdx, int backIdx) {
-        if(this.IsConnected && this.canSend) {
-            this.canSend = false;
+        if(this.IsConnected) {
+            this.DisablePublishing();
             try {
                 var (frontLeftMsb, frontLeftLsb) = ScaleToUshortRange(frontLeftMotorPosition);
                 var (frontRightMsb, frontRightLsb) = ScaleToUshortRange(frontRightMotorPosition);
@@ -111,17 +123,32 @@ public class Speedseat
                 bytes[frontRightIdx * 2 + 2] = frontRightLsb;
                 bytes[backIdx * 2 + 1] = backMsb;
                 bytes[backIdx * 2 + 2] = backLsb;
-                serialPort.Write(bytes, 0, 7);           
                 System.Console.WriteLine($"FrontLeft(Idx{frontLeftIdx}): {frontLeftMotorPosition*100}%\n" +
                                          $"FrontRight(Idx{frontRightIdx}): {frontRightMotorPosition*100}%\n" + 
                                          $"Back(Idx{backIdx}): {backMotorPosition*100}%\n" +
                                          $"Binary Message: {Convert.ToHexString(bytes, 0, 7)}\n");
+                serialPort.Write(bytes, 0, 7);           
             }
             catch {
                 this.Disconnect();
             }
          
         }
+    }
+
+    private void RequestPositionPublish() 
+    {
+        this.publishPositionQueue.OnNext(Guid.NewGuid());
+    }
+
+    private void DisablePublishing()
+    {
+        this.canPublish.OnNext(false);
+    }
+
+    private void EnablePublishing() 
+    {
+        this.canPublish.OnNext(true);
     }
 
     private (byte msb, byte lsb) ScaleToUshortRange(double percentage) {

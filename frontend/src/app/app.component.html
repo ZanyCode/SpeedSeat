@@ -5,8 +5,13 @@
       [opened]="(isHandset$ | async) === false">
     <mat-toolbar>Menu</mat-toolbar>
     <mat-nav-list>
-      <a mat-list-item routerLink="/manual" routerLinkActive="active">
+      <a mat-list-item routerLink="/telemetry" routerLinkActive="active">
         <mat-icon>sports_esports</mat-icon>
+        Stream Telemetry        
+      </a>
+      <a mat-list-item routerLink="/manual" routerLinkActive="active">
+        <!-- <mat-icon>sports_esports</mat-icon> -->
+        <mat-icon>settings_input_component</mat-icon>
         Manual Control        
       </a>
       <a mat-list-item routerLink="/settings" routerLinkActive="active">

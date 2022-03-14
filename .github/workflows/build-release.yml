@@ -40,6 +40,8 @@ jobs:
    
     - name: Changelog
       uses: scottbrenner/generate-changelog-action@master
+      with:
+        package-dir: 'frontend/package.json'
       id: Changelog
       env:
         REPO: ${{ github.repository }}

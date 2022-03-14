@@ -34,6 +34,10 @@ export class ManualControlDataService {
     await this.connection.invoke("SetBackMotorPosition", position);
   }
 
+  public async setTilt(frontTilt: number, sideTilt: number) {
+    await this.connection.invoke("SetTilt", frontTilt, sideTilt);
+  }
+
   public async getCurrentState() {
     return await this.connection.invoke<Speedseat>("GetCurrentState");
   }
