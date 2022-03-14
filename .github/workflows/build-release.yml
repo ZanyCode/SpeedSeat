@@ -42,6 +42,7 @@ jobs:
       uses: scottbrenner/generate-changelog-action@master
       with:
         package-dir: 'frontend/package.json'
+        allow-unknown: true
       id: Changelog
       env:
         REPO: ${{ github.repository }}
