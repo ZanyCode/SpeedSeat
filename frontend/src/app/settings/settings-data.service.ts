@@ -33,7 +33,7 @@ export class SettingsDataService {
   }
 
   public async init() {
-    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}settings`).build();   
+    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/settings`).build();   
     await this.connection.start();
   }
 

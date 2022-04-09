@@ -25,7 +25,7 @@ public class InfoHub : Hub
         var host = Dns.GetHostEntry(Dns.GetHostName());
         foreach (var ip in host.AddressList)
         {
-            if (ip.AddressFamily == AddressFamily.InterNetwork)
+            if (ip.AddressFamily == AddressFamily.InterNetwork && !ip.ToString().EndsWith(".1"))
             {
                 var ipstr = ip.ToString();
                 return $"http://{ipstr}:{(isDevelopment ? 4200 : 5000)}";

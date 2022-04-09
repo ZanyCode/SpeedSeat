@@ -10,7 +10,7 @@ export class AppDataService {
   isConnected: boolean = false;
   
   public async init() {
-    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}info`).build();
+    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/info`).build();
     await this.connection.start().then(() => this.isConnected = true);   
   }
 

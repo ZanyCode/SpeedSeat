@@ -30,7 +30,7 @@ export class ConnectionDataService {
   }
 
   public async init() {
-    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}connection`).build();   
+    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/connection`).build();   
     await this.connection.start();
   }
 

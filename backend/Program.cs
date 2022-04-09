@@ -34,21 +34,30 @@ try {
         o.AllowCredentials();
         o.SetIsOriginAllowed(origin => true);
     });
-
-    app.UseStaticFiles(new StaticFileOptions
+    // app.UseStaticFiles();
+    // app.UseSpa(builder => {
+    //     builder.Options.DefaultPageStaticFileOptions = new StaticFileOptions
+    //     {
+    //         FileProvider = new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot")
+    //     };
+    // });
+    app.UseSpaStaticFiles(new StaticFileOptions
     {
         FileProvider = new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot")
     });
-
-    app.UseRouting();
-    app.UseEndpoints(endpoints =>
-    {
-        endpoints.MapGet("/", async http => { http.Response.Redirect("/index.html"); });
+    app.UseDefaultFiles(new DefaultFilesOptions {
+        FileProvider = new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot")
     });
-    app.MapHub<ManualControlHub>("/manual");
-    app.MapHub<ConnectionHub>("/connection");
-    app.MapHub<InfoHub>("/info");
-    app.MapHub<SettingsHub>("/settings");
+    app.UseSpa(spa => {
+        spa.Options.DefaultPageStaticFileOptions = new StaticFileOptions {
+            FileProvider = new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot")
+        };
+    });
+
+    app.MapHub<ManualControlHub>("/hub/manual");
+    app.MapHub<ConnectionHub>("/hub/connection");
+    app.MapHub<InfoHub>("/hub/info");
+    app.MapHub<SettingsHub>("/hub/settings");
 
     // Open in browser
     if(!app.Environment.IsDevelopment()) {
