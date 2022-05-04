@@ -50,6 +50,11 @@ public class Speedseat
             this.UpdatePosition(frontLeftIdx, frontRightIdx, backIdx);
         });
         
+        // automatically re-enable publishing if there was no response from the controller for at least x seconds
+        this.canPublish.Throttle(TimeSpan.FromSeconds(1)).Where(x => !x).Subscribe(x => {
+            this.EnablePublishing();}
+            );
+
         this.settings = settings;
     }
 
@@ -94,8 +99,14 @@ public class Speedseat
             }
               
         };
+
+        serialPort.ErrorReceived += (sender, args) => {
+            this.Disconnect();
+        };
+
         serialPort.Open();        
-        IsConnected = true;   
+        IsConnected = true;  
+        this.EnablePublishing(); 
         return true;   
     }
 
@@ -104,6 +115,7 @@ public class Speedseat
             return;
         
         this.serialPort.Close();
+        this.serialPort.Dispose();
         this.IsConnected = false;
     }
 
@@ -129,7 +141,7 @@ public class Speedseat
                                          $"Binary Message: {Convert.ToHexString(bytes, 0, 7)}\n");
                 serialPort.Write(bytes, 0, 7);           
             }
-            catch {
+            catch(Exception e) {
                 this.Disconnect();
             }
          

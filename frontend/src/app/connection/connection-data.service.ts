@@ -13,8 +13,8 @@ export class ConnectionDataService {
   constructor() {
   }
  
-  public async connect(port: string) {
-    await this.connection.invoke("Connect", port, 9600);
+  public async connect(port: string, baudRate: number) {
+    await this.connection.invoke("Connect", port, baudRate);
   }
 
   public async disconnect() {
@@ -23,6 +23,10 @@ export class ConnectionDataService {
 
   public async getPorts() {
     return await this.connection.invoke<string[]>("GetPorts");
+  }
+
+  public async getBaudRate() {
+    return await this.connection.invoke<number>("GetBaudRate");
   }
 
   public async getIsConnected() {

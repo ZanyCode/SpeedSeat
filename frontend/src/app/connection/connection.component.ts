@@ -9,13 +9,14 @@ import { ConnectionDataService } from './connection-data.service';
 export class ConnectionComponent implements OnInit, OnDestroy {
   ports: string[] = [];
   selectedPort: string | undefined = undefined;
+  selectedBaudRate: number = 9600;
   isConnected = false;
 
   constructor(public data: ConnectionDataService) { }
 
   async connect() {
     if(this.selectedPort){
-      await this.data.connect(this.selectedPort);
+      await this.data.connect(this.selectedPort, this.selectedBaudRate);
       this.isConnected = true;    
     }
   }
@@ -34,6 +35,7 @@ export class ConnectionComponent implements OnInit, OnDestroy {
     this.data.init().then(async () => {
       this.ports = await this.data.getPorts();
       this.selectedPort = this.ports.length > 0? this.ports[0] : undefined;
+      this.selectedBaudRate = await this.data.getBaudRate();
       this.isConnected = await this.data.getIsConnected();
     });
   }

@@ -18,6 +18,8 @@ public class SpeedseatSettings {
     [JsonIgnore]
     public IObservable<int> BackMotorIdxObs => GetObservable<int>(nameof(BackMotorIdx), BackMotorIdx);
     public int BackMotorIdx { get => GetValue<int>(2); set => SetValue(value.ToString()); }
+
+    public int BaudRate {get => GetValue<int>(9600); set => SetValue(value.ToString()); }
   
 
     /* Implementation of technical noise */
@@ -34,7 +36,7 @@ public class SpeedseatSettings {
             using(var outerScope = scopeFactory.CreateScope())
             {
                 var outerContext = outerScope.ServiceProvider.GetRequiredService<SpeedseatContext>();
-                var subject = Subject.Synchronize<string?>(new BehaviorSubject<string?>(outerContext.Get(id) ?? defaultValue.ToString()));
+                var subject = Subject.Synchronize<string?>(new BehaviorSubject<string?>(outerContext.Get(id) ?? defaultValue?.ToString()));
 
                 subject.Where(x => x != null).Subscribe(x => {
                     using(var scope = scopeFactory.CreateScope()) {
@@ -54,7 +56,7 @@ public class SpeedseatSettings {
     }
 
     private void SetValue(object value, [CallerMemberName]string id = "") {
-        GetSubject(id).OnNext(value.ToString());
+        GetSubject(id)?.OnNext(value.ToString());
     }   
 
     private T GetValue<T>(T defaultValue = default(T), [CallerMemberName]string id = "") {

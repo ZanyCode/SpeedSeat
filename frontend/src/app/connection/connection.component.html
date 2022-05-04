@@ -19,9 +19,27 @@
                       <button (click)="refreshPorts()" mat-icon-button>
                         <mat-icon>refresh</mat-icon>
                       </button>
-                    </div>
-                    
-                </div>              
+                    </div>                    
+                </div>         
+                <div class="row align-items-start">
+                  <div class="col">
+                    <mat-form-field appearance="fill" class="w-100">
+                      <mat-label>Select Baud Rate</mat-label>
+                      <mat-select [(value)]="selectedBaudRate">                        
+                        <mat-option [value]="9600">9600</mat-option>                    
+                        <mat-option [value]="14400">14400</mat-option>                    
+                        <mat-option [value]="19200">19200</mat-option>                    
+                        <mat-option [value]="28800">28800</mat-option>                    
+                        <mat-option [value]="38400">38400</mat-option>                    
+                        <mat-option [value]="57600">57600</mat-option>                    
+                        <mat-option [value]="76800">76800</mat-option>                    
+                        <mat-option [value]="115200">115200</mat-option>                    
+                        <mat-option [value]="230400">230400</mat-option>                    
+                        <mat-option [value]="250000">250000</mat-option>                    
+                      </mat-select>
+                    </mat-form-field>
+                  </div>                        
+              </div>                  
             </mat-card-content> 
             <mat-divider inset></mat-divider>
             <mat-card-actions>

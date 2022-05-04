@@ -5,11 +5,13 @@ using System.IO.Ports;
 public class ConnectionHub : Hub
 {
     private readonly Speedseat seat;
+    private readonly SpeedseatSettings settings;
     private readonly IHubContext<ConnectionHub> context;
 
-    public ConnectionHub(Speedseat seat, IHubContext<ConnectionHub> context)
+    public ConnectionHub(Speedseat seat, SpeedseatSettings settings, IHubContext<ConnectionHub> context)
     {
         this.seat = seat;
+        this.settings = settings;
         this.context = context;
     }
 
@@ -24,7 +26,13 @@ public class ConnectionHub : Hub
 
     public bool Connect(string port, int baudrate)
     {
+        settings.BaudRate = baudrate;
         return seat.Connect(port, baudrate);       
+    }
+
+    public int GetBaudRate()
+    {
+        return settings.BaudRate;
     }
 
     public void Disconnect()
