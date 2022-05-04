@@ -13,6 +13,7 @@ try {
     builder.Services.AddSingleton<SpeedseatSettings>();
     builder.Services.AddSingleton<Speedseat>();
     builder.Services.AddDbContext<SpeedseatContext>(options => options.UseSqlite("Data Source=speedseat.sqlite3"));
+    // builder.Services.AddHostedService<F12020TelemetryAdaptor>();
     builder.Services.AddHttpContextAccessor();
     builder.WebHost.ConfigureKestrel(options =>
     {

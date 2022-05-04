@@ -9,6 +9,8 @@ import { ManualControlDataService } from './manual-control-data.service';
 export class ManualControlComponent implements OnInit, OnDestroy {
   public isInitialized = false;
   public isConnected = false;
+  public isMotorPositionValid = true;
+  public isTiltPositionValid = true;
 
   private _frontLeftMotorPosition: number | null = 0.5;
   public get frontLeftMotorPosition(): number | null {
@@ -64,6 +66,8 @@ export class ManualControlComponent implements OnInit, OnDestroy {
       this._frontRightMotorPosition = seat.frontRightMotorPosition;
       this._backMotorPosition = seat.backMotorPosition;
       this.isConnected = seat.isConnected;
+      this.isMotorPositionValid = true;
+      this.isTiltPositionValid = true;
       this.isInitialized = true;
     });
   }
