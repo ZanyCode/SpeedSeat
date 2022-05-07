@@ -2,6 +2,7 @@ using System;
 using System.IO.Ports;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using Microsoft.AspNetCore.SignalR;
 
 public class Speedseat
 {
@@ -10,11 +11,11 @@ public class Speedseat
     private double frontLeftMotorPosition;
     private double frontRightMotorPosition;
     private double backMotorPosition;
-    private SerialPort serialPort;
 
     private ISubject<Guid> publishPositionQueue = Subject.Synchronize(new Subject<Guid>());
     private ISubject<bool> canPublish = Subject.Synchronize(new Subject<bool>());
     private readonly SpeedseatSettings settings;
+    private readonly ISerialConnection connection;
 
     public double FrontLeftMotorPosition { get => frontLeftMotorPosition; set {
         frontLeftMotorPosition = value;
@@ -33,14 +34,11 @@ public class Speedseat
 
     }}
 
-    public bool IsConnected { get; set; }
+    public bool IsConnected { get => this.connection.IsConnected; }
 
-    public Speedseat(SpeedseatSettings settings)
+    public Speedseat(SpeedseatSettings settings, ISerialConnection connection)
     {
-        var publishIfPossible = publishPositionQueue
-                                    .CombineLatest(canPublish.StartWith(true))
-                                    .Where(x => x.Second)
-                                    .Select(x => x.First)
+        var publishIfPossible = publishPositionQueue                                   
                                     .DistinctUntilChanged();
 
         publishIfPossible.WithLatestFrom(
@@ -48,14 +46,10 @@ public class Speedseat
         ).Subscribe(x => {
             var (frontLeftIdx, frontRightIdx, backIdx) = x.Second;
             this.UpdatePosition(frontLeftIdx, frontRightIdx, backIdx);
-        });
-        
-        // automatically re-enable publishing if there was no response from the controller for at least x seconds
-        this.canPublish.Throttle(TimeSpan.FromSeconds(1)).Where(x => !x).Subscribe(x => {
-            this.EnablePublishing();}
-            );
+        });        
 
         this.settings = settings;
+        this.connection = connection;
     }
 
     // Tilt Range is 0 to 1
@@ -65,14 +59,96 @@ public class Speedseat
         frontRightMotorPosition = 1 - sideTilt;
         backMotorPosition = 1 - frontTilt;
         this.RequestPositionPublish();
-
     }
 
     public bool Connect(string port, int baudrate)
     {
-        if(IsConnected)
-            return true;
+        this.connection.Connect(port, baudrate);
+        return true;      
+    }
 
+    public void Disconnect() {
+        this.connection.Disconnect();        
+    }
+
+    private void UpdatePosition(int frontLeftIdx, int frontRightIdx, int backIdx) {
+        var (frontLeftMsb, frontLeftLsb) = ScaleToUshortRange(frontLeftMotorPosition);
+        var (frontRightMsb, frontRightLsb) = ScaleToUshortRange(frontRightMotorPosition);
+        var (backMsb, backLsb) = ScaleToUshortRange(backMotorPosition);
+
+        var bytes = new byte[7];
+        bytes[0] = 0;
+        bytes[frontLeftIdx * 2 + 1] = frontLeftMsb;
+        bytes[frontLeftIdx * 2 + 2] = frontLeftLsb;
+        bytes[frontRightIdx * 2 + 1] = frontRightMsb;
+        bytes[frontRightIdx * 2 + 2] = frontRightLsb;
+        bytes[backIdx * 2 + 1] = backMsb;
+        bytes[backIdx * 2 + 2] = backLsb;
+        System.Console.WriteLine($"FrontLeft(Idx{frontLeftIdx}): {frontLeftMotorPosition*100}%\n" +
+                                    $"FrontRight(Idx{frontRightIdx}): {frontRightMotorPosition*100}%\n" + 
+                                    $"Back(Idx{backIdx}): {backMotorPosition*100}%\n" +
+                                    $"Binary Message: {Convert.ToHexString(bytes, 0, 7)}\n");
+                                    
+        this.connection.Write(bytes);
+    }
+
+    private void RequestPositionPublish() 
+    {
+        this.publishPositionQueue.OnNext(Guid.NewGuid());
+    }
+
+    private (byte msb, byte lsb) ScaleToUshortRange(double percentage) {
+        ushort value = (ushort)Math.Clamp(percentage * ushort.MaxValue, 0, ushort.MaxValue);
+        var bytes = BitConverter.GetBytes(value);
+        return (bytes[1], bytes[0]);
+    }
+}
+
+public interface ISerialConnection
+{
+    void Connect(string port, int baudrate);
+    void Disconnect();
+
+    bool Write(byte[] payload);
+
+    bool IsConnected { get; }
+
+}
+
+public class SerialConnection : ISerialConnection
+{
+    private Dictionary<byte, string> messages = new Dictionary<byte, string> {
+        {1, "X-Achse Min Position überschritten"},
+        {2, "X-Achse Max Position überschritten"},
+        {3, "X-Achse Endstop ausgelöst"},
+        {4, "X-Achse Störung Treiber"},
+
+        {11, "Y-Achse Min Position überschritten"},
+        {12, "Y-Achse Max Position überschritten"},
+        {13, "Y-Achse Endstop ausgelöst"},
+        {14, "Y-Achse Störung Treiber"},
+
+        {21, "Z-Achse Min Position überschritten"},
+        {22, "Z-Achse Max Position überschritten"},
+        {23, "Z-Achse Endstop ausgelöst"},
+        {24, "Z-Achse Störung Treiber"},
+    };
+
+    private SerialPort? serialPort;
+
+    private SemaphoreSlim semaphore = new SemaphoreSlim(1);
+    private readonly InfoHub infoHub;
+    private readonly IHubContext<InfoHub> hubContext;
+
+    public bool IsConnected => this.serialPort != null;
+
+    public SerialConnection(IHubContext<InfoHub> hubContext)
+    {
+        this.hubContext = hubContext;
+    }
+
+    public void Connect(string port, int baudrate)
+    {
         // Create a new SerialPort object with default settings.
         serialPort = new SerialPort(port);
 
@@ -91,11 +167,13 @@ public class Speedseat
             serialPort.Read(data, 0, data.Length);
             foreach(var b in data) {
                 if(b == 255) {
-                    this.EnablePublishing();
-                }
+                    // this.hubContext.Clients.All.SendAsync("log", "jooooooooo");
+                    this.semaphore.Release();
+                }  
                 else {
+                    this.hubContext.Clients.All.SendAsync("log", GetMessageFromCode(b));
                     System.Console.WriteLine($"Serial received: {b}");
-                }
+                }               
             }
               
         };
@@ -105,67 +183,43 @@ public class Speedseat
         };
 
         serialPort.Open();        
-        IsConnected = true;  
-        this.EnablePublishing(); 
-        return true;   
     }
 
-    public void Disconnect() {
-        if(!this.IsConnected)
-            return;
-        
-        this.serialPort.Close();
-        this.serialPort.Dispose();
-        this.IsConnected = false;
+    public void Disconnect()
+    {
+        this.serialPort?.Dispose();
+        this.serialPort = null;
     }
 
-    private void UpdatePosition(int frontLeftIdx, int frontRightIdx, int backIdx) {
-        if(this.IsConnected) {
-            this.DisablePublishing();
-            try {
-                var (frontLeftMsb, frontLeftLsb) = ScaleToUshortRange(frontLeftMotorPosition);
-                var (frontRightMsb, frontRightLsb) = ScaleToUshortRange(frontRightMotorPosition);
-                var (backMsb, backLsb) = ScaleToUshortRange(backMotorPosition);
+    public bool Write(byte[] payload)
+    {
+        if(serialPort == null)
+            return false;
 
-                var bytes = new byte[7];
-                bytes[0] = 0;
-                bytes[frontLeftIdx * 2 + 1] = frontLeftMsb;
-                bytes[frontLeftIdx * 2 + 2] = frontLeftLsb;
-                bytes[frontRightIdx * 2 + 1] = frontRightMsb;
-                bytes[frontRightIdx * 2 + 2] = frontRightLsb;
-                bytes[backIdx * 2 + 1] = backMsb;
-                bytes[backIdx * 2 + 2] = backLsb;
-                System.Console.WriteLine($"FrontLeft(Idx{frontLeftIdx}): {frontLeftMotorPosition*100}%\n" +
-                                         $"FrontRight(Idx{frontRightIdx}): {frontRightMotorPosition*100}%\n" + 
-                                         $"Back(Idx{backIdx}): {backMotorPosition*100}%\n" +
-                                         $"Binary Message: {Convert.ToHexString(bytes, 0, 7)}\n");
-                serialPort.Write(bytes, 0, 7);           
+        try 
+        {
+            serialPort.Write(payload, 0, payload.Length); 
+            if(!this.semaphore.Wait(2000))
+            {
+                throw new Exception("Did not receive appropriate confirmation byte from controller within 2 seconds.");
             }
-            catch(Exception e) {
-                this.Disconnect();
-            }
-         
+
+            return true;
+        }  
+        catch
+        {
+            this.Disconnect();
+            return false;  
         }
     }
 
-    private void RequestPositionPublish() 
+    private string GetMessageFromCode(byte code)
     {
-        this.publishPositionQueue.OnNext(Guid.NewGuid());
-    }
-
-    private void DisablePublishing()
-    {
-        this.canPublish.OnNext(false);
-    }
-
-    private void EnablePublishing() 
-    {
-        this.canPublish.OnNext(true);
-    }
-
-    private (byte msb, byte lsb) ScaleToUshortRange(double percentage) {
-        ushort value = (ushort)Math.Clamp(percentage * ushort.MaxValue, 0, ushort.MaxValue);
-        var bytes = BitConverter.GetBytes(value);
-        return (bytes[1], bytes[0]);
+        if(!this.messages.ContainsKey(code))
+        {
+            return $"Unknown message with code '{code}'";
+        }
+        else 
+            return $"{messages[code]} ({code})";
     }
 }

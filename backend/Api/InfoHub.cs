@@ -15,6 +15,11 @@ public class InfoHub : Hub
         this.env = env;
     }
 
+    public void SendLogMessage(string message) 
+    {
+        this.Clients.All.SendAsync("log", message);
+    }
+
     public string GetOwnUrl() 
     {
         return GetLocalIPAddress(env.IsDevelopment());

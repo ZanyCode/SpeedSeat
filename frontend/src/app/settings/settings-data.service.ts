@@ -2,13 +2,7 @@ import { Injectable } from '@angular/core';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { combineLatest, distinctUntilChanged, from, Observable, pairwise, scan, Subject, throttleTime } from 'rxjs';
 import { environment } from 'src/environments/environment';
-
-export interface SpeedseatSettings
-{
-  frontLeftMotorIdx: number;
-  frontRightMotorIdx: number;
-  backMotorIdx: number;
-}
+import { SpeedseatSettings } from '../models/speedseat-settings';
 
 @Injectable({
   providedIn: 'root'

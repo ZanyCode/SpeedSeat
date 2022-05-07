@@ -17,6 +17,7 @@ import {MatCardModule} from '@angular/material/card';
 import {MatSliderModule} from '@angular/material/slider';
 import {MatSelectModule} from '@angular/material/select';
 import { QRCodeModule } from 'angularx-qrcode';
+import { TelemetryComponent } from './telemetry/telemetry.component';
 
 
 
@@ -26,6 +27,7 @@ import { QRCodeModule } from 'angularx-qrcode';
     ManualControlComponent,
     SettingsComponent,
     ConnectionComponent,
+    TelemetryComponent,
   ],
   imports: [
     BrowserModule,

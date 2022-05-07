@@ -12,6 +12,7 @@ import { AppDataService } from './app-data.service';
 export class AppComponent implements OnInit, OnDestroy {
   title = 'SpeedSeat';
   url: string | undefined = undefined;
+  log = '[LOG]';
 
   isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset)
     .pipe(
@@ -23,9 +24,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
  
   ngOnInit(): void {
-    this.data.init().then(async () =>{
+    this.data.init(this.onLogReceived).then(async () =>{
       this.url = await this.data.GetOwnUrl();
     });
+  } 
+
+  onLogReceived = (message: string) => {
+    this.log += `\n[${new Date().toLocaleString()}]: ${message}`;
   }
 
   ngOnDestroy(): void {

@@ -37,7 +37,12 @@
       <span>SpeedSeat</span>
     </mat-toolbar>
     <div class="col">
-      <router-outlet></router-outlet>
+      <div class="h-75">
+        <router-outlet></router-outlet>
+      </div>
+      <div class="h-25">
+        <textarea #textarea [scrollTop]="textarea.scrollHeight" class="w-75 h-75" [value]='log'></textarea>
+      </div>
       <div class="position-absolute bottom-0 end-0 " *ngIf="url && !(isHandset$ | async)">
         <mat-card class="me-3 mb-3">
           <mat-card-header>

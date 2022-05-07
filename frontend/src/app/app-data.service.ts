@@ -9,9 +9,10 @@ export class AppDataService {
   connection!: HubConnection;
   isConnected: boolean = false;
   
-  public async init() {
+  public async init(logCallback: (message: string) => void) {
     this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/info`).build();
     await this.connection.start().then(() => this.isConnected = true);   
+    this.connection.on('log', logCallback);
   }
 
   public async GetOwnUrl() {

@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 
 public class SpeedseatSettings {
-    /* Definition of reactive settings */
+    /* Definition of Motor Indexes */
     [JsonIgnore]
     public IObservable<int> FrontLeftMotorIdxObs => GetObservable<int>(nameof(FrontLeftMotorIdx), FrontLeftMotorIdx);
     public int FrontLeftMotorIdx { get => GetValue<int>(0); set => SetValue(value.ToString()); }
@@ -19,10 +19,18 @@ public class SpeedseatSettings {
     public IObservable<int> BackMotorIdxObs => GetObservable<int>(nameof(BackMotorIdx), BackMotorIdx);
     public int BackMotorIdx { get => GetValue<int>(2); set => SetValue(value.ToString()); }
 
+
+    /* Definition of Telemetry Stream Settings */
+    [JsonIgnore]
+    public IObservable<int> FrontTiltGforceMultiplierObs => GetObservable<int>(nameof(FrontTiltGforceMultiplier), FrontTiltGforceMultiplier);
+    public int FrontTiltGforceMultiplier { get => GetValue<int>(2); set => SetValue(value.ToString()); }
+
+
+    /* Definition of Misc Settings */
     public int BaudRate {get => GetValue<int>(9600); set => SetValue(value.ToString()); }
   
 
-    /* Implementation of technical noise */
+    /* Implementation of boilerplate */
     private ConcurrentDictionary<string, ISubject<string?>> subjects = new ConcurrentDictionary<string, ISubject<string?>>();
     private readonly IServiceScopeFactory scopeFactory;
 
