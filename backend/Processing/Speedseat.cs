@@ -16,6 +16,7 @@ public class Speedseat
     private ISubject<bool> canPublish = Subject.Synchronize(new Subject<bool>());
     private readonly SpeedseatSettings settings;
     private readonly ISerialConnection connection;
+    private readonly IHubContext<InfoHub> hubContext;
 
     public double FrontLeftMotorPosition { get => frontLeftMotorPosition; set {
         frontLeftMotorPosition = value;
@@ -36,7 +37,7 @@ public class Speedseat
 
     public bool IsConnected { get => this.connection.IsConnected; }
 
-    public Speedseat(SpeedseatSettings settings, ISerialConnection connection)
+    public Speedseat(SpeedseatSettings settings, ISerialConnection connection, IHubContext<InfoHub> hubContext)
     {
         var publishIfPossible = publishPositionQueue                                   
                                     .DistinctUntilChanged();
@@ -50,6 +51,7 @@ public class Speedseat
 
         this.settings = settings;
         this.connection = connection;
+        this.hubContext = hubContext;
     }
 
     // Tilt Range is 0 to 1
@@ -83,13 +85,22 @@ public class Speedseat
         bytes[frontRightIdx * 2 + 1] = frontRightMsb;
         bytes[frontRightIdx * 2 + 2] = frontRightLsb;
         bytes[backIdx * 2 + 1] = backMsb;
-        bytes[backIdx * 2 + 2] = backLsb;
-        System.Console.WriteLine($"FrontLeft(Idx{frontLeftIdx}): {frontLeftMotorPosition*100}%\n" +
-                                    $"FrontRight(Idx{frontRightIdx}): {frontRightMotorPosition*100}%\n" + 
-                                    $"Back(Idx{backIdx}): {backMotorPosition*100}%\n" +
-                                    $"Binary Message: {Convert.ToHexString(bytes, 0, 7)}\n");
+        bytes[backIdx * 2 + 2] = backLsb;        
                                     
-        this.connection.Write(bytes);
+        if(this.connection.Write(bytes))
+        {
+            System.Console.WriteLine($"FrontLeft(Idx{frontLeftIdx}): {frontLeftMotorPosition*100}%\n" +
+                $"FrontRight(Idx{frontRightIdx}): {frontRightMotorPosition*100}%\n" + 
+                $"Back(Idx{backIdx}): {backMotorPosition*100}%\n" +
+                $"Binary Message: {Convert.ToHexString(bytes, 0, 7)}\n");
+        }
+        else
+        {
+            string error = "Value wasn't written since no response from controller was received. Connection closed, please reconnect manually.";
+            System.Console.WriteLine(error);
+            this.hubContext.Clients.All.SendAsync("log", error);
+        }
+      
     }
 
     private void RequestPositionPublish() 
@@ -137,7 +148,6 @@ public class SerialConnection : ISerialConnection
     private SerialPort? serialPort;
 
     private SemaphoreSlim semaphore = new SemaphoreSlim(1);
-    private readonly InfoHub infoHub;
     private readonly IHubContext<InfoHub> hubContext;
 
     public bool IsConnected => this.serialPort != null;
@@ -167,7 +177,6 @@ public class SerialConnection : ISerialConnection
             serialPort.Read(data, 0, data.Length);
             foreach(var b in data) {
                 if(b == 255) {
-                    // this.hubContext.Clients.All.SendAsync("log", "jooooooooo");
                     this.semaphore.Release();
                 }  
                 else {
@@ -182,13 +191,16 @@ public class SerialConnection : ISerialConnection
             this.Disconnect();
         };
 
-        serialPort.Open();        
+        serialPort.Open();    
+        this.hubContext.Clients.All.SendAsync("log", $"Successfully connected to port {port} with baud rate {baudrate}");    
     }
 
     public void Disconnect()
-    {
+    {        
+        this.semaphore.Release();
         this.serialPort?.Dispose();
         this.serialPort = null;
+        this.hubContext.Clients.All.SendAsync("log", $"Connection to Serial Port closed");    
     }
 
     public bool Write(byte[] payload)
@@ -198,12 +210,11 @@ public class SerialConnection : ISerialConnection
 
         try 
         {
-            serialPort.Write(payload, 0, payload.Length); 
             if(!this.semaphore.Wait(2000))
             {
                 throw new Exception("Did not receive appropriate confirmation byte from controller within 2 seconds.");
             }
-
+            serialPort.Write(payload, 0, payload.Length);            
             return true;
         }  
         catch

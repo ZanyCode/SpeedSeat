@@ -23,8 +23,9 @@
         Connection
       </a>
     </mat-nav-list>
+    <qrcode class="position-absolute bottom-0 start-0" *ngIf="url && !(isHandset$ | async)" [qrdata]="url" [width]="180" [errorCorrectionLevel]="'M'"></qrcode>
   </mat-sidenav>
-  <mat-sidenav-content class="d-flex flex-column">
+  <mat-sidenav-content class="d-flex flex-column overflow-hidden">
     <mat-toolbar color="primary">
       <button
         type="button"
@@ -41,18 +42,8 @@
         <router-outlet></router-outlet>
       </div>
       <div class="h-25">
-        <textarea #textarea [scrollTop]="textarea.scrollHeight" class="w-75 h-75" [value]='log'></textarea>
+        <textarea disabled="true" #textarea [scrollTop]="textarea.scrollHeight" class="w-100 h-100" [value]='log'></textarea>
       </div>
-      <div class="position-absolute bottom-0 end-0 " *ngIf="url && !(isHandset$ | async)">
-        <mat-card class="me-3 mb-3">
-          <mat-card-header>
-            <mat-card-title>Scan for Mobile Access</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <qrcode [qrdata]="url" [width]="256" [errorCorrectionLevel]="'M'"></qrcode>
-          </mat-card-content>
-        </mat-card>
-      </div>    
     </div>
   </mat-sidenav-content>
 </mat-sidenav-container>
