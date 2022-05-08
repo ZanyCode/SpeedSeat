@@ -1,28 +1,96 @@
 using System;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using F12020Telemetry;
+using Microsoft.AspNetCore.SignalR;
 
-public class F12020TelemetryAdaptor : IHostedService
+public class F12020TelemetryAdaptor
 {
     private readonly Speedseat seat;
+    private readonly SpeedseatSettings settings;
+    private readonly IHubContext<TelemetryHub> telemetryHubContext;
+    private bool isStreaming = false;
 
-    public F12020TelemetryAdaptor(Speedseat seat)
+    public bool IsStreaming {get => isStreaming;}
+
+    private F12020TelemetryClient client;
+
+    private ISubject<PacketMotionData> updateRequestSubject = new Subject<PacketMotionData>();
+
+    private DateTime lastFrontendTelemetryUpdate = DateTime.Now;
+
+    private List<Datapoint> frontTiltTelemetry = new List<Datapoint>();
+    private List<Datapoint> sideTiltTelemetry = new List<Datapoint>();
+
+    public F12020TelemetryAdaptor(Speedseat seat, SpeedseatSettings settings, IHubContext<TelemetryHub> telemetryHubContext)
     {
         this.seat = seat;
+        this.settings = settings;
+        this.telemetryHubContext = telemetryHubContext;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public async void StartStreaming()
     {
-        var client = new F12020TelemetryClient(20777);
-        client.OnMotionDataReceive += (data) =>  {
-            var first = data.carMotionData.ElementAt(data.header.playerCarIndex);
-            var longForce = (first.gForceLongitudinal >= 0? 1 : -1) * (Math.Abs(first.gForceLongitudinal) / 6) + 0.5;
-            var latForce = (first.gForceLateral >= 0? 1 : -1) * (Math.Abs(first.gForceLateral) / 6) + 0.5;
-            System.Console.WriteLine($"{latForce}, {longForce}, {first.gForceVertical}");
-            seat.SetTilt(longForce, latForce);
+        this.isStreaming = true;
+
+        if(client != null)
+            return;
+        
+        updateRequestSubject
+            .CombineLatest(
+                settings.FrontTiltGforceMultiplierObs, 
+                settings.FrontTiltOutputCapObs,
+                settings.FrontTiltReverseObs,
+                settings.SideTiltGforceMultiplierObs,
+                settings.SideTiltOutputCapObs,
+                settings.SideTiltReverseObs)
+            .Subscribe(x => UpdateSeatPosition(x.First, x.Second, x.Third, x.Fourth, x.Fifth, x.Sixth, x.Seventh));
+
+        client = new F12020TelemetryClient(20777);
+        client.OnMotionDataReceive += (data) => {
+            if(this.isStreaming)
+                updateRequestSubject.OnNext(data);
         };
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken)
+    private void UpdateSeatPosition(
+        PacketMotionData motion, 
+        double frontTiltGForceMultiplier,
+        double frontTiltOutputCap,
+        bool frontTiltReverse,
+        double sideTiltGForceMultiplier,
+        double sideTiltOutputCap,
+        bool sideTiltReverse)
     {
+        var first = motion.carMotionData.ElementAt(motion.header.playerCarIndex);      
+        var frontTilt = Math.Clamp(first.gForceLongitudinal * frontTiltGForceMultiplier, -frontTiltOutputCap, frontTiltOutputCap) * (frontTiltReverse? -1 : 1);
+        var sideTilt = Math.Clamp(first.gForceLateral * sideTiltGForceMultiplier, -sideTiltOutputCap, sideTiltOutputCap) * (sideTiltReverse? -1 : 1);
+        System.Console.WriteLine($"{frontTilt}, {sideTilt}, {first.gForceVertical}");
+        seat.SetTilt(frontTilt, sideTilt);
+        SendTelemetryToFrontend(frontTilt, sideTilt);
     }
+
+    private void SendTelemetryToFrontend(double frontTilt, double sideTilt)
+    {
+        this.frontTiltTelemetry.Add(new Datapoint {X = DateTime.Now, Y = frontTilt});
+        this.sideTiltTelemetry.Add(new Datapoint {X = DateTime.Now, Y = sideTilt});
+        if((DateTime.Now - lastFrontendTelemetryUpdate).TotalMilliseconds > 250)
+        {
+            this.telemetryHubContext.Clients.All.SendAsync("updateTelemetry", frontTiltTelemetry.ToArray(), sideTiltTelemetry.ToArray());
+            this.frontTiltTelemetry.Clear();
+            this.sideTiltTelemetry.Clear();
+            this.lastFrontendTelemetryUpdate = DateTime.Now;
+        }
+    }
+
+    public void StopStreaming()
+    {
+        this.isStreaming = false;
+    }
+}
+
+class Datapoint
+{
+    public DateTime X { get; set; }
+    public double Y { get; set; }
 }

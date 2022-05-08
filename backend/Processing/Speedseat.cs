@@ -54,12 +54,12 @@ public class Speedseat
         this.hubContext = hubContext;
     }
 
-    // Tilt Range is 0 to 1
+    // Tilt Range is -1  to 1
     public void SetTilt(double frontTilt, double sideTilt)
     {        
-        frontLeftMotorPosition = sideTilt;
-        frontRightMotorPosition = 1 - sideTilt;
-        backMotorPosition = 1 - frontTilt;
+        frontLeftMotorPosition = (sideTilt + 1) / 2.0;
+        frontRightMotorPosition = 1 - frontLeftMotorPosition;
+        backMotorPosition = 1 - (frontTilt + 1) / 2.0;
         this.RequestPositionPublish();
     }
 
@@ -210,6 +210,7 @@ public class SerialConnection : ISerialConnection
 
         try 
         {
+            System.Console.WriteLine(this.semaphore.CurrentCount);
             if(!this.semaphore.Wait(2000))
             {
                 throw new Exception("Did not receive appropriate confirmation byte from controller within 2 seconds.");

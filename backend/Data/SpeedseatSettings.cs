@@ -22,8 +22,36 @@ public class SpeedseatSettings {
 
     /* Definition of Telemetry Stream Settings */
     [JsonIgnore]
-    public IObservable<int> FrontTiltGforceMultiplierObs => GetObservable<int>(nameof(FrontTiltGforceMultiplier), FrontTiltGforceMultiplier);
-    public int FrontTiltGforceMultiplier { get => GetValue<int>(2); set => SetValue(value.ToString()); }
+    public IObservable<double> FrontTiltGforceMultiplierObs => GetObservable<double>(nameof(FrontTiltGforceMultiplier), FrontTiltGforceMultiplier);
+    public double FrontTiltGforceMultiplier { get => GetValue<double>(0.3); set => SetValue(value.ToString()); }
+
+    [JsonIgnore]
+    public IObservable<double> FrontTiltOutputCapObs => GetObservable<double>(nameof(FrontTiltOutputCap), FrontTiltOutputCap);
+    public double FrontTiltOutputCap { get => GetValue<double>(1.0); set => SetValue(value.ToString()); }
+
+    [JsonIgnore]
+    public IObservable<double> FrontTiltSmoothingObs => GetObservable<double>(nameof(FrontTiltSmoothing), FrontTiltSmoothing);
+    public double FrontTiltSmoothing { get => GetValue<double>(1.0); set => SetValue(value.ToString()); }
+    
+    [JsonIgnore]
+    public IObservable<double> SideTiltGforceMultiplierObs => GetObservable<double>(nameof(SideTiltGforceMultiplier), SideTiltGforceMultiplier);
+    public double SideTiltGforceMultiplier { get => GetValue<double>(0.3); set => SetValue(value.ToString()); }
+
+    [JsonIgnore]
+    public IObservable<double> SideTiltOutputCapObs => GetObservable<double>(nameof(SideTiltOutputCap), SideTiltOutputCap);
+    public double SideTiltOutputCap { get => GetValue<double>(1.0); set => SetValue(value.ToString()); }
+
+    [JsonIgnore]
+    public IObservable<double> SideTiltSmoothingObs => GetObservable<double>(nameof(SideTiltSmoothing), SideTiltSmoothing);
+    public double SideTiltSmoothing { get => GetValue<double>(1.0); set => SetValue(value.ToString()); }
+
+    [JsonIgnore]
+    public IObservable<bool> FrontTiltReverseObs => GetObservable<bool>(nameof(FrontTiltReverse), FrontTiltReverse);
+    public bool FrontTiltReverse { get => GetValue<bool>(false); set => SetValue(value.ToString()); }
+
+   [JsonIgnore]
+    public IObservable<bool> SideTiltReverseObs => GetObservable<bool>(nameof(SideTiltReverse), SideTiltReverse);
+    public bool SideTiltReverse { get => GetValue<bool>(false); set => SetValue(value.ToString()); }
 
 
     /* Definition of Misc Settings */

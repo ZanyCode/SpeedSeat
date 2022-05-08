@@ -16,10 +16,12 @@ import { ConnectionComponent } from './connection/connection.component';
 import {MatCardModule} from '@angular/material/card';
 import {MatSliderModule} from '@angular/material/slider';
 import {MatSelectModule} from '@angular/material/select';
+import {MatCheckboxModule} from '@angular/material/checkbox';
 import { QRCodeModule } from 'angularx-qrcode';
 import { TelemetryComponent } from './telemetry/telemetry.component';
-
-
+import * as PlotlyJS from 'plotly.js-dist-min';
+import { PlotlyModule } from 'angular-plotly.js';
+PlotlyModule.plotlyjs = PlotlyJS;
 
 @NgModule({
   declarations: [
@@ -42,7 +44,9 @@ import { TelemetryComponent } from './telemetry/telemetry.component';
     MatCardModule,
     MatSliderModule,
     MatSelectModule,
-    QRCodeModule
+    MatCheckboxModule,
+    QRCodeModule,
+    PlotlyModule
   ],
   providers: [],
   bootstrap: [AppComponent]

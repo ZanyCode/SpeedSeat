@@ -14,6 +14,7 @@ try {
     builder.Services.AddSingleton<Speedseat>();
     builder.Services.AddSingleton<ISerialConnection, SerialConnection>();
     builder.Services.AddSingleton<Speedseat>();
+    builder.Services.AddSingleton<F12020TelemetryAdaptor>();
     builder.Services.AddDbContext<SpeedseatContext>(options => options.UseSqlite("Data Source=speedseat.sqlite3"));
     // builder.Services.AddHostedService<F12020TelemetryAdaptor>();
     builder.Services.AddHttpContextAccessor();
@@ -61,6 +62,7 @@ try {
     app.MapHub<ConnectionHub>("/hub/connection");
     app.MapHub<InfoHub>("/hub/info");
     app.MapHub<SettingsHub>("/hub/settings");
+    app.MapHub<TelemetryHub>("/hub/telemetry");
 
     // Open in browser
     if(!app.Environment.IsDevelopment()) {

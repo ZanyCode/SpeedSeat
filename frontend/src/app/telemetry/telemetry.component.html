@@ -1,6 +1,22 @@
-<div class="container h-100 mw-100">
+<div class="container h-100 mw-100 overflow-auto">
     <div class="row align-items-center justify-content-center">
-      <div class="col col-md-12">
+        <!-- <div class="col-12 col-md-4">
+            <mat-card class="example-card mt-3">
+              <mat-card-header>    
+                  <mat-card-title>Stream</mat-card-title>
+                </mat-card-header>
+                <mat-card-content class="position-relative">                  
+                  
+                </mat-card-content> 
+                <mat-divider inset></mat-divider>
+                <mat-card-actions>
+                  <button *ngIf="!isStreaming" mat-raised-button color="primary" (click)="startStreaming()">Start Streaming</button>
+                  <button *ngIf="isStreaming" mat-raised-button color="primary" (click)="stopStreaming()">Stop Streaming</button>
+                </mat-card-actions>
+            </mat-card>
+        </div>     -->
+
+      <div class="col-12 col-md-6">
         <mat-card class="example-card mt-3">
             <mat-card-header>    
               <mat-card-title>Front/Back Tilt Settings</mat-card-title>
@@ -12,45 +28,104 @@
                     </div>
                     <div class="col">
                         <mat-slider min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
-                            (input)="frontLeftMotorPosition = $event.value"
-                            [value]="frontLeftMotorPosition"></mat-slider>     
+                            (input)="frontTiltGForceMultiplier = $event.value"
+                            [value]="frontTiltGForceMultiplier"></mat-slider>     
                     </div>
                 </div>
-              
+                <div class="row align-items-center">
+                    <div class="col-3">
+                        Output Cap:
+                    </div>
+                    <div class="col">
+                        <mat-slider min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
+                            (input)="frontTiltOutputCap = $event.value"
+                            [value]="frontTiltOutputCap"></mat-slider>     
+                    </div>
+                </div>
+                <!-- <div class="row align-items-center">
+                    <div class="col-3">
+                        Signal Smoothing:
+                    </div>
+                    <div class="col">
+                        <mat-slider min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
+                            (input)="frontTiltSmoothing = $event.value"
+                            [value]="frontTiltSmoothing"></mat-slider>     
+                    </div>
+                </div> -->
+                <div class="row align-items-center">
+                    <mat-checkbox [checked]="frontTiltReverse" (change)="frontTiltReverse = $event.checked">
+                        Reverse
+                    </mat-checkbox>                    
+                </div>
             </mat-card-content> 
         </mat-card>
-      </div>    
+      </div>   
+      
+      <div class="col-12 col-md-6">
+        <mat-card class="example-card mt-3">
+          <mat-card-header>    
+              <mat-card-title>Side Tilt Settings</mat-card-title>
+            </mat-card-header>
+            <mat-card-content class="position-relative">
+                <div class="row align-items-center">
+                    <div class="col-3">
+                        G-Force Multiplier:
+                    </div>
+                    <div class="col">
+                        <mat-slider min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
+                            (input)="sideTiltGForceMultiplier = $event.value"
+                            [value]="sideTiltGForceMultiplier"></mat-slider>     
+                    </div>
+                </div>
+                <div class="row align-items-center">
+                    <div class="col-3">
+                        Output Cap:
+                    </div>
+                    <div class="col">
+                        <mat-slider min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
+                            (input)="sideTiltOutputCap = $event.value"
+                            [value]="sideTiltOutputCap"></mat-slider>     
+                    </div>
+                </div>
+                <!-- <div class="row align-items-center">
+                    <div class="col-3">
+                        Signal Smoothing:
+                    </div>
+                    <div class="col">
+                        <mat-slider min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
+                            (input)="sideTiltSmoothing = $event.value"
+                            [value]="sideTiltSmoothing"></mat-slider>     
+                    </div>
+                </div> -->
+                <div class="row align-items-center">
+                    <mat-checkbox [checked]="sideTiltReverse" (change)="sideTiltReverse = $event.checked">
+                        Reverse
+                    </mat-checkbox>                    
+                </div>
+            </mat-card-content> 
+        </mat-card>
+      </div>              
     </div>
 
     <div class="row align-items-center justify-content-center">
         <div class="col col-md-12">
           <mat-card class="example-card mt-3">
-              <mat-card-header>    
-                <mat-card-title>Seat Tilt</mat-card-title>
+            <mat-card-header>    
+                <mat-card-title>Graph</mat-card-title>
               </mat-card-header>
-              <mat-card-content>
-                <!-- <div class="row align-items-center">
-                    <div class="col-3">
-                        Front/Back:
-                    </div>
-                    <div class="col">
-                        <mat-slider [disabled]="!isInitialized || !isConnected" min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
-                            (input)="frontTilt = $event.value"
-                            [value]="frontTilt"></mat-slider>     
-                    </div>
-                </div>
-                <div class="row align-items-center">
-                    <div class="col-3">
-                        Left/Right:
-                    </div>
-                    <div class="col">
-                        <mat-slider [disabled]="!isInitialized || !isConnected" min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
-                            (input)="sideTilt = $event.value"
-                            [value]="sideTilt"></mat-slider>     
-                    </div>
-                </div>                -->
+              <mat-card-content class="position-relative">                  
+                <plotly-plot [data]="graph.data"
+                             [useResizeHandler]="true"
+                             [style]="{position: 'relative', width: '100%', height: '100%'}" 
+                             [layout]="graph.layout"
+                             [config]="{displayModeBar: false, responsive: false}"></plotly-plot>
               </mat-card-content> 
           </mat-card>
         </div>    
     </div>
+
+    <div class="row mt-2 ms-1 me-1">
+        <button *ngIf="!isStreaming" mat-raised-button color="primary" (click)="startStreaming()">Start Streaming</button>
+        <button *ngIf="isStreaming" mat-raised-button color="primary" (click)="stopStreaming()">Stop Streaming</button>
+    </div>   
 </div>
