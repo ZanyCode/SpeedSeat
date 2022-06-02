@@ -18,6 +18,8 @@ public class Speedseat
     private readonly ISerialConnection connection;
     private readonly IHubContext<InfoHub> hubContext;
 
+    private readonly ISubject<(double frontTilt, double sideTilt)> tiltSubject = new Subject<(double frontTilt, double sideTilt)>();
+
     public double FrontLeftMotorPosition { get => frontLeftMotorPosition; set {
         frontLeftMotorPosition = value;
         this.RequestPositionPublish();
@@ -32,13 +34,16 @@ public class Speedseat
     public double BackMotorPosition { get => backMotorPosition; set {
         backMotorPosition = value;
         this.RequestPositionPublish();
-
     }}
 
     public bool IsConnected { get => this.connection.IsConnected; }
 
     public Speedseat(SpeedseatSettings settings, ISerialConnection connection, IHubContext<InfoHub> hubContext)
     {
+        this.settings = settings;       
+        this.connection = connection;
+        this.hubContext = hubContext;
+
         var publishIfPossible = publishPositionQueue                                   
                                     .DistinctUntilChanged();
 
@@ -47,19 +52,38 @@ public class Speedseat
         ).Subscribe(x => {
             var (frontLeftIdx, frontRightIdx, backIdx) = x.Second;
             this.UpdatePosition(frontLeftIdx, frontRightIdx, backIdx);
-        });        
+        });      
 
-        this.settings = settings;
-        this.connection = connection;
-        this.hubContext = hubContext;
+        this.settings.FrontTiltPriorityObs.CombineLatest(this.tiltSubject).Subscribe(x => {
+            var (priority, (frontTilt, sideTilt)) = x;
+            this.UpdateTilt(priority, frontTilt, sideTilt);
+        });          
     }
 
     // Tilt Range is -1  to 1
-    public void SetTilt(double frontTilt, double sideTilt)
+    public void SetTilt(double frontTilt, double sideTilt) 
+    {
+        this.tiltSubject.OnNext((frontTilt, sideTilt));
+    }
+
+    private void UpdateTilt(double frontTiltPriority, double frontTilt, double sideTilt)
     {        
-        frontLeftMotorPosition = (sideTilt + 1) / 2.0;
-        frontRightMotorPosition = 1 - frontLeftMotorPosition;
-        backMotorPosition = 1 - (frontTilt + 1) / 2.0;
+        var availableAbsoluteSideTilt = 1 - Math.Abs(frontTilt);
+        var actualAbsoluteSideTilt = Math.Abs(sideTilt);
+        var necessarySideTiltReduction = Math.Clamp(actualAbsoluteSideTilt - availableAbsoluteSideTilt, 0, 1) * frontTiltPriority;
+        var correctedSideTilt = sideTilt - necessarySideTiltReduction * (sideTilt < 0? -1 : 1);
+
+        backMotorPosition = 1 - (frontTilt + 1) / 2.0;        
+        frontLeftMotorPosition = (correctedSideTilt + 1) / 2.0;
+        frontRightMotorPosition = 1 - (correctedSideTilt + 1) / 2.0;
+        
+        var desiredAdditionalBackMotorTiltAbs = Math.Abs(frontTilt) * 0.5;
+        var maxAdditionalBackMotorTiltAbs = (1 - Math.Abs(correctedSideTilt)) * 0.5; 
+        var additionalBackMotorTiltAbs = Math.Min(desiredAdditionalBackMotorTiltAbs, maxAdditionalBackMotorTiltAbs);
+        var additionalBackMotorTilt = additionalBackMotorTiltAbs * (frontTilt < 0? -1 : 1);
+        frontLeftMotorPosition += additionalBackMotorTilt;
+        frontRightMotorPosition += additionalBackMotorTilt;
+
         this.RequestPositionPublish();
     }
 

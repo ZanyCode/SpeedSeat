@@ -26,6 +26,10 @@ export class SettingsDataService {
     await this.connection.invoke("SetBackMotorIdx", idx);
   }
 
+  public async SetFrontTiltPriority(priority: number) {
+    await this.connection.invoke("SetFrontTiltPriority", priority);
+  }
+
   public async init() {
     this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/settings`).build();   
     await this.connection.start();

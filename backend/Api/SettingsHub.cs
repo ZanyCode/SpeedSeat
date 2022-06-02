@@ -27,6 +27,11 @@ public class SettingsHub : Hub
         settings.BackMotorIdx = idx;
     }
 
+    public void SetFrontTiltPriority(double priority)
+    {
+        settings.FrontTiltPriority = priority;
+    }
+
     public SpeedseatSettings GetSettings()
     {
         return settings;

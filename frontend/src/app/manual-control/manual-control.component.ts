@@ -39,7 +39,7 @@ export class ManualControlComponent implements OnInit, OnDestroy {
     this.data.setBackMotorPosition(value ?? 0.5);
   }
 
-  private _frontTilt: number | null = 0.5;
+  private _frontTilt: number | null = 0;
   public get frontTilt(): number | null {
     return this._frontTilt;
   }
@@ -48,7 +48,7 @@ export class ManualControlComponent implements OnInit, OnDestroy {
     this.data.setTilt(value?? 0, this.sideTilt ?? 0);
   }
 
-  private _sideTilt: number | null = 0.5;
+  private _sideTilt: number | null = 0;
   public get sideTilt(): number | null {
     return this._sideTilt;
   }

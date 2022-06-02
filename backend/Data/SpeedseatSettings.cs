@@ -19,6 +19,11 @@ public class SpeedseatSettings {
     public IObservable<int> BackMotorIdxObs => GetObservable<int>(nameof(BackMotorIdx), BackMotorIdx);
     public int BackMotorIdx { get => GetValue<int>(2); set => SetValue(value.ToString()); }
 
+    /* Tilt Axis Priority */
+    [JsonIgnore]
+    public IObservable<double> FrontTiltPriorityObs => GetObservable<double>(nameof(FrontTiltPriority), FrontTiltPriority);
+    public double FrontTiltPriority { get => GetValue<double>(1); set => SetValue(value.ToString()); }
+
 
     /* Definition of Telemetry Stream Settings */
     [JsonIgnore]

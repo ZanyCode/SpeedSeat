@@ -34,6 +34,15 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.data.SetBackMotorIdx(value);
   }
 
+  private _frontTiltPriority: number | null = 0.5;
+  public get frontTiltPriority(): number | null {
+    return this._frontTiltPriority;
+  }
+  public set frontTiltPriority(value: number | null) {
+    this._frontTiltPriority = value;
+    this.data.SetFrontTiltPriority(value ?? 0.5);
+  }
+
   constructor(private data: SettingsDataService) { } 
 
   ngOnInit(): void {
@@ -42,6 +51,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       this._frontLeftMotorIdx = settings.frontLeftMotorIdx;
       this._frontRightMotorIdx = settings.frontRightMotorIdx;
       this._backMotorIdx = settings.backMotorIdx;
+      this._frontTiltPriority = settings.frontTiltPriority;
     });
   }
 
