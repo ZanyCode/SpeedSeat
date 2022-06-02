@@ -1,4 +1,4 @@
-<div class="container h-100 mw-100 overflow-auto">
+<div class="container">
     <div class="row align-items-center justify-content-center">
         <!-- <div class="col-12 col-md-4">
             <mat-card class="example-card mt-3">
@@ -116,7 +116,7 @@
               <mat-card-content class="position-relative">                  
                 <plotly-plot [data]="graph.data"
                              [useResizeHandler]="true"
-                             [style]="{position: 'relative', width: '100%', height: '100%'}" 
+                             [style]="{position: 'relative', width: '100%', height: '300px'}" 
                              [layout]="graph.layout"
                              [config]="{displayModeBar: false, responsive: false}"></plotly-plot>
               </mat-card-content> 
@@ -124,8 +124,6 @@
         </div>    
     </div>
 
-    <div class="row mt-2 ms-1 me-1">
-        <button *ngIf="!isStreaming" mat-raised-button color="primary" (click)="startStreaming()">Start Streaming</button>
-        <button *ngIf="isStreaming" mat-raised-button color="primary" (click)="stopStreaming()">Stop Streaming</button>
-    </div>   
+    <button class="streaming-button" *ngIf="!isStreaming" mat-raised-button color="primary" (click)="startStreaming()">Start Streaming</button>
+    <button class="streaming-button" *ngIf="isStreaming" mat-raised-button color="primary" (click)="stopStreaming()">Stop Streaming</button>
 </div>

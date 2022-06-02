@@ -20,7 +20,7 @@ export class ManualControlDataService {
   public async init() {
     this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/manual`).build();
     await this.connection.start().then(() => this.isConnected = true);   
-  }
+  }  
 
   public async setFrontLeftMotorPosition(position: number) {
     await this.connection.invoke("SetFrontLeftMotorPosition", position);
