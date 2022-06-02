@@ -37,11 +37,11 @@
       </button>
       <span>SpeedSeat</span>
     </mat-toolbar>
-    <div class="col">
-      <div class="h-75">
-        <router-outlet></router-outlet>
+    <div class="col d-flex flex-column overflow-hidden">
+      <div class="overflow-auto upper-section">
+          <router-outlet></router-outlet>
       </div>
-      <div class="h-25">
+      <div class="lower-section">
         <textarea disabled="true" #textarea [scrollTop]="textarea.scrollHeight" class="w-100 h-100" [value]='log'></textarea>
       </div>
     </div>
