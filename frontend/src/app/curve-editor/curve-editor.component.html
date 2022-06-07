@@ -1,0 +1,40 @@
+<div class="position-relative">
+    <plotly-plot [data]="graph.data"
+        [useResizeHandler]="true"
+        [style]="{position: 'relative', width: '100%', height: '300px'}" 
+        [layout]="graph.layout"
+        (plotlyClick)="onPlotClick($event)"
+        [config]="{displayModeBar: false, responsive: false}"></plotly-plot>
+    <div class="position-absolute" #dragOverlay [style]="{
+        top: graph.layout.margin.t + 'px', 
+        left: graph.layout.margin.l + 'px', 
+        right: graph.layout.margin.r + 'px',
+        bottom: graph.layout.margin.b + 'px'}"
+        [style.pointerEvents]="isDragging ? 'auto' : 'none'"
+        (mousemove)="onPointDrag($event)"
+        (touchmove)="onPointDrag($event)"
+        (mouseup)="endDrag()"
+        (touchend)="endDrag()"
+        (mouseleave)="endDrag()">
+
+        <div [hidden]="selectedPointIndex == -1" #handle class="position-absolute handle"
+        (mousedown)="startDrag()" 
+        (touchstart)="startDrag()" 
+        (mouseup)="endDrag()"
+        (touchend)="endDrag()"
+        [style.pointerEvents]="'all'"
+        [style.borderRadius.px]="config.handleSize / 2"
+        [style.width.px]="config.handleSize"
+        [style.height.px]="config.handleSize"
+        [style.bottom.px]="handleTop" [style.left.px]="handleLeft"></div>
+    </div>
+</div>
+
+<div>
+    <button mat-button *ngIf="hasUnsavedChanges" (click)="onSave()">Save</button>
+    <button mat-button *ngIf="hasUnsavedChanges" (click)="onCancel()">Cancel</button>
+    <button mat-button (click)="onResetToLinear()">Reset To Linear</button>
+</div>
+
+
+

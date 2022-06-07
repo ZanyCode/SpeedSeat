@@ -6,34 +6,34 @@ using Microsoft.AspNetCore.SignalR;
 
 public class Speedseat
 {
-    private double frontTilt;
-    private double sideTilt;
     private double frontLeftMotorPosition;
     private double frontRightMotorPosition;
     private double backMotorPosition;
 
-    private ISubject<Guid> publishPositionQueue = Subject.Synchronize(new Subject<Guid>());
-    private ISubject<bool> canPublish = Subject.Synchronize(new Subject<bool>());
     private readonly SpeedseatSettings settings;
     private readonly ISerialConnection connection;
     private readonly IHubContext<InfoHub> hubContext;
 
-    private readonly ISubject<(double frontTilt, double sideTilt)> tiltSubject = new Subject<(double frontTilt, double sideTilt)>();
+    private (double frontTilt, double sideTilt) tilt;
+    public (double frontTilt, double sideTilt) Tilt { get => tilt; set {
+        tilt = value;
+        this.UpdateTilt();
+    }}
 
     public double FrontLeftMotorPosition { get => frontLeftMotorPosition; set {
         frontLeftMotorPosition = value;
-        this.RequestPositionPublish();
+        this.UpdatePosition();
     }}
 
     public double FrontRightMotorPosition { get => frontRightMotorPosition; set {
         frontRightMotorPosition = value;
-        this.RequestPositionPublish();
+        this.UpdatePosition();
 
     }}
 
     public double BackMotorPosition { get => backMotorPosition; set {
         backMotorPosition = value;
-        this.RequestPositionPublish();
+        this.UpdatePosition();
     }}
 
     public bool IsConnected { get => this.connection.IsConnected; }
@@ -44,47 +44,44 @@ public class Speedseat
         this.connection = connection;
         this.hubContext = hubContext;
 
-        var publishIfPossible = publishPositionQueue                                   
-                                    .DistinctUntilChanged();
+        // Update whenever the one of the motor mapping changes
+        settings.FrontLeftMotorIdxObs.CombineLatest(
+            settings.FrontRightMotorIdxObs,
+            settings.BackMotorIdxObs
+            ).Subscribe(_ => UpdatePosition());      
 
-        publishIfPossible.WithLatestFrom(
-            settings.FrontLeftMotorIdxObs.CombineLatest(settings.FrontRightMotorIdxObs, settings.BackMotorIdxObs)
-        ).Subscribe(x => {
-            var (frontLeftIdx, frontRightIdx, backIdx) = x.Second;
-            this.UpdatePosition(frontLeftIdx, frontRightIdx, backIdx);
-        });      
+        // Update whenever the tilt priority changes
+        this.settings.FrontTiltPriorityObs.Subscribe(x => this.UpdateTilt());
 
-        this.settings.FrontTiltPriorityObs.CombineLatest(this.tiltSubject).Subscribe(x => {
-            var (priority, (frontTilt, sideTilt)) = x;
-            this.UpdateTilt(priority, frontTilt, sideTilt);
-        });          
+        // Update whenever the back motor response curve changes
+        this.settings.BackMotorResponseCurveObs.Subscribe(x => this.UpdatePosition());
     }
 
     // Tilt Range is -1  to 1
     public void SetTilt(double frontTilt, double sideTilt) 
     {
-        this.tiltSubject.OnNext((frontTilt, sideTilt));
+        this.Tilt = (frontTilt, sideTilt);
     }
 
-    private void UpdateTilt(double frontTiltPriority, double frontTilt, double sideTilt)
+    private void UpdateTilt()
     {        
-        var availableAbsoluteSideTilt = 1 - Math.Abs(frontTilt);
-        var actualAbsoluteSideTilt = Math.Abs(sideTilt);
-        var necessarySideTiltReduction = Math.Clamp(actualAbsoluteSideTilt - availableAbsoluteSideTilt, 0, 1) * frontTiltPriority;
-        var correctedSideTilt = sideTilt - necessarySideTiltReduction * (sideTilt < 0? -1 : 1);
+        var availableAbsoluteSideTilt = 1 - Math.Abs(this.Tilt.frontTilt);
+        var actualAbsoluteSideTilt = Math.Abs(this.Tilt.sideTilt);
+        var necessarySideTiltReduction = Math.Clamp(actualAbsoluteSideTilt - availableAbsoluteSideTilt, 0, 1) * settings.FrontTiltPriority;
+        var correctedSideTilt = this.Tilt.sideTilt - necessarySideTiltReduction * (this.Tilt.sideTilt < 0? -1 : 1);
 
-        backMotorPosition = 1 - (frontTilt + 1) / 2.0;        
+        backMotorPosition = 1 - (this.Tilt.frontTilt + 1) / 2.0;        
         frontLeftMotorPosition = (correctedSideTilt + 1) / 2.0;
         frontRightMotorPosition = 1 - (correctedSideTilt + 1) / 2.0;
         
-        var desiredAdditionalBackMotorTiltAbs = Math.Abs(frontTilt) * 0.5;
+        var desiredAdditionalBackMotorTiltAbs = Math.Abs(this.Tilt.frontTilt) * 0.5;
         var maxAdditionalBackMotorTiltAbs = (1 - Math.Abs(correctedSideTilt)) * 0.5; 
         var additionalBackMotorTiltAbs = Math.Min(desiredAdditionalBackMotorTiltAbs, maxAdditionalBackMotorTiltAbs);
-        var additionalBackMotorTilt = additionalBackMotorTiltAbs * (frontTilt < 0? -1 : 1);
+        var additionalBackMotorTilt = additionalBackMotorTiltAbs * (this.Tilt.frontTilt < 0? -1 : 1);
         frontLeftMotorPosition += additionalBackMotorTilt;
         frontRightMotorPosition += additionalBackMotorTilt;
 
-        this.RequestPositionPublish();
+        this.UpdatePosition();
     }
 
     public bool Connect(string port, int baudrate)
@@ -97,39 +94,42 @@ public class Speedseat
         this.connection.Disconnect();        
     }
 
-    private void UpdatePosition(int frontLeftIdx, int frontRightIdx, int backIdx) {
+    private void UpdatePosition()
+    {
+        if(this.connection.IsConnected)
+         {
+            var bytes = GetMotorPositionsAsByteArray(frontLeftMotorPosition, frontRightMotorPosition, backMotorPosition);                                    
+            if(this.connection.Write(bytes))
+            {
+                System.Console.WriteLine($"FrontLeft(Idx{settings.FrontLeftMotorIdx}): {frontLeftMotorPosition*100}%\n" +
+                    $"FrontRight(Idx{settings.FrontRightMotorIdx}): {frontRightMotorPosition*100}%\n" + 
+                    $"Back(Idx{settings.BackMotorIdx}): {backMotorPosition*100}%\n" +
+                    $"Binary Message: {Convert.ToHexString(bytes, 0, 7)}\n");
+            }
+            else
+            {
+                string error = "Value wasn't written since no response from controller was received. Connection closed, please reconnect manually.";
+                System.Console.WriteLine(error);
+                this.hubContext.Clients.All.SendAsync("log", error);
+            }      
+        }      
+    }
+
+    private byte[] GetMotorPositionsAsByteArray(double frontLeftMotorPosition, double frontRightMotorPosition, double backMotorPosition) {
         var (frontLeftMsb, frontLeftLsb) = ScaleToUshortRange(frontLeftMotorPosition);
         var (frontRightMsb, frontRightLsb) = ScaleToUshortRange(frontRightMotorPosition);
         var (backMsb, backLsb) = ScaleToUshortRange(backMotorPosition);
 
         var bytes = new byte[7];
         bytes[0] = 0;
-        bytes[frontLeftIdx * 2 + 1] = frontLeftMsb;
-        bytes[frontLeftIdx * 2 + 2] = frontLeftLsb;
-        bytes[frontRightIdx * 2 + 1] = frontRightMsb;
-        bytes[frontRightIdx * 2 + 2] = frontRightLsb;
-        bytes[backIdx * 2 + 1] = backMsb;
-        bytes[backIdx * 2 + 2] = backLsb;        
-                                    
-        if(this.connection.Write(bytes))
-        {
-            System.Console.WriteLine($"FrontLeft(Idx{frontLeftIdx}): {frontLeftMotorPosition*100}%\n" +
-                $"FrontRight(Idx{frontRightIdx}): {frontRightMotorPosition*100}%\n" + 
-                $"Back(Idx{backIdx}): {backMotorPosition*100}%\n" +
-                $"Binary Message: {Convert.ToHexString(bytes, 0, 7)}\n");
-        }
-        else
-        {
-            string error = "Value wasn't written since no response from controller was received. Connection closed, please reconnect manually.";
-            System.Console.WriteLine(error);
-            this.hubContext.Clients.All.SendAsync("log", error);
-        }
-      
-    }
+        bytes[settings.FrontLeftMotorIdx * 2 + 1] = frontLeftMsb;
+        bytes[settings.FrontLeftMotorIdx * 2 + 2] = frontLeftLsb;
+        bytes[settings.FrontRightMotorIdx * 2 + 1] = frontRightMsb;
+        bytes[settings.FrontRightMotorIdx * 2 + 2] = frontRightLsb;
+        bytes[settings.BackMotorIdx * 2 + 1] = backMsb;
+        bytes[settings.BackMotorIdx * 2 + 2] = backLsb;
 
-    private void RequestPositionPublish() 
-    {
-        this.publishPositionQueue.OnNext(Guid.NewGuid());
+        return bytes;
     }
 
     private (byte msb, byte lsb) ScaleToUshortRange(double percentage) {

@@ -20,7 +20,7 @@ public class SpeedseatContext: DbContext
             
         var setting = this.Settings.Find(id);
         if(setting != null) {
-            setting.Value = value.ToString();
+            setting.Value = value;
             this.Update(setting);
             this.SaveChanges();
         }

@@ -32,6 +32,11 @@ public class SettingsHub : Hub
         settings.FrontTiltPriority = priority;
     }
 
+    public void SetBackMotorResponseCurve(IEnumerable<Point> curve)
+    {
+        settings.BackMotorResponseCurve = curve;
+    }
+
     public SpeedseatSettings GetSettings()
     {
         return settings;

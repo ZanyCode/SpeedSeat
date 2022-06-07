@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { combineLatest, distinctUntilChanged, from, Observable, pairwise, scan, Subject, throttleTime } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { Point } from '../curve-editor/curve-editor.component';
 import { SpeedseatSettings } from '../models/speedseat-settings';
 
 @Injectable({
@@ -10,24 +11,28 @@ import { SpeedseatSettings } from '../models/speedseat-settings';
 export class SettingsDataService {
   connection!: HubConnection;
 
-  public async GetSettings() {
+  public async getSettings() {
     return await this.connection.invoke<SpeedseatSettings>("GetSettings");
   }
 
-  public async SetFrontLeftMotorIdx(idx: number) {
+  public async setFrontLeftMotorIdx(idx: number) {
     await this.connection.invoke("SetFrontLeftMotorIdx", idx);
   }
 
-  public async SetFrontRightMotorIdx(idx: number) {
+  public async setFrontRightMotorIdx(idx: number) {
     await this.connection.invoke("SetFrontRightMotorIdx", idx);
   }
 
-  public async SetBackMotorIdx(idx: number) {
+  public async setBackMotorIdx(idx: number) {
     await this.connection.invoke("SetBackMotorIdx", idx);
   }
 
-  public async SetFrontTiltPriority(priority: number) {
+  public async setFrontTiltPriority(priority: number) {
     await this.connection.invoke("SetFrontTiltPriority", priority);
+  }
+
+  public async setBackMotorResponseCurve(curve: Point[]) {
+    await this.connection.invoke("SetBackMotorResponseCurve", curve);
   }
 
   public async init() {

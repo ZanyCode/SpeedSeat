@@ -21,6 +21,7 @@ import { QRCodeModule } from 'angularx-qrcode';
 import { TelemetryComponent } from './telemetry/telemetry.component';
 import * as PlotlyJS from 'plotly.js-dist-min';
 import { PlotlyModule } from 'angular-plotly.js';
+import { CurveEditorModule } from './curve-editor/curve-editor.module';
 PlotlyModule.plotlyjs = PlotlyJS;
 
 @NgModule({
@@ -46,7 +47,8 @@ PlotlyModule.plotlyjs = PlotlyJS;
     MatSelectModule,
     MatCheckboxModule,
     QRCodeModule,
-    PlotlyModule
+    PlotlyModule,
+    CurveEditorModule
   ],
   providers: [],
   bootstrap: [AppComponent]
