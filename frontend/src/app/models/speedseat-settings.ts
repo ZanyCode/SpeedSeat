@@ -1,4 +1,4 @@
-import { ResponseCurvePoint } from "../curve-editor/curve-editor.component";
+import { ResponseCurvePoint } from "../settings/curve-editor/curve-editor.component";
 
 export interface SpeedseatSettings
 {

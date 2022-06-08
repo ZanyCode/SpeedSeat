@@ -7,19 +7,25 @@
             </mat-card-header>
             <mat-card-content class="position-relative">
                 <div class="row align-items-center">
-                    <div class="col-3">
-                        Front/Left:
-                    </div>                    
-                    <div class="col">
+                    <div class="col-auto">
+                        <mat-form-field appearance="outline">
+                            <mat-label>Front/Left</mat-label>
+                            <input matInput type="number" min="0" max="1" step="0.05"  [(ngModel)]="frontLeftMotorPosition">
+                        </mat-form-field>
+                    </div>            
+                    <div class="col p-0">
                         <mat-slider [disabled]="!isInitialized || !isConnected" min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
                             (input)="frontLeftMotorPosition = $event.value"
                             [value]="frontLeftMotorPosition"></mat-slider>     
-                    </div>
+                    </div>                   
                 </div>
                 <div class="row align-items-center">
-                    <div class="col-3">
-                        Front/Right:
-                    </div>
+                    <div class="col-auto">
+                        <mat-form-field appearance="outline">
+                            <mat-label>Front/Right</mat-label>
+                            <input matInput type="number" min="0" max="1" step="0.05"  [(ngModel)]="frontRightMotorPosition">
+                        </mat-form-field>
+                    </div>          
                     <div class="col">
                         <mat-slider [disabled]="!isInitialized || !isConnected" min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
                             (input)="frontRightMotorPosition = $event.value"
@@ -27,9 +33,12 @@
                     </div>
                 </div>
                 <div class="row align-items-center">
-                    <div class="col-3">
-                        Back:
-                    </div>
+                    <div class="col-auto">
+                        <mat-form-field appearance="outline">
+                            <mat-label>Back</mat-label>
+                            <input matInput type="number" min="0" max="1" step="0.05"  [(ngModel)]="backMotorPosition">
+                        </mat-form-field>
+                    </div>  
                     <div class="col">
                         <mat-slider [disabled]="!isInitialized || !isConnected" min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
                             (input)="backMotorPosition = $event.value"

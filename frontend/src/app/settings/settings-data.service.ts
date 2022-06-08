@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { combineLatest, distinctUntilChanged, from, Observable, pairwise, scan, Subject, throttleTime } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { ResponseCurvePoint } from '../curve-editor/curve-editor.component';
+import { ResponseCurvePoint } from './curve-editor/curve-editor.component';
 import { SpeedseatSettings } from '../models/speedseat-settings';
 
 @Injectable({

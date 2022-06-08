@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { ResponseCurvePoint } from '../curve-editor/curve-editor.component';
+import { ResponseCurvePoint } from './curve-editor/curve-editor.component';
 import { SettingsDataService } from './settings-data.service';
 
 @Component({

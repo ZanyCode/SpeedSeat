@@ -8,6 +8,7 @@ import { LayoutModule } from '@angular/cdk/layout';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSidenavModule } from '@angular/material/sidenav';
+import {MatInputModule} from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { ManualControlComponent } from './manual-control/manual-control.component';
@@ -21,7 +22,10 @@ import { QRCodeModule } from 'angularx-qrcode';
 import { TelemetryComponent } from './telemetry/telemetry.component';
 import * as PlotlyJS from 'plotly.js-dist-min';
 import { PlotlyModule } from 'angular-plotly.js';
-import { CurveEditorModule } from './curve-editor/curve-editor.module';
+import { CurveEditorModule } from './settings/curve-editor/curve-editor.module';
+import { FormsModule } from '@angular/forms';
+
+
 PlotlyModule.plotlyjs = PlotlyJS;
 
 @NgModule({
@@ -46,8 +50,10 @@ PlotlyModule.plotlyjs = PlotlyJS;
     MatSliderModule,
     MatSelectModule,
     MatCheckboxModule,
+    MatInputModule,
     QRCodeModule,
     PlotlyModule,
+    FormsModule,
     CurveEditorModule
   ],
   providers: [],
