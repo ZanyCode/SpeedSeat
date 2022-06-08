@@ -1,5 +1,6 @@
 <div class="container h-100 overflow-auto">
   <div class="row align-items-start justify-content-center">
+    <!-- Motor Mapping Card -->
     <div class="col-12 col-xl-4">
       <mat-card class="mt-3">
           <mat-card-header>    
@@ -39,6 +40,8 @@
           </mat-card-content>            
       </mat-card>
     </div>    
+
+    <!-- Tilt Axis Priority Card -->
     <div class="col-12 col-xl-4">
       <mat-card class="mt-3">
         <mat-card-header>    
@@ -62,6 +65,8 @@
         </mat-card-content> 
       </mat-card> 
     </div>
+
+    <!-- Back Motor Response Card -->
     <div class="col-12 col-xl-4">
       <mat-card class="mt-3">
         <mat-card-header>    
@@ -70,6 +75,21 @@
         <mat-card-content>              
             <app-curve-editor
               [(curve)]="backMotorResponseCurve"
+              [config]="{handleSize: 25}"
+              ></app-curve-editor>
+        </mat-card-content> 
+      </mat-card>
+    </div>         
+
+    <!-- Side Motor Response Card -->
+    <div class="col-12 col-xl-4">
+      <mat-card class="mt-3">
+        <mat-card-header>    
+          <mat-card-title>Side Motor Response</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>              
+            <app-curve-editor
+              [(curve)]="sideMotorResponseCurve"
               [config]="{handleSize: 25}"
               ></app-curve-editor>
         </mat-card-content> 

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { combineLatest, distinctUntilChanged, from, Observable, pairwise, scan, Subject, throttleTime } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { Point } from '../curve-editor/curve-editor.component';
+import { ResponseCurvePoint } from '../curve-editor/curve-editor.component';
 import { SpeedseatSettings } from '../models/speedseat-settings';
 
 @Injectable({
@@ -31,8 +31,12 @@ export class SettingsDataService {
     await this.connection.invoke("SetFrontTiltPriority", priority);
   }
 
-  public async setBackMotorResponseCurve(curve: Point[]) {
+  public async setBackMotorResponseCurve(curve: ResponseCurvePoint[]) {
     await this.connection.invoke("SetBackMotorResponseCurve", curve);
+  }
+
+  public async setSideMotorResponseCurve(curve: ResponseCurvePoint[]) {
+    await this.connection.invoke("SetSideMotorResponseCurve", curve);
   }
 
   public async init() {

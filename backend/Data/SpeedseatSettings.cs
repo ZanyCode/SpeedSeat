@@ -21,10 +21,17 @@ public class SpeedseatSettings {
     public int BackMotorIdx { get => GetValue<int>(2); set => SetValue(value); }
 
     /* Definition of Motor Response Curves */
-     [JsonIgnore]
-    public IObservable<IEnumerable<Point>> BackMotorResponseCurveObs => GetObservable<IEnumerable<Point>>(nameof(BackMotorResponseCurve), BackMotorResponseCurve);
-    public IEnumerable<Point> BackMotorResponseCurve { 
-        get => GetValue<IEnumerable<Point>>(Enumerable.Range(0, 11).Select(x => new Point {X = x / 10.0, Y = x / 10.0}));
+    [JsonIgnore]
+    public IObservable<IEnumerable<ResponseCurvePoint>> BackMotorResponseCurveObs => GetObservable<IEnumerable<ResponseCurvePoint>>(nameof(BackMotorResponseCurve), BackMotorResponseCurve);
+    public IEnumerable<ResponseCurvePoint> BackMotorResponseCurve { 
+        get => GetValue<IEnumerable<ResponseCurvePoint>>(Enumerable.Range(0, 11).Select(x => new ResponseCurvePoint {Output = x / 10.0, Input = x / 10.0}));
+        set => SetValue(value);
+    }
+
+    [JsonIgnore]
+    public IObservable<IEnumerable<ResponseCurvePoint>> SideMotorResponseCurveObs => GetObservable<IEnumerable<ResponseCurvePoint>>(nameof(SideMotorResponseCurve), SideMotorResponseCurve);
+    public IEnumerable<ResponseCurvePoint> SideMotorResponseCurve { 
+        get => GetValue<IEnumerable<ResponseCurvePoint>>(Enumerable.Range(0, 11).Select(x => new ResponseCurvePoint {Output = x / 10.0, Input = x / 10.0}));
         set => SetValue(value);
     }
 
@@ -120,8 +127,8 @@ public class SpeedseatSettings {
     }   
 }
 
-public class Point 
+public class ResponseCurvePoint 
 {
-    public double X { get; set; }
-    public double Y { get; set; }
+    public double Output { get; set; }
+    public double Input { get; set; }
 }

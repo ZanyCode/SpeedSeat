@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Point } from '../curve-editor/curve-editor.component';
+import { ResponseCurvePoint } from '../curve-editor/curve-editor.component';
 import { SettingsDataService } from './settings-data.service';
 
 @Component({
@@ -44,13 +44,22 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.data.setFrontTiltPriority(value ?? 0.5);
   }
 
-  private _backMotorResponseCurve: Point[] = new Array(11).fill(0).map((_, i) => ({ x: i / 10, y: i / 10}));
-  public get backMotorResponseCurve(): Point[] {
+  private _backMotorResponseCurve: ResponseCurvePoint[] = new Array(11).fill(0).map((_, i) => ({ output: i / 10, input: i / 10}));
+  public get backMotorResponseCurve(): ResponseCurvePoint[] {
     return this._backMotorResponseCurve;
   }
-  public set backMotorResponseCurve(value: Point[]) {
+  public set backMotorResponseCurve(value: ResponseCurvePoint[]) {
     this._backMotorResponseCurve = value;
     this.data.setBackMotorResponseCurve(value);
+  }
+
+  private _sideMotorResponseCurve: ResponseCurvePoint[] = new Array(11).fill(0).map((_, i) => ({ output: i / 10, input: i / 10}));
+  public get sideMotorResponseCurve(): ResponseCurvePoint[] {
+    return this._sideMotorResponseCurve;
+  }
+  public set sideMotorResponseCurve(value: ResponseCurvePoint[]) {
+    this._sideMotorResponseCurve = value;
+    this.data.setSideMotorResponseCurve(value);
   }
 
   constructor(private data: SettingsDataService) { 
@@ -64,6 +73,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       this._backMotorIdx = settings.backMotorIdx;
       this._frontTiltPriority = settings.frontTiltPriority;
       this._backMotorResponseCurve = settings.backMotorResponseCurve;
+      this._sideMotorResponseCurve = settings.sideMotorResponseCurve;
     });
   }
 

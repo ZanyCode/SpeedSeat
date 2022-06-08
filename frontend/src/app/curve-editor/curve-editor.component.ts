@@ -1,9 +1,9 @@
 import { Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
 import { PlotMouseEvent } from 'plotly.js-dist-min';
 
-export interface Point {
-  x: number;
-  y: number;
+export interface ResponseCurvePoint {
+  output: number;
+  input: number;
 }
 
 @Component({
@@ -26,26 +26,26 @@ export class CurveEditorComponent implements OnInit {
   handleTop = 0;
   handleLeft = 0;
 
-  _curve: Point[] = [];
-  @Input() set curve(value: Point[]) {
+  _curve: ResponseCurvePoint[] = [];
+  @Input() set curve(value: ResponseCurvePoint[]) {
    this._curve = value;
    this.internalCurve = this._curve.map(x => ({...x}));
   }
 
-  get curve(): Point[] {
+  get curve(): ResponseCurvePoint[] {
     return this._curve;
   }
 
-  private _internalCurve: Point[] = [];
-  public get internalCurve(): Point[] {
+  private _internalCurve: ResponseCurvePoint[] = [];
+  public get internalCurve(): ResponseCurvePoint[] {
     return this._internalCurve;
   }
-  public set internalCurve(value: Point[]) {
+  public set internalCurve(value: ResponseCurvePoint[]) {
     this._internalCurve = value;
     this.updateGraph(this._internalCurve);
   }
   
-  @Output() curveChange: EventEmitter<Point[]> = new EventEmitter();
+  @Output() curveChange: EventEmitter<ResponseCurvePoint[]> = new EventEmitter();
   
 
   public graph = {
@@ -61,8 +61,8 @@ export class CurveEditorComponent implements OnInit {
         pad: 4
       },
       hovermode: 'closest' ,
-      xaxis: { fixedrange: true, range: [0, 1], title: 'Output' },
-      yaxis: {fixedrange: true, range: [0, 1], title: 'Input'},
+      xaxis: { fixedrange: true, range: [0, 1], title: 'Input' },
+      yaxis: {fixedrange: true, range: [0, 1], title: 'Output'},
     },
   };
 
@@ -75,8 +75,8 @@ export class CurveEditorComponent implements OnInit {
     this.previousTouchY = undefined;
     this.selectedPointIndex = event.points[0].pointIndex;
     var pixelPoint = this.convertCurvePointToPixelPoint(event.points[0] as any);
-    this.handleTop = pixelPoint.y - this.config.handleSize / 2;
-    this.handleLeft = pixelPoint.x - this.config.handleSize / 2;
+    this.handleTop = pixelPoint.input - this.config.handleSize / 2;
+    this.handleLeft = pixelPoint.output - this.config.handleSize / 2;
   }
 
   startDrag() {
@@ -100,13 +100,13 @@ export class CurveEditorComponent implements OnInit {
 
       this.handleTop = Math.min(Math.max(0 - this.config.handleSize / 2, this.handleTop), this.dragOverlay.nativeElement.offsetHeight - this.config.handleSize / 2);
 
-      const newCurvePoint = this.convertPixelPointToCurvePoint({ x: this.handleLeft + this.config.handleSize / 2, y: this.handleTop + this.config.handleSize / 2 });
+      const newCurvePoint = this.convertPixelPointToCurvePoint({ input: this.handleLeft + this.config.handleSize / 2, output: this.handleTop + this.config.handleSize / 2 });
       this.internalCurve = this.internalCurve = this.internalCurve.map((p, i) => {
         if (i < this.selectedPointIndex) {
-          return { ...p, y: Math.min(newCurvePoint.y, p.y) };
+          return { ...p, output: Math.min(newCurvePoint.output, p.output) };
         }
         else if(i > this.selectedPointIndex) {
-          return {...p, y: Math.max(newCurvePoint.y, p.y)};
+          return {...p, output: Math.max(newCurvePoint.output, p.output) };
         }
 
         return newCurvePoint;
@@ -129,33 +129,33 @@ export class CurveEditorComponent implements OnInit {
   }
 
   onResetToLinear() {
-    this.internalCurve = new Array(11).fill(0).map((_, i) => ({ x: i / 10, y: i / 10}));
+    this.internalCurve = new Array(11).fill(0).map((_, i) => ({ output: i / 10, input: i / 10}));
     this.hasUnsavedChanges = true;
     this.selectedPointIndex = -1;
   }
 
-  private updateGraph(curve: Point[]) {
+  private updateGraph(curve: ResponseCurvePoint[]) {
     this.graph = {
       ...this.graph,
       data: [
-        { x: curve.map(p => p.x), y: curve.map(p => p.y), type: 'scattergl', mode: 'lines', marker: {color: 'red'}, name: 'curve' },
+        { x: curve.map(p => p.input), y: curve.map(p => p.output), type: 'scattergl', mode: 'lines', marker: {color: 'red'}, name: 'curve' },
       ]
     }
   }
 
-  private convertCurvePointToPixelPoint(curvePoint: Point) {
+  private convertCurvePointToPixelPoint(curvePoint: {x: number, y: number})  {
     const { x, y } = curvePoint;
     const { offsetWidth, offsetHeight } = this.dragOverlay.nativeElement;
     const xPx = x * offsetWidth;
     const yPx = y * offsetHeight;
-    return { x: xPx, y: yPx };
+    return { output: xPx, input: yPx };
   }
 
-  private convertPixelPointToCurvePoint(pixelPoint: Point) {
-    const { x, y } = pixelPoint;
+  private convertPixelPointToCurvePoint(pixelPoint: ResponseCurvePoint) {
+    const { output, input } = pixelPoint;
     const { offsetWidth, offsetHeight } = this.dragOverlay.nativeElement;
-    const xC = x / offsetWidth;
-    const yC = y / offsetHeight;
-    return { x: xC, y: yC };
+    const outputC = output / offsetHeight;
+    const inputC = input / offsetWidth;
+    return { output: outputC, input: inputC };
   }
 }

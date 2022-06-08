@@ -98,7 +98,11 @@ public class Speedseat
     {
         if(this.connection.IsConnected)
          {
-            var bytes = GetMotorPositionsAsByteArray(frontLeftMotorPosition, frontRightMotorPosition, backMotorPosition);                                    
+            var transformedBackMotorPosition = this.ApplyCurveToMotorPosition(backMotorPosition, settings.BackMotorResponseCurve);
+            var transformedFrontLeftMotorPosition = this.ApplyCurveToMotorPosition(frontLeftMotorPosition, settings.SideMotorResponseCurve);
+            var transformedFrontRightMotorPosition = this.ApplyCurveToMotorPosition(frontRightMotorPosition, settings.SideMotorResponseCurve);
+            var bytes = GetMotorPositionsAsByteArray(transformedFrontLeftMotorPosition, transformedFrontRightMotorPosition, transformedBackMotorPosition);    
+                                       
             if(this.connection.Write(bytes))
             {
                 System.Console.WriteLine($"FrontLeft(Idx{settings.FrontLeftMotorIdx}): {frontLeftMotorPosition*100}%\n" +
@@ -130,6 +134,15 @@ public class Speedseat
         bytes[settings.BackMotorIdx * 2 + 2] = backLsb;
 
         return bytes;
+    }
+
+    private double ApplyCurveToMotorPosition(double motorPosition, IEnumerable<ResponseCurvePoint> curve) {
+        var (a, b) = curve.Zip(curve.Skip(1), (a, b) => (a, b)).FirstOrDefault(x => x.Item2.Input >= motorPosition);
+        var range = b.Input - a.Input;
+        var position = motorPosition - a.Input;       
+        var factor = position / range;
+        var output = a.Output + (b.Output - a.Output) * factor;
+        return output;
     }
 
     private (byte msb, byte lsb) ScaleToUshortRange(double percentage) {

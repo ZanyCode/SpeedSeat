@@ -1,4 +1,4 @@
-import { Point } from "../curve-editor/curve-editor.component";
+import { ResponseCurvePoint } from "../curve-editor/curve-editor.component";
 
 export interface SpeedseatSettings
 {
@@ -6,7 +6,8 @@ export interface SpeedseatSettings
   frontRightMotorIdx: number;
   backMotorIdx: number;
   frontTiltPriority: number;
-  backMotorResponseCurve: Point[];
+  backMotorResponseCurve: ResponseCurvePoint[];
+  sideMotorResponseCurve: ResponseCurvePoint[];
 
   frontTiltGforceMultiplier: number;
   frontTiltOutputCap: number;
