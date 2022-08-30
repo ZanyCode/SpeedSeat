@@ -12,7 +12,8 @@ try {
     builder.Services.AddCors();
     builder.Services.AddSingleton<SpeedseatSettings>();
     builder.Services.AddSingleton<Speedseat>();
-    builder.Services.AddSingleton<ISerialConnection, SerialConnection>();
+    builder.Services.AddSingleton<CommandService>();
+    builder.Services.AddSingleton<OutdatedDataDiscardQueue<Command>>();
     builder.Services.AddSingleton<Speedseat>();
     builder.Services.AddSingleton<F12020TelemetryAdaptor>();
     builder.Services.AddDbContext<SpeedseatContext>(options => options.UseSqlite("Data Source=speedseat_dbversion2.sqlite3"));

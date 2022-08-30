@@ -6,12 +6,14 @@ public class ConnectionHub : Hub
 {
     private readonly Speedseat seat;
     private readonly SpeedseatSettings settings;
+    private readonly CommandService commandService;
     private readonly IHubContext<ConnectionHub> context;
 
-    public ConnectionHub(Speedseat seat, SpeedseatSettings settings, IHubContext<ConnectionHub> context)
+    public ConnectionHub(Speedseat seat, SpeedseatSettings settings, CommandService commandService, IHubContext<ConnectionHub> context)
     {
         this.seat = seat;
         this.settings = settings;
+        this.commandService = commandService;
         this.context = context;
     }
 
@@ -21,13 +23,13 @@ public class ConnectionHub : Hub
     }
 
     public bool GetIsConnected() {
-        return seat.IsConnected;
+        return commandService.IsConnected;
     }
 
     public bool Connect(string port, int baudrate)
     {
         settings.BaudRate = baudrate;
-        return seat.Connect(port, baudrate);       
+        return commandService.Connect(port, baudrate);       
     }
 
     public int GetBaudRate()
@@ -37,6 +39,6 @@ public class ConnectionHub : Hub
 
     public void Disconnect()
     {
-        seat.Disconnect();       
+        commandService.Disconnect();       
     }
 }
