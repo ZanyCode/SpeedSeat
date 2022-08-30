@@ -23,12 +23,11 @@ Each package may represent either a read or a write operation. If the package co
 | 0x04 / 0x05             |Write / Read MAX Position. Value1 = X-Axis, Value2 = Y-Axis, Value3 = Z-Axis | 
 
 ## Communication Flow
-Whenever a package is sent, a specific response is expected. There are three possible responses:
+Whenever a package is sent, a specific response is expected. There are two possible responses:
 - SUCCESS (0xFF)
     - This is sent, whenever the package was received in full and the hash was determined to be valid
 - INVALID HASH (0xFE)
     - This is sent, whenever the package was received in full, but the hash was not valid
-- SUCCESS+RESPONSE (0xFD)
-    - This is sent, whenever the package was received, was valid, and the receiver intends to send a package in response. When the sender receives this response, it knows to expect a directly following 8-byte data package. This will tyically be the case, if the original package was a read-request.
+
 
 ![alt text](doc/protocol-Communication_Examples.png)

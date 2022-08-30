@@ -10,7 +10,7 @@ group Message Parse Error
 end
 group Message With Response
     Notebook -> Arduino: Send Command "Read Motor Positions" (0x01 00 00 00 00 00 00 01)
-    Arduino -> Notebook: Respond with "SUCCESS+RESPONSE" (0xFD)
+    Arduino -> Notebook: Respond with "SUCCESS" (0xFF)
     Arduino -> Notebook: Respond with data package (0x00 FF FF FF FF FF FF 00)
     Notebook -> Arduino: Respond with "SUCCESS" (0xFF)
 end
