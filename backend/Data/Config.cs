@@ -78,7 +78,7 @@ public class Command
         var (val2Msb, val2Lsb) = UShortToBytes(Value2.ToUShort());
         var (val3Msb, val3Lsb) = UShortToBytes(Value3.ToUShort());
 
-        var bytes = new byte[7];
+        var bytes = new byte[8];
         bytes[0] = 0;
         bytes[1] = val1Msb;
         bytes[2] = val1Lsb;
@@ -86,6 +86,7 @@ public class Command
         bytes[4] = val2Lsb;
         bytes[5] = val3Msb;
         bytes[6] = val3Lsb;
+        bytes[7] = (byte)(bytes[0] ^ bytes[1] ^ bytes[2] ^ bytes[3] ^ bytes[4] ^ bytes[5] ^ bytes[6]);
 
         return bytes;
     }
