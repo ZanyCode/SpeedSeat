@@ -30,4 +30,4 @@ Whenever a package is sent, a specific response is expected. There are two possi
     - This is sent, whenever the package was received in full, but the hash was not valid
 
 
-![alt text](doc/protocol-Communication_Examples.png)
+![alt text](doc/protocol-Communication_Examples2.png)
