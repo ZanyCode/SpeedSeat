@@ -1,12 +1,12 @@
 using System.Reactive.Linq;
 using Microsoft.AspNetCore.SignalR;
 
-public class SettingsHub : Hub
+public class ProgramSettingsHub : Hub
 {
     private readonly SpeedseatSettings settings;
     private readonly Speedseat seat;
 
-    public SettingsHub(SpeedseatSettings settings, Speedseat seat)
+    public ProgramSettingsHub(SpeedseatSettings settings, Speedseat seat)
     {
         this.settings = settings;
         this.seat = seat;

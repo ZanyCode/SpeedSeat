@@ -7,50 +7,7 @@ public enum SerialWriteResult
     Success,
     InvalidHash,
     Timeout,
-
     WriteError    
-}
-
-public class Command
-{
-    public byte Id { get; set; }
-
-    public ushort Value1 { get; set; }
-
-    public ushort Value2 { get; set; }
-
-    public ushort Value3 { get; set; }
-
-    public Command(byte id, ushort value1 = 0, ushort value2 = 0, ushort value3 = 0)
-    {
-        Id = id;
-        Value1 = value1;
-        Value2 = value2;
-        Value3 = value3;
-    }
-
-    public byte[] ToByteArray()
-    {
-        var (val1Msb, val1Lsb) = UShortToBytes(Value1);
-        var (val2Msb, val2Lsb) = UShortToBytes(Value2);
-        var (val3Msb, val3Lsb) = UShortToBytes(Value3);
-
-        var bytes = new byte[7];
-        bytes[0] = 0;
-        bytes[1] = val1Msb;
-        bytes[2] = val1Lsb;
-        bytes[3] = val2Msb;
-        bytes[4] = val2Lsb;
-        bytes[5] = val3Msb;
-        bytes[6] = val3Lsb;
-
-        return bytes;
-    }
-
-    private (byte msb, byte lsb) UShortToBytes(ushort value) {
-        var bytes = BitConverter.GetBytes(value);
-        return (bytes[1], bytes[0]);
-    }
 }
 
 public class CommandService

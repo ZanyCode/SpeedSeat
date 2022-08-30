@@ -62,7 +62,7 @@ try {
     app.MapHub<ManualControlHub>("/hub/manual");
     app.MapHub<ConnectionHub>("/hub/connection");
     app.MapHub<InfoHub>("/hub/info");
-    app.MapHub<SettingsHub>("/hub/settings");
+    app.MapHub<ProgramSettingsHub>("/hub/programSettings");
     app.MapHub<TelemetryHub>("/hub/telemetry");
 
     // Open in browser

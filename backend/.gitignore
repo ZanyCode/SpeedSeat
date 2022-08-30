@@ -12,6 +12,7 @@
 *.sqlite3
 *.sqlite3-shm
 *.sqlite3-wal
+config.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

@@ -17,7 +17,6 @@ public class Speedseat
 
     public bool IsConnected => this.commandService.IsConnected;
 
-
     private (double frontTilt, double sideTilt) tilt;
     public (double frontTilt, double sideTilt) Tilt { get => tilt; set {
         tilt = value;
@@ -39,7 +38,6 @@ public class Speedseat
         backMotorPosition = value;
         this.UpdatePosition();
     }}
-
 
     public Speedseat(SpeedseatSettings settings, CommandService commandService, OutdatedDataDiscardQueue<Command> actionQueue, IHubContext<InfoHub> hubContext)
     {
@@ -91,20 +89,20 @@ public class Speedseat
     private async Task UpdatePosition()
     {
         if(this.commandService.IsConnected)
-         {
+        {
             var transformedBackMotorPosition = this.ApplyCurveToMotorPosition(backMotorPosition, settings.BackMotorResponseCurve);
             var transformedFrontLeftMotorPosition = this.ApplyCurveToMotorPosition(frontLeftMotorPosition, settings.SideMotorResponseCurve);
             var transformedFrontRightMotorPosition = this.ApplyCurveToMotorPosition(frontRightMotorPosition, settings.SideMotorResponseCurve);
             
-            var positions = new ushort[3];
-            positions[settings.FrontLeftMotorIdx] = ScaleToUshortRange(transformedFrontLeftMotorPosition);
-            positions[settings.FrontRightMotorIdx] = ScaleToUshortRange(transformedFrontRightMotorPosition);
-            positions[settings.BackMotorIdx] = ScaleToUshortRange(transformedBackMotorPosition);
+            var positions = new CommandValue[3];
+            positions[settings.FrontLeftMotorIdx] = new CommandValue(ValueType.Numeric, transformedFrontLeftMotorPosition);
+            positions[settings.FrontRightMotorIdx] = new CommandValue(ValueType.Numeric, transformedFrontRightMotorPosition);
+            positions[settings.BackMotorIdx] = new CommandValue(ValueType.Numeric, transformedBackMotorPosition);
             var command = new Command(0, positions[0], positions[1], positions[2]);
 
             // We actually don't want to await this call here, at this point we just want to "fire and forget"
             this.actionQueue.QueueDatapoint(command, x => this.commandService.WriteCommand(x));                                             
-        }      
+        }
     }
 
     private double ApplyCurveToMotorPosition(double motorPosition, IEnumerable<ResponseCurvePoint> curve) {
@@ -114,9 +112,5 @@ public class Speedseat
         var factor = position / range;
         var output = a.Output + (b.Output - a.Output) * factor;
         return output;
-    }
-
-    private ushort ScaleToUshortRange(double percentage) {
-        return (ushort)Math.Clamp(percentage * ushort.MaxValue, 0, ushort.MaxValue);      
     }
 }
