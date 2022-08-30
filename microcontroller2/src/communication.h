@@ -84,13 +84,13 @@ void executeCommunication()
     if (cyclesSinceBufferWasFull == TIMEOUT)
     {
         if (waitingForOKAY){
-            sendBuffer();
+            // sendBuffer();
             cyclesSinceBufferWasFull = 0;
         }else{
             digitalWrite(beeperPin, HIGH);
             delay(100);
             digitalWrite(beeperPin, LOW);
-            clearBuffer(Serial.available() == 0);
+            // clearBuffer(Serial.available() == 0);
         }
         
     }

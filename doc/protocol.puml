@@ -1,0 +1,17 @@
+@startuml
+title Communication Examples
+group Message Parse Success
+    Notebook -> Arduino: Send Command "Set all Motor Positions to 100%"\n (0x00 FF FF FF FF FF FF 00)
+    Arduino -> Notebook: Respond with "SUCCESS" (0xFF)
+end
+group Message Parse Error
+    Notebook -> Arduino: Send Command "Set all Motor Positions to 100%"\n with incorrect hash (0x00 FF FF FF FF FF FF AB)
+    Arduino -> Notebook: Respond with "ERROR HASH INVALID" (0xFE)
+end
+group Message With Response
+    Notebook -> Arduino: Send Command "Read Motor Positions" (0x01 00 00 00 00 00 00 01)
+    Arduino -> Notebook: Respond with "SUCCESS+RESPONSE" (0xFD)
+    Arduino -> Notebook: Respond with data package (0x00 FF FF FF FF FF FF 00)
+    Notebook -> Arduino: Respond with "SUCCESS" (0xFF)
+end
+@enduml
