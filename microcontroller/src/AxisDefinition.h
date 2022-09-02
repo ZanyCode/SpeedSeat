@@ -77,10 +77,10 @@ struct Achse X_Axis{    27,      //Direction
                         0,      //RundungsfehlerSumiert
                         0,      //microsSinceLastAccelerationCalculation
 
-                        &OCR3A, //TimerPeriod
-                        &PORTA, //Port
-                        &DDRA,  //OutpuRegister
-                        PA4,    //StepPinNumber
+                        0, //TimerPeriod
+                        0, //Port
+                        0,  //OutpuRegister
+                        0,    //StepPinNumber
 
                         0,      //toggle
                         65535,      //stepPeriodInProcessorCycles
@@ -119,10 +119,10 @@ struct Achse Y_Axis{    15,      //Direction
                         0,      //RundungsfehlerSumiert
                         0,      //microsSinceLastAccelerationCalculation
 
-                        &OCR4A, //TimerPeriod
-                        &PORTJ, //Port
-                        &DDRJ,  //OutpuRegister
-                        PJ1,    //StepPinNumber
+                        0, //TimerPeriod
+                        0, //Port
+                        0,  //OutpuRegister
+                        0,    //StepPinNumber
 
                         0,      //toggle
                         65535,      //stepPeriodInProcessorCycles
@@ -161,10 +161,10 @@ struct Achse Z_Axis{    3,      //Direction
                         0,      //RundungsfehlerSumiert
                         0,      //microsSinceLastAccelerationCalculation
 
-                        &OCR5A, //TimerPeriod
-                        &PORTE, //Port
-                        &DDRE,  //OutpuRegister
-                        PE4,    //StepPinNumber
+                        0, //TimerPeriod
+                        PORT0, //Port
+                        &DDRC,  //OutpuRegister
+                        PGERS,    //StepPinNumber
 
                         0,      //toggle
                         65535,      //stepPeriodInProcessorCycles

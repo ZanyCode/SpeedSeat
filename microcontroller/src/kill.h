@@ -158,7 +158,7 @@ void checkForKill(){
     }
 
     if (killCalled){
-        Serial.write(ErrorNumber);
+        // Serial.write(ErrorNumber);
         X_Axis.aktiv = false;
         Y_Axis.aktiv = false;
         Z_Axis.aktiv = false;

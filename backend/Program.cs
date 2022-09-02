@@ -4,10 +4,10 @@ using System.Runtime.InteropServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 
-
-
 try {
     var builder = WebApplication.CreateBuilder(args);
+    builder.Configuration.AddJsonFile("config.json", false);
+    builder.Services.Configure<Config>(builder.Configuration.GetSection("Config"));
     builder.Services.AddSignalR();
     builder.Services.AddCors();
     builder.Services.AddSingleton<SpeedseatSettings>();
@@ -16,6 +16,7 @@ try {
     builder.Services.AddSingleton<OutdatedDataDiscardQueue<Command>>();
     builder.Services.AddSingleton<Speedseat>();
     builder.Services.AddSingleton<F12020TelemetryAdaptor>();
+    
     builder.Services.AddDbContext<SpeedseatContext>(options => options.UseSqlite("Data Source=speedseat_dbversion2.sqlite3"));
     // builder.Services.AddHostedService<F12020TelemetryAdaptor>();
     builder.Services.AddHttpContextAccessor();

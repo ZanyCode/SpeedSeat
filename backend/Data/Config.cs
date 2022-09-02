@@ -9,17 +9,20 @@ public class CommandValue
 {
     public string? Label { get; set; }
     public ValueType Type { get; set; }
-    public bool Readonly { get; set; }
     public bool ScaleToFullRange{ get; set; }
     public double Min { get; set; }
     public double Max { get; set; }    
     public double Value { get; set; }
 
-    public CommandValue(ValueType type, double value, string? label="", bool @readonly=false, bool scaleToFullRange = true, double min = 0, double max = 1)
+    public CommandValue()
+    {
+        
+    }
+
+    public CommandValue(ValueType type, double value, string? label="", bool scaleToFullRange = true, double min = 0, double max = 1)
     {
         Label = label;
         Type = type;
-        Readonly = @readonly;
         ScaleToFullRange = scaleToFullRange;
         Min = min;
         Max = max;
@@ -54,7 +57,10 @@ public class Command
 {
     public string GroupLabel { get; set; }
 
-    public byte Id { get; set; }
+    public byte ReadId { get; set; }
+    public byte WriteId { get; set; }
+
+    public bool IsReadonly { get; set; }
 
     public CommandValue Value1 { get; set; }
   
@@ -62,18 +68,24 @@ public class Command
 
     public CommandValue Value3 { get; set; }
 
-    public Command(byte id, CommandValue value1, CommandValue value2, CommandValue value3, string groupLabel = "")
+    public Command()
+    {
+        
+    }
+
+    public Command(byte writeId, byte readId, CommandValue value1, CommandValue value2, CommandValue value3, bool isReadonly, string groupLabel = "")
     {
         Value1 = value1;
         Value2 = value2;
         Value3 = value3;
-        Id = id;
+        IsReadonly = isReadonly;
+        WriteId = writeId;
+        ReadId = readId;
         GroupLabel = groupLabel;
     }
 
-
     public byte[] ToByteArray()
-    {
+    {    
         var (val1Msb, val1Lsb) = UShortToBytes(Value1.ToUShort());
         var (val2Msb, val2Lsb) = UShortToBytes(Value2.ToUShort());
         var (val3Msb, val3Lsb) = UShortToBytes(Value3.ToUShort());
@@ -95,4 +107,9 @@ public class Command
         var bytes = BitConverter.GetBytes(value);
         return (bytes[1], bytes[0]);
     }
+}
+
+public class Config
+{
+    public IEnumerable<Command> Commands { get; set; }
 }

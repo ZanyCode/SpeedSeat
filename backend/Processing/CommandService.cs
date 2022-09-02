@@ -18,6 +18,13 @@ public class CommandService
     private SerialPort? serialPort;
 
     private SemaphoreSlim writeDataSemaphore = new SemaphoreSlim(1);
+
+    private SemaphoreSlim responseReceivedSemaphore = new SemaphoreSlim(0, 1);
+
+    private bool waitingForResponse = false;
+
+    private SerialWriteResult currentSerialWriteResult = SerialWriteResult.Success;
+
     private readonly IHubContext<InfoHub> hubContext;
 
     public bool IsConnected => this.serialPort != null;
@@ -43,6 +50,17 @@ public class CommandService
             this.Disconnect();
         };
     
+        serialPort.DataReceived += (sender, args) => {
+            byte[] data = new byte[this.serialPort.BytesToRead];
+            this.serialPort.Read(data, 0, data.Length);
+            currentSerialWriteResult = data.Any(x => x == 255) ? SerialWriteResult.Success : SerialWriteResult.InvalidHash;
+            if(waitingForResponse)
+            {
+                waitingForResponse = false;
+                responseReceivedSemaphore.Release();
+            }     
+        };
+
         serialPort.Open(); 
         LogFrontend($"Successfully connected to port {port} with baud rate {baudrate}");
         return true;
@@ -64,19 +82,10 @@ public class CommandService
                 throw new Exception("Attempted to write data to a closed connection");
 
             commandCount++;
-            await writeDataSemaphore.WaitAsync();
-            var responseReceivedSemaphore = new SemaphoreSlim(0, 1);
-            SerialWriteResult result = SerialWriteResult.InvalidHash;
-
-            SerialDataReceivedEventHandler dataReceivedFunc = (sender, args) => {
-                byte[] data = new byte[this.serialPort.BytesToRead];
-                this.serialPort.Read(data, 0, data.Length);
-                result = data.Any(x => x == 255) ? SerialWriteResult.Success : SerialWriteResult.InvalidHash;     
-                responseReceivedSemaphore.Release();
-            };   
+            await writeDataSemaphore.WaitAsync();  
 
             var data = command.ToByteArray();
-            this.serialPort.DataReceived += dataReceivedFunc;     
+            waitingForResponse = true;
             this.serialPort.Write(data, 0, data.Length);   
             bool receivedResponse = await responseReceivedSemaphore.WaitAsync(2000);
 
@@ -88,8 +97,6 @@ public class CommandService
                 throw new Exception(error);
             }
 
-            this.serialPort.DataReceived -= dataReceivedFunc;
-
             writeDataSemaphore.Release();
 
             if((DateTime.Now - latestPerformaceUpdate).TotalMilliseconds > 1000)
@@ -100,9 +107,9 @@ public class CommandService
                 System.Console.WriteLine($"Commands/Second: {fps}"); 
             }
             
-            return receivedResponse? result : SerialWriteResult.Timeout;
+            return receivedResponse? currentSerialWriteResult : SerialWriteResult.Timeout;
         }
-        catch
+        catch(Exception e)
         {
             writeDataSemaphore.Release();
             this.Disconnect();

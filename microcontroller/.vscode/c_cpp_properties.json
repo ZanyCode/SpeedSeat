@@ -8,22 +8,38 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "d:/Projekte/speedseat/microcontroller/include",
-                "d:/Projekte/speedseat/microcontroller/src",
+                "d:/Projekte/speedseat/microcontroller2/include",
+                "d:/Projekte/speedseat/microcontroller2/src",
+                "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/variants/standard",
+                "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                 ""
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "d:/Projekte/speedseat/microcontroller/include",
-                    "d:/Projekte/speedseat/microcontroller/src",
+                    "d:/Projekte/speedseat/microcontroller2/include",
+                    "d:/Projekte/speedseat/microcontroller2/src",
+                    "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/cores/arduino",
+                    "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/variants/standard",
+                    "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                    "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                    "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                    "C:/Users/Tobi/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                     ""
                 ]
             },
             "defines": [
-                "F_CPU=16000000L",
                 "PLATFORMIO=60104",
                 "ARDUINO_AVR_UNO",
+                "F_CPU=16000000L",
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO=10808",
                 "__AVR_ATmega328P__",
                 ""
             ],

@@ -3,6 +3,7 @@ using System.IO.Ports;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 
 public class Speedseat
 {
@@ -14,6 +15,7 @@ public class Speedseat
     private readonly CommandService commandService;
     private readonly OutdatedDataDiscardQueue<Command> actionQueue;
     private readonly IHubContext<InfoHub> hubContext;
+    private readonly IOptionsMonitor<Config> options;
 
     public bool IsConnected => this.commandService.IsConnected;
 
@@ -45,6 +47,7 @@ public class Speedseat
         this.commandService = commandService;
         this.actionQueue = actionQueue;
         this.hubContext = hubContext;
+        this.options = options;
 
         // Update whenever the one of the motor mapping changes
         settings.FrontLeftMotorIdxObs.CombineLatest(
@@ -98,7 +101,7 @@ public class Speedseat
             positions[settings.FrontLeftMotorIdx] = new CommandValue(ValueType.Numeric, transformedFrontLeftMotorPosition);
             positions[settings.FrontRightMotorIdx] = new CommandValue(ValueType.Numeric, transformedFrontRightMotorPosition);
             positions[settings.BackMotorIdx] = new CommandValue(ValueType.Numeric, transformedBackMotorPosition);
-            var command = new Command(0, positions[0], positions[1], positions[2]);
+            var command = new Command(0, 1, positions[0], positions[1], positions[2], false);
 
             // We actually don't want to await this call here, at this point we just want to "fire and forget"
             this.actionQueue.QueueDatapoint(command, x => this.commandService.WriteCommand(x));                                             

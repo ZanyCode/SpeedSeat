@@ -304,7 +304,7 @@ void sendBuffer(){
 
     for (x = 0; x != PROTOCOL_LENGTH; ++x)
     {
-        Serial.write(buffer[x]);
+        // Serial.write(buffer[x]);
         Serial.flush();
     }
 }

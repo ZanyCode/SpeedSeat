@@ -15,7 +15,7 @@ const unsigned int MaxPosTest = 260*stepsPerMillimeter;
 
 void setup()
 {
-  Serial.begin(250000);
+  Serial.begin(115200);
   while (DEBUG_COMMUNICATION){
     executeCommunication();
   }
