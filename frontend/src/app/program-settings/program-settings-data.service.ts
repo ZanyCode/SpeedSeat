@@ -40,7 +40,7 @@ export class ProgramSettingsDataService {
   }
 
   public async init() {
-    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/program-settings`).build();   
+    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/programSettings`).build();   
     await this.connection.start();
   }
 
