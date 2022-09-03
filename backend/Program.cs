@@ -1,12 +1,14 @@
 using System.Diagnostics;
 using System.IO.Ports;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 
 try {
+    RestoreConfigFile();
     var builder = WebApplication.CreateBuilder(args);
-    builder.Configuration.AddJsonFile("config.json", false);
+    builder.Configuration.AddJsonFile("config.json", false, true);
     builder.Services.Configure<Config>(builder.Configuration.GetSection("Config"));
     builder.Services.AddSignalR();
     builder.Services.AddCors();
@@ -40,13 +42,7 @@ try {
         o.AllowCredentials();
         o.SetIsOriginAllowed(origin => true);
     });
-    // app.UseStaticFiles();
-    // app.UseSpa(builder => {
-    //     builder.Options.DefaultPageStaticFileOptions = new StaticFileOptions
-    //     {
-    //         FileProvider = new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot")
-    //     };
-    // });
+
     app.UseSpaStaticFiles(new StaticFileOptions
     {
         FileProvider = new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot")
@@ -82,6 +78,19 @@ catch(Exception e){
     Console.ReadLine();
 }
 
+void RestoreConfigFile()
+{
+    if(!File.Exists("config.json"))
+    {
+        using(var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream("speedseat.config_template.json"))
+        {
+            using(var file = new FileStream("config.json", FileMode.Create, FileAccess.Write))
+            {
+                resource.CopyTo(file);
+            } 
+        }
+    }
+}
 
 void OpenUrl(string url)
 {

@@ -1,0 +1,38 @@
+{
+    "config": 
+    {
+        "commands": 
+        [
+            {
+                "groupLabel": "Motor-Positions",
+                "readId": 0,
+                "writeId": 1,
+                "readonly": false,
+                "value1":
+                {
+                    "label": "Front-Right-Motor Position",
+                    "type": "numeric",
+                    "scaleToFullRange": true,
+                    "min": 0,
+                    "max": 1
+                },
+                "value2":
+                {
+                    "label": "Front-Left-Motor Position",
+                    "type": "numeric",
+                    "scaleToFullRange": true,
+                    "min": 0,
+                    "max": 1
+                },
+                "value3":
+                {
+                    "label": "Back-Motor Position",
+                    "type": "numeric",
+                    "scaleToFullRange": true,
+                    "min": 0,
+                    "max": 1
+                }
+            }
+        ]
+    }   
+}

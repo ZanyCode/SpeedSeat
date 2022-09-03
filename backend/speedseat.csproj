@@ -10,6 +10,8 @@
   <ItemGroup>
       <EmbeddedResource Include="wwwroot\**\*">      
       </EmbeddedResource>
+      <EmbeddedResource Include="config_template.json">      
+      </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

@@ -20,7 +20,7 @@ public class SeatSettingsHub : Hub
         return this.options.CurrentValue.Commands;
     }
 
-    public async Task<SerialWriteResult> UpdateSetting(Command command)
+    public async Task<SerialWriteResult> UpdateSetting(Command command, double value)
     {
         if(command.IsReadonly)
             throw new Exception($"Command with id 0x{Convert.ToHexString(new [] {command.WriteId})} can't be updated since it is readonly");

@@ -12,7 +12,7 @@ import {MatInputModule} from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { ManualControlComponent } from './manual-control/manual-control.component';
-import { SettingsComponent } from './settings/settings.component';
+import { ProgramSettingsComponent } from './program-settings/program-settings.component';
 import { ConnectionComponent } from './connection/connection.component';
 import {MatCardModule} from '@angular/material/card';
 import {MatSliderModule} from '@angular/material/slider';
@@ -22,8 +22,9 @@ import { QRCodeModule } from 'angularx-qrcode';
 import { TelemetryComponent } from './telemetry/telemetry.component';
 import * as PlotlyJS from 'plotly.js-dist-min';
 import { PlotlyModule } from 'angular-plotly.js';
-import { CurveEditorModule } from './settings/curve-editor/curve-editor.module';
+import { CurveEditorModule } from './program-settings/curve-editor/curve-editor.module';
 import { FormsModule } from '@angular/forms';
+import { SeatSettingsComponent } from './seat-settings/seat-settings.component';
 
 
 PlotlyModule.plotlyjs = PlotlyJS;
@@ -32,9 +33,10 @@ PlotlyModule.plotlyjs = PlotlyJS;
   declarations: [
     AppComponent,
     ManualControlComponent,
-    SettingsComponent,
+    ProgramSettingsComponent,
     ConnectionComponent,
     TelemetryComponent,
+    SeatSettingsComponent,
   ],
   imports: [
     BrowserModule,

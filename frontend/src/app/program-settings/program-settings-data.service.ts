@@ -8,7 +8,7 @@ import { SpeedseatSettings } from '../models/speedseat-settings';
 @Injectable({
   providedIn: 'root'
 })
-export class SettingsDataService {
+export class ProgramSettingsDataService {
   connection!: HubConnection;
 
   public async getSettings() {
@@ -40,7 +40,7 @@ export class SettingsDataService {
   }
 
   public async init() {
-    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/programSettings`).build();   
+    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/program-settings`).build();   
     await this.connection.start();
   }
 

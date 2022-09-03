@@ -1,13 +1,13 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ResponseCurvePoint } from './curve-editor/curve-editor.component';
-import { SettingsDataService } from './settings-data.service';
+import { ProgramSettingsDataService } from './program-settings-data.service';
 
 @Component({
   selector: 'app-settings',
-  templateUrl: './settings.component.html',
-  styleUrls: ['./settings.component.scss']
+  templateUrl: './program-settings.component.html',
+  styleUrls: ['./program-settings.component.scss']
 })
-export class SettingsComponent implements OnInit, OnDestroy {
+export class ProgramSettingsComponent implements OnInit, OnDestroy {
   private _frontLeftMotorIdx = 0;
   public get frontLeftMotorIdx() {
     return this._frontLeftMotorIdx;
@@ -62,7 +62,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.data.setSideMotorResponseCurve(value);
   }
 
-  constructor(private data: SettingsDataService) { 
+  constructor(private data: ProgramSettingsDataService) { 
   } 
 
   ngOnInit(): void {
