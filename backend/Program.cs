@@ -64,6 +64,7 @@ try {
     app.MapHub<ConnectionHub>("/hub/connection");
     app.MapHub<InfoHub>("/hub/info");
     app.MapHub<ProgramSettingsHub>("/hub/programSettings");
+    app.MapHub<SeatSettingsHub>("/hub/seatSettings");
     app.MapHub<TelemetryHub>("/hub/telemetry");
 
     // Open in browser

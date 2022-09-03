@@ -104,7 +104,7 @@ public class Speedseat
             var command = new Command(0, 1, positions[0], positions[1], positions[2], false);
 
             // We actually don't want to await this call here, at this point we just want to "fire and forget"
-            this.actionQueue.QueueDatapoint(command, x => this.commandService.WriteCommand(x));                                             
+            Task.Factory.StartNew(() => this.actionQueue.QueueDatapoint(command, x => this.commandService.WriteCommand(x)));  
         }
     }
 
