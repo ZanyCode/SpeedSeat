@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Observable } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
@@ -13,6 +13,9 @@ export class AppComponent implements OnInit, OnDestroy {
   title = 'SpeedSeat';
   url: string | undefined = undefined;
   log = '[LOG]';
+  logTextareaScrolltop: number | null = null;
+  @ViewChild('textarea') textarea: ElementRef | undefined;  
+
 
   isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset)
     .pipe(
@@ -31,6 +34,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onLogReceived = (message: string) => {
     this.log += `\n[${new Date().toLocaleString()}]: ${message}`;
+    setTimeout(() => this.logTextareaScrolltop = this.textarea?.nativeElement.scrollHeight, 0);
   }
 
   ngOnDestroy(): void {

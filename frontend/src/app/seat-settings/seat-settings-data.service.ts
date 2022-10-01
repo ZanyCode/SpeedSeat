@@ -20,6 +20,11 @@ export class SeatSettingsDataService {
     return this.connection.invoke<Command[]>("GetCommands");
   }
 
+  public async updateSetting(updateCommand: Command)
+  {
+    return this.connection.invoke("UpdateSetting", updateCommand);
+  }
+
   public async destroy() {
     await this.connection.stop();
   }

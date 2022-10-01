@@ -15,7 +15,7 @@ public class CommandService
     private int commandCount = 0;
     private DateTime latestPerformaceUpdate = DateTime.Now;
 
-    private SerialPort? serialPort;
+    private ISerialPortConnection? serialPort;
 
     private SemaphoreSlim writeDataSemaphore = new SemaphoreSlim(1);
 
@@ -24,30 +24,24 @@ public class CommandService
     private bool waitingForResponse = false;
 
     private SerialWriteResult currentSerialWriteResult = SerialWriteResult.Success;
-
-    private readonly IHubContext<InfoHub> hubContext;
+    private readonly IFrontendLogger frontendLogger;
+    private readonly ISerialPortConnectionFactory serialPortConnectionFactory;
 
     public bool IsConnected => this.serialPort != null;
 
-    public CommandService(IHubContext<InfoHub> hubContext)
+    public CommandService(IFrontendLogger frontendLogger, ISerialPortConnectionFactory serialPortConnectionFactory)
     {
-        this.hubContext = hubContext;
-    }
-
-    private void LogFrontend(string message)
-    {
-        this.hubContext.Clients.All.SendAsync("log", message);
+        this.frontendLogger = frontendLogger;
+        this.serialPortConnectionFactory = serialPortConnectionFactory;
     }
 
     public bool Connect(string port, int baudrate)
     {
         // Create a new SerialPort object with default settings.
-        serialPort = new SerialPort(port);        
-        serialPort.BaudRate = baudrate;        
-        serialPort.ReadTimeout = 500;
-        serialPort.WriteTimeout = 500;  
+        serialPort = serialPortConnectionFactory.Create(port, baudrate);
         serialPort.ErrorReceived += (sender, args) => {
             this.Disconnect();
+            frontendLogger.Log($"Serial port experienced unexpected error, disconnecting ({args.EventType})");
         };
     
         serialPort.DataReceived += (sender, args) => {
@@ -59,10 +53,11 @@ public class CommandService
                 waitingForResponse = false;
                 responseReceivedSemaphore.Release();
             }     
+            frontendLogger.Log($"Got message {Convert.ToHexString(data)}");
         };
 
         serialPort.Open(); 
-        LogFrontend($"Successfully connected to port {port} with baud rate {baudrate}");
+        frontendLogger.Log($"Successfully connected to port {port} with baud rate {baudrate}");
         return true;
     }
 
@@ -71,7 +66,7 @@ public class CommandService
         this.writeDataSemaphore.Release();
         this.serialPort?.Dispose();
         this.serialPort = null;
-        LogFrontend("Connection to Serial Port closed");
+        frontendLogger.Log("Connection to Serial Port closed");
     }
 
     public async Task<SerialWriteResult> WriteCommand(Command command)
@@ -84,16 +79,17 @@ public class CommandService
             commandCount++;
             await writeDataSemaphore.WaitAsync();  
 
-            var data = command.ToByteArray();
+            var data = command.ToByteArray(write: true);
             waitingForResponse = true;
+            frontendLogger.Log($"Sending message {Convert.ToHexString(data)}");
             this.serialPort.Write(data, 0, data.Length);   
             bool receivedResponse = await responseReceivedSemaphore.WaitAsync(2000);
 
             if(!receivedResponse)
             {
-                string error = "Value wasn't written since no response from controller was received. Connection closed, please reconnect manually.";
+                string error = "Value wasn't written since no response from controller was received.";
                 System.Console.WriteLine(error);
-                LogFrontend(error);
+                frontendLogger.Log(error);
                 throw new Exception(error);
             }
 
@@ -112,8 +108,114 @@ public class CommandService
         catch(Exception e)
         {
             writeDataSemaphore.Release();
-            this.Disconnect();
+            System.Console.WriteLine($"Error writing value: {e.Message}");
             return SerialWriteResult.WriteError;
         }
     }
 }
+
+// Thin wrapper around SerialPort to facilitate testing of command service
+public interface ISerialPortConnection : IDisposable
+{
+    public event SerialErrorReceivedEventHandler ErrorReceived;
+
+    public event SerialDataReceivedEventHandler DataReceived;
+
+    public void Open();
+
+    public void Write(byte[] buffer, int offset, int count);
+
+    public int Read(byte[] data, int offset, int count);
+
+    public int BytesToRead { get; }
+}
+
+public class SerialPortConnection : ISerialPortConnection
+{
+    private SerialPort serialPort;
+    private readonly string port;
+    private readonly int baudrate;
+    private readonly IFrontendLogger frontendLogger;
+
+    public int BytesToRead => serialPort.BytesToRead;
+
+    public event SerialErrorReceivedEventHandler ErrorReceived 
+    {
+        add
+        {
+            serialPort.ErrorReceived -= value;
+            serialPort.ErrorReceived += value;
+        }
+        remove
+        {
+            serialPort.ErrorReceived -= value;
+        }
+    }
+
+    public event SerialDataReceivedEventHandler DataReceived 
+    {
+        add
+        {
+            serialPort.DataReceived -= value;
+            serialPort.DataReceived += value;
+        }
+        remove
+        {
+            serialPort.DataReceived -= value;
+        }
+    }
+    
+    public SerialPortConnection(string port, int baudrate, IFrontendLogger frontendLogger)
+    {
+        // Create a new SerialPort object with default settings.
+        serialPort = new SerialPort(port);        
+        serialPort.BaudRate = baudrate;        
+        serialPort.ReadTimeout = 500;
+        serialPort.WriteTimeout = 500;
+        this.port = port;
+        this.baudrate = baudrate;
+        this.frontendLogger = frontendLogger;
+    }
+
+    public void Dispose()
+    {
+        serialPort.Dispose();
+    }
+
+    public void Open()
+    {
+        serialPort.Open();
+        frontendLogger.Log($"Successfully connected to port {port} with baud rate {baudrate}");
+    }
+
+    public void Write(byte[] buffer, int offset, int count)
+    {
+        serialPort.Write(buffer, offset, count);
+    }
+
+    public int Read(byte[] buffer, int offset, int count)
+    {
+        return serialPort.Read(buffer, offset, count);
+    }
+}
+
+public interface ISerialPortConnectionFactory
+{
+    public ISerialPortConnection Create(string port, int baudrate);    
+}
+
+public class SerialPortConnectionFactory : ISerialPortConnectionFactory
+{
+    private readonly IFrontendLogger frontendLogger;
+
+    public SerialPortConnectionFactory(IFrontendLogger frontendLogger)
+    {
+        this.frontendLogger = frontendLogger;
+    }
+
+    public ISerialPortConnection Create(string port, int baudrate)
+    {
+        return new SerialPortConnection(port, baudrate, frontendLogger);
+    }
+}
+

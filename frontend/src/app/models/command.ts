@@ -8,7 +8,7 @@ export enum ValueType {
 
 export interface CommandValue {
     label: string;
-    valueType: ValueType;
+    type: ValueType;
     scaleToFullRange: boolean;
     min: number;
     max: number;

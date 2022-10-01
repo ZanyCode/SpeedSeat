@@ -14,6 +14,8 @@ public class CommandValue
     public double Max { get; set; }    
     public double Value { get; set; }
 
+    public double Default { get; set; }
+
     public CommandValue()
     {
         
@@ -47,6 +49,8 @@ public class CommandValue
                 {
                     return (ushort)clampedValue;
                 }
+            case ValueType.Action:
+               return 0;
             default:
                 throw new Exception("Invalid Value Type");
         }
@@ -84,14 +88,14 @@ public class Command
         GroupLabel = groupLabel;
     }
 
-    public byte[] ToByteArray()
+    public byte[] ToByteArray(bool write)
     {    
-        var (val1Msb, val1Lsb) = UShortToBytes(Value1.ToUShort());
-        var (val2Msb, val2Lsb) = UShortToBytes(Value2.ToUShort());
-        var (val3Msb, val3Lsb) = UShortToBytes(Value3.ToUShort());
+        var (val1Msb, val1Lsb) = UShortToBytes(Value1?.ToUShort());
+        var (val2Msb, val2Lsb) = UShortToBytes(Value2?.ToUShort());
+        var (val3Msb, val3Lsb) = UShortToBytes(Value3?.ToUShort());
 
         var bytes = new byte[8];
-        bytes[0] = 0;
+        bytes[0] = write ? WriteId : ReadId;
         bytes[1] = val1Msb;
         bytes[2] = val1Lsb;
         bytes[3] = val2Msb;
@@ -103,8 +107,11 @@ public class Command
         return bytes;
     }
 
-    private (byte msb, byte lsb) UShortToBytes(ushort value) {
-        var bytes = BitConverter.GetBytes(value);
+    private (byte msb, byte lsb) UShortToBytes(ushort? value) {
+        if(value == null)
+            return (0, 0);
+
+        var bytes = BitConverter.GetBytes((ushort)value);
         return (bytes[1], bytes[0]);
     }
 }

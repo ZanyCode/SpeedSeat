@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { Command } from '../models/command';
+import { Command, ValueType } from '../models/command';
 import { SeatSettingsDataService } from './seat-settings-data.service';
 
 @Component({
@@ -10,6 +10,7 @@ import { SeatSettingsDataService } from './seat-settings-data.service';
 export class SeatSettingsComponent implements OnInit {
   data: SeatSettingsDataService;
   commands?: Command[];
+  ValueType = ValueType;
 
   constructor(data: SeatSettingsDataService) { 
     this.data = data;
@@ -18,7 +19,10 @@ export class SeatSettingsComponent implements OnInit {
   ngOnInit(): void {
     this.data.init().then(async () => {
       this.commands = await this.data.getCommands();
-      console.log(this.commands);
     });  
+  }
+
+  onSettingChanged(command: Command) {
+    this.data.updateSetting(command);
   }
 }

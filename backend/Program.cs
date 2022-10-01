@@ -18,6 +18,8 @@ try {
     builder.Services.AddSingleton<OutdatedDataDiscardQueue<Command>>();
     builder.Services.AddSingleton<Speedseat>();
     builder.Services.AddSingleton<F12020TelemetryAdaptor>();
+    builder.Services.AddTransient<IFrontendLogger, FrontendLogger>();
+    builder.Services.AddTransient<ISerialPortConnectionFactory, SerialPortConnectionFactory>();
     
     builder.Services.AddDbContext<SpeedseatContext>(options => options.UseSqlite("Data Source=speedseat_dbversion2.sqlite3"));
     // builder.Services.AddHostedService<F12020TelemetryAdaptor>();

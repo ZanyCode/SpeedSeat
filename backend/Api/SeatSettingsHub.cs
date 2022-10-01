@@ -17,14 +17,23 @@ public class SeatSettingsHub : Hub
 
     public IEnumerable<Command> GetCommands()
     {
-        return this.options.CurrentValue.Commands;
+        var commands = this.options.CurrentValue.Commands;
+        foreach(var command in commands)
+        {
+            var (value1, value2, value3) = settings.GetConfigurableSettingsValues(command);
+            command.Value1.Value = value1;
+            command.Value2.Value = value2;
+            command.Value3.Value = value3;
+        }
+        return commands;
     }
 
-    public async Task<SerialWriteResult> UpdateSetting(Command command, double value)
+    public async Task<SerialWriteResult> UpdateSetting(Command command)
     {
         if(command.IsReadonly)
             throw new Exception($"Command with id 0x{Convert.ToHexString(new [] {command.WriteId})} can't be updated since it is readonly");
 
+        settings.SaveConfigurableSetting(command);
         return await commandService.WriteCommand(command);
     }
 }

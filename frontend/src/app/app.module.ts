@@ -25,6 +25,9 @@ import { PlotlyModule } from 'angular-plotly.js';
 import { CurveEditorModule } from './program-settings/curve-editor/curve-editor.module';
 import { FormsModule } from '@angular/forms';
 import { SeatSettingsComponent } from './seat-settings/seat-settings.component';
+import { NumericSettingComponent } from './seat-settings/numeric-setting/numeric-setting.component';
+import { BooleanSettingComponent } from './seat-settings/boolean-setting/boolean-setting.component';
+import { ActionSettingComponent } from './seat-settings/action-setting/action-setting.component';
 
 
 PlotlyModule.plotlyjs = PlotlyJS;
@@ -37,6 +40,9 @@ PlotlyModule.plotlyjs = PlotlyJS;
     ConnectionComponent,
     TelemetryComponent,
     SeatSettingsComponent,
+    NumericSettingComponent,
+    BooleanSettingComponent,
+    ActionSettingComponent,
   ],
   imports: [
     BrowserModule,

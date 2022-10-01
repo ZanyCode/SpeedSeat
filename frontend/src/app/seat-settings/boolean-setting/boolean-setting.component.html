@@ -1,0 +1,3 @@
+<div class="mt-4">
+    <mat-checkbox (change)="onValueChanged($event.checked)" [checked]="value.value != null && value.value > 0? true:false">{{value.label}}</mat-checkbox>
+</div>

@@ -1,38 +1,59 @@
 {
-    "config": 
-    {
-        "commands": 
-        [
+    "config": {
+        "commands": [
             {
                 "groupLabel": "Motor-Positions",
-                "readId": 0,
-                "writeId": 1,
+                "writeId": 0,
+                "readId": 1,
                 "readonly": false,
-                "value1":
-                {
+                "value1": {
                     "label": "Front-Right-Motor Position",
                     "type": "numeric",
                     "scaleToFullRange": true,
                     "min": 0,
-                    "max": 1
+                    "max": 1,
+                    "default": 0.5
                 },
-                "value2":
-                {
+                "value2": {
                     "label": "Front-Left-Motor Position",
                     "type": "numeric",
                     "scaleToFullRange": true,
                     "min": 0,
-                    "max": 1
+                    "max": 1,
+                    "default": 0.5
                 },
-                "value3":
-                {
+                "value3": {
                     "label": "Back-Motor Position",
                     "type": "numeric",
                     "scaleToFullRange": true,
                     "min": 0,
-                    "max": 1
+                    "max": 1,
+                    "default": 0.5
+                }
+            },
+            {
+                "groupLabel": "Important Settings",
+                "writeId": 10,
+                "readId": 11,
+                "readonly": false,
+                "value1": {
+                    "label": "Awesomeness Level",
+                    "type": "numeric",
+                    "scaleToFullRange": true,
+                    "min": 0,
+                    "max": 100,
+                    "default": 10
+                },
+                "value2": {
+                    "label": "Click this to get rich",
+                    "type": "action"                  
+                },
+                "value3": {
+                    "label": "Overtake Universe",
+                    "type": "boolean",
+                    "default": 1
                 }
             }
         ]
-    }   
+    }
 }
