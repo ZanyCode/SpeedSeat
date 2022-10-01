@@ -53,7 +53,7 @@ public class CommandService
                 waitingForResponse = false;
                 responseReceivedSemaphore.Release();
             }     
-            frontendLogger.Log($"Got message {Convert.ToHexString(data)}");
+            // frontendLogger.Log($"Got message {Convert.ToHexString(data)}");
         };
 
         serialPort.Open(); 
@@ -81,7 +81,7 @@ public class CommandService
 
             var data = command.ToByteArray(write: true);
             waitingForResponse = true;
-            frontendLogger.Log($"Sending message {Convert.ToHexString(data)}");
+            // frontendLogger.Log($"Sending message {Convert.ToHexString(data)}");
             this.serialPort.Write(data, 0, data.Length);   
             bool receivedResponse = await responseReceivedSemaphore.WaitAsync(2000);
 
