@@ -5,10 +5,10 @@ public class TelemetryHub : Hub
 {
     private readonly Speedseat seat;
     private readonly IHubContext<ManualControlHub> context;
-    private readonly SpeedseatSettings settings;
+    private readonly ISpeedseatSettings settings;
     private readonly F12020TelemetryAdaptor telemetryAdaptor;
 
-    public TelemetryHub(SpeedseatSettings settings, F12020TelemetryAdaptor telemetryAdaptor)
+    public TelemetryHub(ISpeedseatSettings settings, F12020TelemetryAdaptor telemetryAdaptor)
     {     
         this.settings = settings;
         this.telemetryAdaptor = telemetryAdaptor;
@@ -64,7 +64,7 @@ public class TelemetryHub : Hub
         this.telemetryAdaptor.StopStreaming();
     }
 
-    public SpeedseatSettings GetCurrentState() {
+    public ISpeedseatSettings GetCurrentState() {
         return settings;
     }
 

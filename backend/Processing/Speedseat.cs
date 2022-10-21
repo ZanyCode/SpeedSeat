@@ -11,7 +11,7 @@ public class Speedseat
     private double frontRightMotorPosition;
     private double backMotorPosition;
 
-    private readonly SpeedseatSettings settings;
+    private readonly ISpeedseatSettings settings;
     private readonly CommandService commandService;
     private readonly OutdatedDataDiscardQueue<Command> actionQueue;
     private readonly IHubContext<InfoHub> hubContext;
@@ -41,7 +41,7 @@ public class Speedseat
         this.UpdatePosition();
     }}
 
-    public Speedseat(SpeedseatSettings settings, CommandService commandService, OutdatedDataDiscardQueue<Command> actionQueue, IHubContext<InfoHub> hubContext)
+    public Speedseat(ISpeedseatSettings settings, CommandService commandService, OutdatedDataDiscardQueue<Command> actionQueue, IHubContext<InfoHub> hubContext)
     {
         this.settings = settings;
         this.commandService = commandService;
@@ -101,7 +101,7 @@ public class Speedseat
             positions[settings.FrontLeftMotorIdx] = new CommandValue(ValueType.Numeric, transformedFrontLeftMotorPosition);
             positions[settings.FrontRightMotorIdx] = new CommandValue(ValueType.Numeric, transformedFrontRightMotorPosition);
             positions[settings.BackMotorIdx] = new CommandValue(ValueType.Numeric, transformedBackMotorPosition);
-            var command = new Command(0, 1, positions[0], positions[1], positions[2], false);
+            var command = new Command(0, positions[0], positions[1], positions[2], false, false);
 
             // We actually don't want to await this call here, at this point we just want to "fire and forget"
             Task.Factory.StartNew(() => this.actionQueue.QueueDatapoint(command, x => this.commandService.WriteCommand(x)));  

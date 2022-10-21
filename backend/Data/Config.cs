@@ -9,19 +9,19 @@ public class CommandValue
 {
     public string? Label { get; set; }
     public ValueType Type { get; set; }
-    public bool ScaleToFullRange{ get; set; }
+    public bool ScaleToFullRange { get; set; }
     public double Min { get; set; }
-    public double Max { get; set; }    
+    public double Max { get; set; }
     public double Value { get; set; }
 
     public double Default { get; set; }
 
     public CommandValue()
     {
-        
+
     }
 
-    public CommandValue(ValueType type, double value, string? label="", bool scaleToFullRange = true, double min = 0, double max = 1)
+    public CommandValue(ValueType type, double value, string? label = "", bool scaleToFullRange = true, double min = 0, double max = 1)
     {
         Label = label;
         Type = type;
@@ -33,16 +33,16 @@ public class CommandValue
 
     public ushort ToUShort()
     {
-        switch(Type)
+        switch (Type)
         {
             case ValueType.Boolean:
-                return (ushort)(Value != 0? 1 : 0);
+                return (ushort)(Value != 0 ? 1 : 0);
             case ValueType.Numeric:
                 var clampedValue = Math.Clamp(Value, Min, Max);
-                if(ScaleToFullRange)
+                if (ScaleToFullRange)
                 {
                     var normedValue = (Value - Min) / (Max - Min);
-                    var scaledValue = (ushort)Math.Clamp(normedValue * ushort.MaxValue, 0, ushort.MaxValue); 
+                    var scaledValue = (ushort)Math.Clamp(normedValue * ushort.MaxValue, 0, ushort.MaxValue);
                     return scaledValue;
                 }
                 else
@@ -50,10 +50,32 @@ public class CommandValue
                     return (ushort)clampedValue;
                 }
             case ValueType.Action:
-               return 0;
+                return 0;
             default:
                 throw new Exception("Invalid Value Type");
         }
+    }
+
+    public CommandValue CloneWithNewValuesFromBytes(byte msb, byte lsb)
+    {
+        ushort fullValue = (ushort)((msb << 8) | lsb);
+        double value = -1;
+        if (ScaleToFullRange)
+        {
+            var normedValue = fullValue / (double)0xFFFF;
+            value = this.Min + ((this.Max - this.Min) * normedValue);
+        }
+        else
+        {
+            value = fullValue;
+        }
+
+        return new CommandValue(this.Type, value, this.Label, this.ScaleToFullRange, this.Min, this.Max);
+    }
+
+    public CommandValue CloneWithNewValue(double value)
+    {
+        return new CommandValue(this.Type, value, this.Label, this.ScaleToFullRange, this.Min, this.Max);
     }
 }
 
@@ -61,41 +83,41 @@ public class Command
 {
     public string GroupLabel { get; set; }
 
-    public byte ReadId { get; set; }
-    public byte WriteId { get; set; }
+    public byte Id { get; set; }
 
     public bool IsReadonly { get; set; }
 
     public CommandValue Value1 { get; set; }
-  
+
     public CommandValue Value2 { get; set; }
 
     public CommandValue Value3 { get; set; }
+    public bool IsReadRequest { get; private set; }
 
     public Command()
     {
-        
+
     }
 
-    public Command(byte writeId, byte readId, CommandValue value1, CommandValue value2, CommandValue value3, bool isReadonly, string groupLabel = "")
+    public Command(byte id, CommandValue value1, CommandValue value2, CommandValue value3, bool isReadonly, bool isReadRequest, string groupLabel = "")
     {
+        Id = id;
         Value1 = value1;
         Value2 = value2;
         Value3 = value3;
         IsReadonly = isReadonly;
-        WriteId = writeId;
-        ReadId = readId;
+        IsReadRequest = isReadRequest;
         GroupLabel = groupLabel;
     }
 
-    public byte[] ToByteArray(bool write)
-    {    
+    public byte[] ToByteArray()
+    {
         var (val1Msb, val1Lsb) = UShortToBytes(Value1?.ToUShort());
         var (val2Msb, val2Lsb) = UShortToBytes(Value2?.ToUShort());
         var (val3Msb, val3Lsb) = UShortToBytes(Value3?.ToUShort());
 
         var bytes = new byte[8];
-        bytes[0] = write ? WriteId : ReadId;
+        bytes[0] = (byte)((IsReadRequest ? 1 : 0) | Id << 1);
         bytes[1] = val1Msb;
         bytes[2] = val1Lsb;
         bytes[3] = val2Msb;
@@ -107,8 +129,47 @@ public class Command
         return bytes;
     }
 
-    private (byte msb, byte lsb) UShortToBytes(ushort? value) {
-        if(value == null)
+    public static bool IsHashValid(byte[] currentCommandBytes)
+    {
+        if (currentCommandBytes.Count() != 8)
+            return false;
+
+        return currentCommandBytes.Take(7).Aggregate((acc, val) => (byte)(acc ^ val)) == currentCommandBytes.Last();
+    }
+
+    public static byte ExtractIdFromByteArray(byte[] data)
+    {
+        if (data == null || data.Count() <= 0)
+            throw new Exception("Can't extract id from empty/null array in Command.ExtractIdFromByteArray()");
+
+        return (byte)(data[0] >> 1);
+    }
+
+    public Command CloneWithNewValuesFromByteArray(byte[] data)
+    {
+        var id = ExtractIdFromByteArray(data);
+        if (id != this.Id)
+            throw new Exception($"Tried to set values for command with id {this.Id} from byte array, but that byte array represents command with a different id: {id}");
+
+        bool isReadRequest = (data[0] & 0x01) == 1;
+        var value1 = this.Value1 == null ? null : this.Value1.CloneWithNewValuesFromBytes(data[1], data[2]);
+        var value2 = this.Value2 == null ? null : this.Value2.CloneWithNewValuesFromBytes(data[3], data[4]);
+        var value3 = this.Value3 == null ? null : this.Value3.CloneWithNewValuesFromBytes(data[5], data[6]);
+        return new Command(this.Id, value1, value2, value3, this.IsReadonly, isReadRequest, this.GroupLabel);
+    }
+
+    public Command CloneWithNewValues(double value1, double value2, double value3, bool isReadRequest)
+    {
+        var commandValue1 = this.Value1 == null ? null : this.Value1.CloneWithNewValue(value1);
+        var commandValue2 = this.Value2 == null ? null : this.Value2.CloneWithNewValue(value2);
+        var commandValue3 = this.Value3 == null ? null : this.Value3.CloneWithNewValue(value3);
+        return new Command(this.Id, commandValue1, commandValue2, commandValue3, this.IsReadonly, isReadRequest, this.GroupLabel);
+    }
+
+
+    private (byte msb, byte lsb) UShortToBytes(ushort? value)
+    {
+        if (value == null)
             return (0, 0);
 
         var bytes = BitConverter.GetBytes((ushort)value);

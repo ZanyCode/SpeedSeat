@@ -6,7 +6,43 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-public class SpeedseatSettings
+public interface ISpeedseatSettings
+{
+    IObservable<int> FrontLeftMotorIdxObs { get; }
+    int FrontLeftMotorIdx { get; set; }
+    IObservable<int> FrontRightMotorIdxObs { get; }
+    int FrontRightMotorIdx { get; set; }
+    IObservable<int> BackMotorIdxObs { get; }
+    int BackMotorIdx { get; set; }
+    IObservable<IEnumerable<ResponseCurvePoint>> BackMotorResponseCurveObs { get; }
+    IEnumerable<ResponseCurvePoint> BackMotorResponseCurve { get; set; }
+    IObservable<IEnumerable<ResponseCurvePoint>> SideMotorResponseCurveObs { get; }
+    IEnumerable<ResponseCurvePoint> SideMotorResponseCurve { get; set; }
+    IObservable<double> FrontTiltPriorityObs { get; }
+    double FrontTiltPriority { get; set; }
+    IObservable<double> FrontTiltGforceMultiplierObs { get; }
+    double FrontTiltGforceMultiplier { get; set; }
+    IObservable<double> FrontTiltOutputCapObs { get; }
+    double FrontTiltOutputCap { get; set; }
+    IObservable<double> FrontTiltSmoothingObs { get; }
+    double FrontTiltSmoothing { get; set; }
+    IObservable<double> SideTiltGforceMultiplierObs { get; }
+    double SideTiltGforceMultiplier { get; set; }
+    IObservable<double> SideTiltOutputCapObs { get; }
+    double SideTiltOutputCap { get; set; }
+    IObservable<double> SideTiltSmoothingObs { get; }
+    double SideTiltSmoothing { get; set; }
+    IObservable<bool> FrontTiltReverseObs { get; }
+    bool FrontTiltReverse { get; set; }
+    IObservable<bool> SideTiltReverseObs { get; }
+    bool SideTiltReverse { get; set; }
+    int BaudRate { get; set; }
+
+    (double value1, double value2, double value3) GetConfigurableSettingsValues(Command command);
+    void SaveConfigurableSetting(Command command);
+}
+
+public class SpeedseatSettings : ISpeedseatSettings
 {
     /* Definition of Motor Indexes */
     [JsonIgnore]
@@ -97,7 +133,7 @@ public class SpeedseatSettings
 
     public void SaveConfigurableSetting(Command command)
     {
-         using (var scope = scopeFactory.CreateScope())
+        using (var scope = scopeFactory.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<SpeedseatContext>();
             var value1Id = ConstructSettingsValueId(command, 1);
@@ -110,14 +146,14 @@ public class SpeedseatSettings
 
             context.Set(value1Id, value1);
             context.Set(value2Id, value2);
-            context.Set(value3Id, value3);            
+            context.Set(value3Id, value3);
         }
     }
 
     private string ConstructSettingsValueId(Command command, int valueNr)
     {
-        return $"{command.ReadId}-Value{valueNr}";
-    }    
+        return $"{command.Id}-Value{valueNr}";
+    }
 
     /* Implementation of boilerplate */
     private ConcurrentDictionary<string, ISubject<string?>> subjects = new ConcurrentDictionary<string, ISubject<string?>>();

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.SignalR;
 public class F12020TelemetryAdaptor
 {
     private readonly Speedseat seat;
-    private readonly SpeedseatSettings settings;
+    private readonly ISpeedseatSettings settings;
     private readonly IHubContext<TelemetryHub> telemetryHubContext;
     private bool isStreaming = false;
 
@@ -22,7 +22,7 @@ public class F12020TelemetryAdaptor
     private List<Datapoint> frontTiltTelemetry = new List<Datapoint>();
     private List<Datapoint> sideTiltTelemetry = new List<Datapoint>();
 
-    public F12020TelemetryAdaptor(Speedseat seat, SpeedseatSettings settings, IHubContext<TelemetryHub> telemetryHubContext)
+    public F12020TelemetryAdaptor(Speedseat seat, ISpeedseatSettings settings, IHubContext<TelemetryHub> telemetryHubContext)
     {
         this.seat = seat;
         this.settings = settings;

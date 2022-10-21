@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.SignalR;
 
 public class ProgramSettingsHub : Hub
 {
-    private readonly SpeedseatSettings settings;
+    private readonly ISpeedseatSettings settings;
     private readonly Speedseat seat;
 
-    public ProgramSettingsHub(SpeedseatSettings settings, Speedseat seat)
+    public ProgramSettingsHub(ISpeedseatSettings settings, Speedseat seat)
     {
         this.settings = settings;
         this.seat = seat;
@@ -42,7 +42,7 @@ public class ProgramSettingsHub : Hub
         settings.SideMotorResponseCurve = curve;
     }
 
-    public SpeedseatSettings GetSettings()
+    public ISpeedseatSettings GetSettings()
     {
         return settings;
     }

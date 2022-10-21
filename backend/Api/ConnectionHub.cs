@@ -5,11 +5,11 @@ using System.IO.Ports;
 public class ConnectionHub : Hub
 {
     private readonly Speedseat seat;
-    private readonly SpeedseatSettings settings;
+    private readonly ISpeedseatSettings settings;
     private readonly CommandService commandService;
     private readonly IHubContext<ConnectionHub> context;
 
-    public ConnectionHub(Speedseat seat, SpeedseatSettings settings, CommandService commandService, IHubContext<ConnectionHub> context)
+    public ConnectionHub(Speedseat seat, ISpeedseatSettings settings, CommandService commandService, IHubContext<ConnectionHub> context)
     {
         this.seat = seat;
         this.settings = settings;

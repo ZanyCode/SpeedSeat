@@ -12,7 +12,7 @@ try {
     builder.Services.Configure<Config>(builder.Configuration.GetSection("Config"));
     builder.Services.AddSignalR();
     builder.Services.AddCors();
-    builder.Services.AddSingleton<SpeedseatSettings>();
+    builder.Services.AddSingleton<ISpeedseatSettings, SpeedseatSettings>();
     builder.Services.AddSingleton<Speedseat>();
     builder.Services.AddSingleton<CommandService>();
     builder.Services.AddSingleton<OutdatedDataDiscardQueue<Command>>();
