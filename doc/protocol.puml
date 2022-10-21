@@ -1,5 +1,15 @@
 @startuml
 title Communication Examples
+
+group Initialization (XX = Hash Byte)
+    Notebook -> Arduino: Send Command "Start Init"\n (0x01 00 00 00 00 00 00 XX)
+    Arduino -> Notebook: Respond with "SUCCESS" (0xFF)
+    Arduino -> Notebook: (Synchronize all settings via read- or write-requests)
+    Notebook -> Arduino: (Synchronize all settings via read- or write-requests)
+    Arduino -> Notebook: Send Command "Init Done"\n (0x02 00 00 00 00 00 00 XX)
+    Notebook -> Arduino: Respond with "SUCCESS" (0xFF)
+end
+
 group Message Parse Success
     Notebook -> Arduino: Send Command "Set all Motor Positions to 100%"\n (0x00 FF FF FF FF FF FF 00)
     Arduino -> Notebook: Respond with "SUCCESS" (0xFF)
@@ -8,10 +18,10 @@ group Message Parse Error
     Notebook -> Arduino: Send Command "Set all Motor Positions to 100%"\n with incorrect hash (0x00 FF FF FF FF FF FF AB)
     Arduino -> Notebook: Respond with "ERROR HASH INVALID" (0xFE)
 end
-group Message With Response
-    Notebook -> Arduino: Send Command "Read Motor Positions" (0x01 00 00 00 00 00 00 01)
+group Message With Response (XX = Hash Byte)
+    Notebook -> Arduino: Send Command "Read Motor Positions" (0x01 00 00 00 00 00 00 XX)
     Arduino -> Notebook: Respond with "SUCCESS" (0xFF)
-    Arduino -> Notebook: Respond with data package (0x00 FF FF FF FF FF FF 00)
+    Arduino -> Notebook: Respond with data package (0x00 FF FF FF FF FF FF XX)
     Notebook -> Arduino: Respond with "SUCCESS" (0xFF)
 end
 @enduml
