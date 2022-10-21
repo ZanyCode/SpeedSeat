@@ -38,17 +38,7 @@ public class CommandValue
             case ValueType.Boolean:
                 return (ushort)(Value != 0 ? 1 : 0);
             case ValueType.Numeric:
-                var clampedValue = Math.Clamp(Value, Min, Max);
-                if (ScaleToFullRange)
-                {
-                    var normedValue = (Value - Min) / (Max - Min);
-                    var scaledValue = (ushort)Math.Clamp(normedValue * ushort.MaxValue, 0, ushort.MaxValue);
-                    return scaledValue;
-                }
-                else
-                {
-                    return (ushort)clampedValue;
-                }
+                return GetRawValue();
             case ValueType.Action:
                 return 0;
             default:
@@ -76,6 +66,36 @@ public class CommandValue
     public CommandValue CloneWithNewValue(double value)
     {
         return new CommandValue(this.Type, value, this.Label, this.ScaleToFullRange, this.Min, this.Max);
+    }
+
+    public ushort GetRawValue()
+    {
+        var clampedValue = Math.Clamp(Value, Min, Max);
+        if (ScaleToFullRange)
+        {
+            var normedValue = (Value - Min) / (Max - Min);
+            var scaledValue = (ushort)Math.Clamp(normedValue * ushort.MaxValue, 0, ushort.MaxValue);
+            return scaledValue;
+        }
+        else
+        {
+            return (ushort)clampedValue;
+        }
+    }
+
+    public override string ToString()
+    {
+        switch (this.Type)
+        {
+            case ValueType.Action:
+                return "Action";
+            case ValueType.Boolean:
+                return $"Bool({(Value != 0 ? 1 : 0)})";
+            case ValueType.Numeric:
+                return $"Numeric(16 bit Raw Value: {GetRawValue()}, double representation: {Value})";
+            default:
+                return "WTF";
+        }
     }
 }
 
@@ -174,6 +194,11 @@ public class Command
 
         var bytes = BitConverter.GetBytes((ushort)value);
         return (bytes[1], bytes[0]);
+    }
+
+    public override string ToString()
+    {
+        return $"Id: {Id}, Value1: {(Value1 == null ? "null" : Value1.ToString())}, Value2: {(Value2 == null ? "null" : Value2.ToString())}, Value3: {(Value3 == null ? "null" : Value3.ToString())}";
     }
 }
 

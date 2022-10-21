@@ -12,17 +12,21 @@ export class SeatSettingsComponent implements OnInit {
   commands?: Command[];
   ValueType = ValueType;
 
-  constructor(data: SeatSettingsDataService) { 
+  constructor(data: SeatSettingsDataService) {
     this.data = data;
   }
 
   ngOnInit(): void {
     this.data.init().then(async () => {
       this.commands = await this.data.getCommands();
-    });  
+    });
   }
 
   onSettingChanged(command: Command) {
     this.data.updateSetting(command);
+  }
+
+  onFakeWriteRequest(command: Command) {
+    this.data.fakeWriteRequest(command);
   }
 }

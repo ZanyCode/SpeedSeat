@@ -3,8 +3,7 @@
         "commands": [
             {
                 "groupLabel": "Motor-Positions",
-                "writeId": 0,
-                "readId": 1,
+                "id": 0,
                 "readonly": false,
                 "value1": {
                     "label": "Front-Right-Motor Position",
@@ -33,8 +32,7 @@
             },
             {
                 "groupLabel": "Important Settings",
-                "writeId": 10,
-                "readId": 11,
+                "id": 1,
                 "readonly": false,
                 "value1": {
                     "label": "Awesomeness Level",

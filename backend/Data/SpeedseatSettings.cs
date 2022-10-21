@@ -124,9 +124,9 @@ public class SpeedseatSettings : ISpeedseatSettings
         using (var scope = scopeFactory.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<SpeedseatContext>();
-            var value1 = JsonSerializer.Deserialize<double>(context.Get(ConstructSettingsValueId(command, 1)) ?? JsonSerializer.Serialize(command.Value1.Default));
-            var value2 = JsonSerializer.Deserialize<double>(context.Get(ConstructSettingsValueId(command, 2)) ?? JsonSerializer.Serialize(command.Value2.Default));
-            var value3 = JsonSerializer.Deserialize<double>(context.Get(ConstructSettingsValueId(command, 3)) ?? JsonSerializer.Serialize(command.Value3.Default));
+            var value1 = command.Value1 == null ? 0 : JsonSerializer.Deserialize<double>(context.Get(ConstructSettingsValueId(command, 1)) ?? JsonSerializer.Serialize(command.Value1.Default));
+            var value2 = command.Value2 == null ? 0 : JsonSerializer.Deserialize<double>(context.Get(ConstructSettingsValueId(command, 2)) ?? JsonSerializer.Serialize(command.Value2.Default));
+            var value3 = command.Value3 == null ? 0 : JsonSerializer.Deserialize<double>(context.Get(ConstructSettingsValueId(command, 3)) ?? JsonSerializer.Serialize(command.Value3.Default));
             return (value1, value2, value3);
         }
     }
@@ -140,13 +140,21 @@ public class SpeedseatSettings : ISpeedseatSettings
             var value2Id = ConstructSettingsValueId(command, 2);
             var value3Id = ConstructSettingsValueId(command, 3);
 
-            var value1 = JsonSerializer.Serialize(command.Value1.Value);
-            var value2 = JsonSerializer.Serialize(command.Value2.Value);
-            var value3 = JsonSerializer.Serialize(command.Value3.Value);
-
-            context.Set(value1Id, value1);
-            context.Set(value2Id, value2);
-            context.Set(value3Id, value3);
+            if (command.Value1 != null)
+            {
+                var value1 = JsonSerializer.Serialize(command.Value1.Value);
+                context.Set(value1Id, value1);
+            }
+            if (command.Value2 != null)
+            {
+                var value2 = JsonSerializer.Serialize(command.Value2.Value);
+                context.Set(value2Id, value2);
+            }
+            if (command.Value3 != null)
+            {
+                var value3 = JsonSerializer.Serialize(command.Value3.Value);
+                context.Set(value3Id, value3);
+            }          
         }
     }
 

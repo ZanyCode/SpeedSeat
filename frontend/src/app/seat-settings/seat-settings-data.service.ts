@@ -9,10 +9,11 @@ import { Command } from '../models/command';
   providedIn: 'root'
 })
 export class SeatSettingsDataService {
+
   connection!: HubConnection;
 
   public async init() {
-    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/seatSettings`).build();   
+    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/seatSettings`).build();
     await this.connection.start();
   }
 
@@ -20,9 +21,12 @@ export class SeatSettingsDataService {
     return this.connection.invoke<Command[]>("GetCommands");
   }
 
-  public async updateSetting(updateCommand: Command)
-  {
+  public async updateSetting(updateCommand: Command) {
     return this.connection.invoke("UpdateSetting", updateCommand);
+  }
+
+  fakeWriteRequest(command: Command) {
+    return this.connection.invoke("FakeWriteRequest", command);
   }
 
   public async destroy() {

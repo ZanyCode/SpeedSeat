@@ -1,5 +1,6 @@
 using System;
 using System.IO.Ports;
+using System.Reflection;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 
@@ -64,7 +65,7 @@ public class CommandService
             frontendLogger.Log($"Serial port experienced unexpected error, disconnecting ({args.EventType})");
         };
 
-        serialPort.DataReceived += (sender, args) =>
+        serialPort.DataReceived += async (sender, args) =>
         {
             byte[] data = new byte[this.serialPort.BytesToRead];
             this.serialPort.Read(data, 0, data.Length);
@@ -78,7 +79,15 @@ public class CommandService
                     waitingForResponse = false;
                 }
                 else
-                    ProcessCommandByte(dataByte);
+                {
+                    try {
+                        await ProcessCommandByte(dataByte);
+                    }
+                    catch(Exception e)
+                    {
+                        frontendLogger.Log($"Error processing command: {e.Message}");
+                    }
+                }
             }
 
             // frontendLogger.Log($"Got message {Convert.ToHexString(data)}");
@@ -86,6 +95,11 @@ public class CommandService
 
         serialPort.Open();
         return true;
+    }
+
+    public async Task FakeWriteRequest(Command command)
+    {
+        this.serialPort?.FakeWriteBytes(command.ToByteArray());
     }
 
     private List<byte> currentCommandBytes = new List<byte>();
@@ -130,7 +144,7 @@ public class CommandService
                     }
                     else
                     {
-                        frontendLogger.Log($"Successfully received write-request for command with id {updatedCommand.Id}, raw request: {Convert.ToHexString(commandData)}, interpreted as Command: {updatedCommand.ToString()}). Writing values to Database.");
+                        frontendLogger.Log($"Successfully received write-request for command with id {updatedCommand.Id}, raw request: {Convert.ToHexString(commandData)}, interpreted as Command: {updatedCommand.ToString()}. Writing values to Database.");
                         this.settings.SaveConfigurableSetting(updatedCommand);
                     }
                 }
@@ -183,8 +197,13 @@ public class CommandService
                 if (!receivedResponse)
                 {
                     string error = $"Error writing value: No response from controller received (Attempt {attempt}).";
-                    System.Console.WriteLine(error);
                     frontendLogger.Log(error);
+                }
+                else if(currentSerialWriteResult != SerialWriteResult.Success)
+                {
+                    string error = $"Error writing value: Received non-success response from controller (Attempt {attempt}, response: {currentSerialWriteResult}).";                
+                    frontendLogger.Log(error);
+                    await Task.Delay(100);
                 }
                 else
                 {
@@ -238,6 +257,7 @@ public interface ISerialPortConnection : IDisposable
     public void Write(byte[] buffer, int offset, int count);
 
     public int Read(byte[] data, int offset, int count);
+    void FakeWriteBytes(byte[] bytes);
 
     public int BytesToRead { get; }
 }
@@ -249,7 +269,10 @@ public class SerialPortConnection : ISerialPortConnection
     private readonly int baudrate;
     private readonly IFrontendLogger frontendLogger;
 
-    public int BytesToRead => serialPort.BytesToRead;
+    public int BytesToRead => isSimulating ? simulatedData.Count() : serialPort.BytesToRead;
+
+    private bool isSimulating = false;
+    private byte[] simulatedData = null;
 
     public event SerialErrorReceivedEventHandler ErrorReceived
     {
@@ -307,7 +330,63 @@ public class SerialPortConnection : ISerialPortConnection
 
     public int Read(byte[] buffer, int offset, int count)
     {
-        return serialPort.Read(buffer, offset, count);
+        if (isSimulating)
+        {
+            Array.Copy(this.simulatedData.Skip(offset).ToArray(), buffer, count);
+            return count;
+        }
+        else
+            return serialPort.Read(buffer, offset, count);
+    }
+
+    public void FakeWriteBytes(byte[] bytes)
+    {
+        this.isSimulating = true;
+        this.simulatedData = bytes;
+        FieldInfo[] fields = serialPort.GetType().GetFields(
+                                 BindingFlags.NonPublic |
+                                 BindingFlags.Instance);
+        
+        var field = serialPort.GetType().GetField("_dataReceived", BindingFlags.Instance | BindingFlags.NonPublic);
+        var value = field.GetValue(serialPort);
+
+        var eventDelegate = (MulticastDelegate)serialPort.GetType().GetField("_dataReceived", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(serialPort);
+        if (eventDelegate != null)
+        {
+            foreach (var handler in eventDelegate.GetInvocationList())
+            {
+                handler.Method.Invoke(handler.Target, new object[] { serialPort, CreateEventArgs() });
+            }
+        }
+
+        this.isSimulating = false;
+    }
+
+    public SerialDataReceivedEventArgs CreateEventArgs()
+    {
+        // the types of the constructor parameters, in order
+        // use an empty Type[] array if the constructor takes no parameters
+        Type[] paramTypes = new Type[] { typeof(SerialData) };
+
+        // the values of the constructor parameters, in order
+        // use an empty object[] array if the constructor takes no parameters
+        object[] paramValues = new object[] { SerialData.Chars };
+
+        SerialDataReceivedEventArgs instance =
+            Construct<SerialDataReceivedEventArgs>(paramTypes, paramValues);
+
+        return instance;
+    }
+
+    public static T Construct<T>(Type[] paramTypes, object[] paramValues)
+    {
+        Type t = typeof(T);
+
+        ConstructorInfo ci = t.GetConstructor(
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            null, paramTypes, null);
+
+        return (T)ci.Invoke(paramValues);
     }
 }
 

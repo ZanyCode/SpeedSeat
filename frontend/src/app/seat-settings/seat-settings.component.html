@@ -35,7 +35,9 @@
                             (valueChanged)="onSettingChanged(command)"></action-setting>
                         <boolean-setting *ngSwitchCase="ValueType.Boolean" [value]="value"
                             (valueChanged)="onSettingChanged(command)"></boolean-setting>
-                    </ng-container>                 
+                    </ng-container>   
+
+                    <!-- <button (click)="onFakeWriteRequest(command)" mat-raised-button>Fake Write Request from Microcontroller</button> -->
                 </mat-card-content>
             </mat-card>
         </div>
