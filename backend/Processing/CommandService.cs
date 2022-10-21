@@ -81,7 +81,7 @@ public class CommandService
                     ProcessCommandByte(dataByte);
             }
 
-            frontendLogger.Log($"Got message {Convert.ToHexString(data)}");
+            // frontendLogger.Log($"Got message {Convert.ToHexString(data)}");
         };
 
         serialPort.Open();
@@ -127,7 +127,6 @@ public class CommandService
                             frontendLogger.Log(errorMsg);
                             throw new Exception(errorMsg);
                         }
-
                     }
                     else
                     {
@@ -177,7 +176,7 @@ public class CommandService
             for (int attempt = 1; attempt <= 3; attempt++)
             {
                 waitingForResponse = true;
-                frontendLogger.Log($"Sending message {Convert.ToHexString(data)}");
+                // frontendLogger.Log($"Sending message {Convert.ToHexString(data)}");
                 this.serialPort.Write(data, 0, data.Length);
                 receivedResponse = await responseReceivedSemaphore.WaitAsync(500);
 
