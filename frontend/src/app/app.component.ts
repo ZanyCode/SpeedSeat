@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 import { AppDataService } from './app-data.service';
 import { ConnectionDataService } from './connection-data.service';
+import { AppEventsService } from './app-events.service';
 
 @Component({
   selector: 'app-root',
@@ -31,7 +32,7 @@ export class AppComponent implements OnInit, OnDestroy {
       shareReplay()
     );
 
-  constructor(private breakpointObserver: BreakpointObserver, private data: AppDataService, private connectionService: ConnectionDataService) { }
+  constructor(private breakpointObserver: BreakpointObserver, private data: AppDataService, private connectionService: ConnectionDataService, private events: AppEventsService) { }
 
 
   ngOnInit(): void {
@@ -44,6 +45,8 @@ export class AppComponent implements OnInit, OnDestroy {
       this.selectedPort = this.ports.length > 0 ? this.ports[0] : undefined;
       this.selectedBaudRate = await this.connectionService.getBaudRate();
       this.isConnected = await this.connectionService.getIsConnected();
+      if(this.isConnected)
+        this.events.signalConnectionStateChanged(true);
     });
   }
 
@@ -62,12 +65,15 @@ export class AppComponent implements OnInit, OnDestroy {
       this.isConnecting = true;
       this.isConnected = await this.connectionService.connect(this.selectedPort, this.selectedBaudRate);;
       this.isConnecting = false;
+      if(this.isConnected)
+        this.events.signalConnectionStateChanged(true);
     }
   }
 
   async disconnect() {
     await this.connectionService.disconnect();
     this.isConnected = false;
+    this.events.signalConnectionStateChanged(false);
   }
 
   async refreshPorts() {

@@ -1,4 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { AppEventsService } from '../app-events.service';
 import { ManualControlDataService } from './manual-control-data.service';
 
 @Component({
@@ -11,6 +13,7 @@ export class ManualControlComponent implements OnInit, OnDestroy {
   public isConnected = false;
   public isMotorPositionValid = true;
   public isTiltPositionValid = true;
+  private connectionStateSubscription: Subscription | undefined;
 
   private _frontLeftMotorPosition: number | null = 0.5;
   public get frontLeftMotorPosition(): number | null {
@@ -45,7 +48,7 @@ export class ManualControlComponent implements OnInit, OnDestroy {
   }
   public set frontTilt(value: number | null) {
     this._frontTilt = value;
-    this.data.setTilt(value?? 0, this.sideTilt ?? 0);
+    this.data.setTilt(value ?? 0, this.sideTilt ?? 0);
   }
 
   private _sideTilt: number | null = 0;
@@ -57,9 +60,22 @@ export class ManualControlComponent implements OnInit, OnDestroy {
     this.data.setTilt(this.frontTilt ?? 0, value ?? 0);
   }
 
-  constructor(public data: ManualControlDataService) { }
+  constructor(public data: ManualControlDataService, private events: AppEventsService) { }
 
   ngOnInit(): void {
+    this.connectionStateSubscription = this.events.ConnectionStateChanged.subscribe(connected => {
+      if (connected) {
+        this.updateValuesFromDataservice();
+      }
+      else {
+        this.isMotorPositionValid = false;
+        this.isTiltPositionValid = false;
+        this.isInitialized = false;
+      }
+    })
+  }
+
+  updateValuesFromDataservice() {
     this.data.init().then(async () => {
       const seat = await this.data.getCurrentState();
       this._frontLeftMotorPosition = seat.frontLeftMotorPosition;
@@ -71,8 +87,9 @@ export class ManualControlComponent implements OnInit, OnDestroy {
       this.isInitialized = true;
     });
   }
- 
+
   ngOnDestroy(): void {
+    this.connectionStateSubscription?.unsubscribe();
     this.data.destroy();
-  }  
+  }
 }
