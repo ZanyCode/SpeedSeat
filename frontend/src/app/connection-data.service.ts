@@ -12,9 +12,9 @@ export class ConnectionDataService {
 
   constructor() {
   }
- 
+
   public async connect(port: string, baudRate: number) {
-    await this.connection.invoke("Connect", port, baudRate);
+    return await this.connection.invoke<boolean>("Connect", port, baudRate);
   }
 
   public async disconnect() {
@@ -33,8 +33,24 @@ export class ConnectionDataService {
     return await this.connection.invoke<boolean>("GetIsConnected");
   }
 
+  public async fakeConnectionConfirmation() {
+    // Here we actually open a new Hub connection, so we don't get blocked by existing pending calls
+    const tempConnection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/connection`).build();
+    await tempConnection.start();
+    await tempConnection.invoke("FakeConnectionConfirmation");
+    await tempConnection.stop();
+  }
+
+  public async cancelConnectionProcess() {
+    // Here we actually open a new Hub connection, so we don't get blocked by existing pending calls
+    const tempConnection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/connection`).build();
+    await tempConnection.start();
+    await tempConnection.invoke("CancelConnectionProcess");
+    await tempConnection.stop();
+  }
+
   public async init() {
-    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/connection`).build();   
+    this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/connection`).build();
     await this.connection.start();
   }
 

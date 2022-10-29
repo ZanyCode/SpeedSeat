@@ -1,18 +1,16 @@
 <mat-sidenav-container class="sidenav-container">
-  <mat-sidenav #drawer class="sidenav" fixedInViewport
-      [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
-      [mode]="(isHandset$ | async) ? 'over' : 'side'"
-      [opened]="(isHandset$ | async) === false">
+  <!-- side area with links -->
+  <mat-sidenav #drawer class="sidenav" fixedInViewport [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
+    [mode]="(isHandset$ | async) ? 'over' : 'side'" [opened]="(isHandset$ | async) === false">
     <mat-toolbar>Menu</mat-toolbar>
     <mat-nav-list>
       <a mat-list-item routerLink="/telemetry" routerLinkActive="active">
         <mat-icon>sports_esports</mat-icon>
-        Stream Telemetry        
+        Stream Telemetry
       </a>
       <a mat-list-item routerLink="/manual" routerLinkActive="active">
-        <!-- <mat-icon>sports_esports</mat-icon> -->
         <mat-icon>settings_input_component</mat-icon>
-        Manual Control        
+        Manual Control
       </a>
       <a mat-list-item routerLink="/program-settings" routerLinkActive="active">
         <mat-icon>settings</mat-icon>
@@ -21,32 +19,97 @@
       <a mat-list-item routerLink="/seat-settings" routerLinkActive="active">
         <mat-icon>chair</mat-icon>
         Seat Settings
-      </a>
-      <a mat-list-item routerLink="/connection" routerLinkActive="active">
-        <mat-icon>cable</mat-icon>
-        Connection
-      </a>
+      </a>    
     </mat-nav-list>
-    <qrcode class="position-absolute bottom-0 start-0" *ngIf="url && !(isHandset$ | async)" [qrdata]="url" [width]="180" [errorCorrectionLevel]="'M'"></qrcode>
+
+    <!-- Card with connection settings -->
+    <mat-card class="example-card mt-3">
+      <mat-card-header>
+        <mat-card-title>Connection</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="row align-items-start">
+          <div class="col-10">
+            <mat-form-field appearance="fill" class="w-100">
+              <mat-label>Select Port</mat-label>
+              <mat-select [(value)]="selectedPort" [disabled]="isConnecting">
+                <mat-option *ngFor="let port of ports" [value]="port">{{port}}</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div class="col-2">
+            <button (click)="refreshPorts()" mat-icon-button [disabled]="isConnecting">
+              <mat-icon>refresh</mat-icon>
+            </button>
+          </div>
+        </div>
+        <div class="row align-items-start">
+          <div class="col">
+            <mat-form-field appearance="fill" class="w-100">
+              <mat-label>Select Baud Rate</mat-label>
+              <mat-select [(value)]="selectedBaudRate" [disabled]="isConnecting">
+                <mat-option [value]="9600">9600</mat-option>
+                <mat-option [value]="14400">14400</mat-option>
+                <mat-option [value]="19200">19200</mat-option>
+                <mat-option [value]="28800">28800</mat-option>
+                <mat-option [value]="38400">38400</mat-option>
+                <mat-option [value]="57600">57600</mat-option>
+                <mat-option [value]="76800">76800</mat-option>
+                <mat-option [value]="115200">115200</mat-option>
+                <mat-option [value]="230400">230400</mat-option>
+                <mat-option [value]="250000">250000</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+      </mat-card-content>
+      <mat-divider inset></mat-divider>
+      <mat-card-actions>
+        <button *ngIf="!isConnected && !isConnecting" [disabled]="!selectedPort" mat-raised-button color="primary"
+          (click)="connect()" [disabled]="isConnecting">Connect</button>
+        <button *ngIf="isConnected" mat-raised-button color="primary" (click)="disconnect()"
+          [disabled]="isConnecting">Disconnect</button>
+
+        <div *ngIf="isConnecting" class="d-flex">
+          <button mat-raised-button color="primary" (click)="fakeConnectionConfirmation()">Fake
+            Confirmation</button>
+          <button mat-raised-button color="warn"
+            (click)="cancelConnectionProcess()">Cancel</button>
+
+        </div>
+      </mat-card-actions>
+    </mat-card>
+
+    <qrcode class="position-absolute bottom-0 start-0" *ngIf="url && !(isHandset$ | async)" [qrdata]="url" [width]="180"
+      [errorCorrectionLevel]="'M'"></qrcode>
   </mat-sidenav>
+
+  <!-- center area -->
   <mat-sidenav-content class="d-flex flex-column overflow-hidden">
     <mat-toolbar color="primary">
-      <button
-        type="button"
-        aria-label="Toggle sidenav"
-        mat-icon-button
-        (click)="drawer.toggle()"
+      <button type="button" aria-label="Toggle sidenav" mat-icon-button (click)="drawer.toggle()"
         *ngIf="isHandset$ | async">
         <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
       </button>
       <span>SpeedSeat</span>
     </mat-toolbar>
     <div class="col d-flex flex-column overflow-hidden">
-      <div class="overflow-auto upper-section">
-          <router-outlet></router-outlet>
+      <div class="overflow-auto upper-section position-relative">
+        <router-outlet></router-outlet>
+        <div *ngIf="!isConnected" class="no-connection-overlay w-100 h-100 position-absolute top-0 d-flex">
+          <ng-container *ngIf="!isConnecting">
+            <mat-icon class="left-side-element">usb_off</mat-icon>
+            <span class="ms-2">Please Connect to Resume Operation</span>
+          </ng-container>
+          <ng-container *ngIf="isConnecting">
+            <mat-spinner class="left-side-element"></mat-spinner>
+            <span class="ms-2">Waiting for Response...</span>
+          </ng-container>
+        </div>
       </div>
       <div class="lower-section">
-        <textarea disabled="true" #textarea [scrollTop]="logTextareaScrolltop" class="w-100 h-100" [value]='log'></textarea>
+        <textarea disabled="true" #textarea [scrollTop]="logTextareaScrolltop" class="w-100 h-100"
+          [value]='log'></textarea>
       </div>
     </div>
   </mat-sidenav-content>

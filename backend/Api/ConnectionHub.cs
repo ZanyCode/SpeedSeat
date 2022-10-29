@@ -26,10 +26,10 @@ public class ConnectionHub : Hub
         return commandService.IsConnected;
     }
 
-    public bool Connect(string port, int baudrate)
+    public async Task<bool> Connect(string port, int baudrate)
     {
         settings.BaudRate = baudrate;
-        return commandService.Connect(port, baudrate);       
+        return await commandService.Connect(port, baudrate);       
     }
 
     public int GetBaudRate()
@@ -37,8 +37,18 @@ public class ConnectionHub : Hub
         return settings.BaudRate;
     }
 
+    public void CancelConnectionProcess()
+    {
+        commandService.CancelConnectionProcess();
+    }
+
     public void Disconnect()
     {
         commandService.Disconnect();       
+    }
+
+    public void FakeConnectionConfirmation()
+    {
+        this.commandService.FakeWriteRequest(new Command(Command.ConnectionInitiatedCommandId, null, null, null, false, false));
     }
 }

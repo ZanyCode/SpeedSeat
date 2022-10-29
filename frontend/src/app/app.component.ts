@@ -3,6 +3,7 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Observable } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 import { AppDataService } from './app-data.service';
+import { ConnectionDataService } from './connection-data.service';
 
 @Component({
   selector: 'app-root',
@@ -14,7 +15,14 @@ export class AppComponent implements OnInit, OnDestroy {
   url: string | undefined = undefined;
   log = '[LOG]';
   logTextareaScrolltop: number | null = null;
-  @ViewChild('textarea') textarea: ElementRef | undefined;  
+  @ViewChild('textarea') textarea: ElementRef | undefined;
+
+  // Connection properties
+  ports: string[] = [];
+  selectedPort: string | undefined = undefined;
+  selectedBaudRate: number = 9600;
+  isConnected = false;
+  isConnecting = false;
 
 
   isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset)
@@ -23,14 +31,21 @@ export class AppComponent implements OnInit, OnDestroy {
       shareReplay()
     );
 
-  constructor(private breakpointObserver: BreakpointObserver, private data: AppDataService) {}
+  constructor(private breakpointObserver: BreakpointObserver, private data: AppDataService, private connectionService: ConnectionDataService) { }
 
- 
+
   ngOnInit(): void {
-    this.data.init(this.onLogReceived).then(async () =>{
+    this.data.init(this.onLogReceived).then(async () => {
       this.url = await this.data.GetOwnUrl();
     });
-  } 
+
+    this.connectionService.init().then(async () => {
+      this.ports = await this.connectionService.getPorts();
+      this.selectedPort = this.ports.length > 0 ? this.ports[0] : undefined;
+      this.selectedBaudRate = await this.connectionService.getBaudRate();
+      this.isConnected = await this.connectionService.getIsConnected();
+    });
+  }
 
   onLogReceived = (message: string) => {
     this.log += `\n[${new Date().toLocaleString()}]: ${message}`;
@@ -39,5 +54,32 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.data.destroy();
+    this.connectionService.destroy();
+  }
+
+  async connect() {
+    if (this.selectedPort) {      
+      this.isConnecting = true;
+      this.isConnected = await this.connectionService.connect(this.selectedPort, this.selectedBaudRate);;
+      this.isConnecting = false;
+    }
+  }
+
+  async disconnect() {
+    await this.connectionService.disconnect();
+    this.isConnected = false;
+  }
+
+  async refreshPorts() {
+    this.ports = await this.connectionService.getPorts();
+    this.selectedPort = this.ports.length > 0 ? this.ports[0] : undefined;
+  }
+
+  async fakeConnectionConfirmation() {
+    await this.connectionService.fakeConnectionConfirmation();
+  }
+
+  async cancelConnectionProcess() {
+    await this.connectionService.cancelConnectionProcess();
   }
 }

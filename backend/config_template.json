@@ -1,5 +1,6 @@
 {
     "config": {
+        "connectionResponseTimeoutMs": 25000,
         "commands": [
             {
                 "groupLabel": "Motor-Positions",

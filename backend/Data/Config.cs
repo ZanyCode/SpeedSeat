@@ -101,6 +101,9 @@ public class CommandValue
 
 public class Command
 {
+    public const byte InitiateConnectionCommandId = 0;
+    public const byte ConnectionInitiatedCommandId = 1;
+
     public string GroupLabel { get; set; }
 
     public byte Id { get; set; }
@@ -204,5 +207,7 @@ public class Command
 
 public class Config
 {
+    public int ConnectionResponseTimeoutMs { get; set; } = 1000;
+
     public IEnumerable<Command> Commands { get; set; }
 }

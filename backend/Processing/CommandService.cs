@@ -33,6 +33,10 @@ public class CommandService
 
     public bool IsConnected => this.serialPort != null;
 
+    private bool waitingForConnection = false;
+    private bool connectionCancelled = false;
+    private SemaphoreSlim waitingForConnectionSemaphore = new SemaphoreSlim(0, 1);
+
 
     private int commandReadTimeoutMs = 500;
     Timer commandReadTimer;
@@ -55,7 +59,7 @@ public class CommandService
         }, null, Timeout.Infinite, Timeout.Infinite);
     }
 
-    public bool Connect(string port, int baudrate)
+    public async Task<bool> Connect(string port, int baudrate)
     {
         // Create a new SerialPort object with default settings.
         serialPort = serialPortConnectionFactory.Create(port, baudrate);
@@ -80,10 +84,11 @@ public class CommandService
                 }
                 else
                 {
-                    try {
+                    try
+                    {
                         await ProcessCommandByte(dataByte);
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         frontendLogger.Log($"Error processing command: {e.Message}");
                     }
@@ -94,7 +99,39 @@ public class CommandService
         };
 
         serialPort.Open();
+        waitingForConnection = true;
+        int timeoutMs = options.CurrentValue.ConnectionResponseTimeoutMs;
+        frontendLogger.Log($"Connection Attempt: Attempting to send Initiate-Connection command to Microcontroller and waiting for response command. Specified Timeout from config.json: {timeoutMs}mS");
+        await WriteCommand(new Command(Command.InitiateConnectionCommandId, null, null, null, false, false));
+        bool connectionConfirmationReceived = true;
+        if (waitingForConnection)
+            connectionConfirmationReceived = await waitingForConnectionSemaphore.WaitAsync(timeoutMs);
+
+        if (connectionCancelled)
+        {
+            connectionCancelled = false;
+            frontendLogger.Log($"Error Connecting: Process cancelled by user");
+            this.Disconnect();
+            return false;
+        }
+
+        if (!connectionConfirmationReceived)
+        {
+            frontendLogger.Log($"Error Connecting: Did not receive connection confirmation within {timeoutMs}mS");
+            this.Disconnect();
+            return false;
+        }
+
         return true;
+    }
+
+    public void CancelConnectionProcess()
+    {
+        if (waitingForConnection)
+        {
+            connectionCancelled = true;
+            waitingForConnectionSemaphore.Release();
+        }
     }
 
     public async Task FakeWriteRequest(Command command)
@@ -118,6 +155,23 @@ public class CommandService
             if (Command.IsHashValid(commandData))
             {
                 var id = Command.ExtractIdFromByteArray(commandData.ToArray());
+
+                if (id == Command.ConnectionInitiatedCommandId)
+                {
+                    if (waitingForConnection)
+                    {
+                        waitingForConnectionSemaphore.Release();
+                        waitingForConnection = false;
+                        frontendLogger.Log("Connection Success: Received Connection-Initiated confirmation command from Microcontroller.");
+                    }
+                    else
+                    {
+                        frontendLogger.Log("Warning: Received Connection-Initiated confirmation command, but there actually wasn't any unfinished connection attempt. Very weird.");
+                    }
+
+                    return;
+                }
+
                 var command = options.CurrentValue.Commands.SingleOrDefault(x => x.Id == id);
                 if (command == null)
                 {
@@ -199,9 +253,9 @@ public class CommandService
                     string error = $"Error writing value: No response from controller received (Attempt {attempt}).";
                     frontendLogger.Log(error);
                 }
-                else if(currentSerialWriteResult != SerialWriteResult.Success)
+                else if (currentSerialWriteResult != SerialWriteResult.Success)
                 {
-                    string error = $"Error writing value: Received non-success response from controller (Attempt {attempt}, response: {currentSerialWriteResult}).";                
+                    string error = $"Error writing value: Received non-success response from controller (Attempt {attempt}, response: {currentSerialWriteResult}).";
                     frontendLogger.Log(error);
                     await Task.Delay(100);
                 }
@@ -346,7 +400,7 @@ public class SerialPortConnection : ISerialPortConnection
         FieldInfo[] fields = serialPort.GetType().GetFields(
                                  BindingFlags.NonPublic |
                                  BindingFlags.Instance);
-        
+
         var field = serialPort.GetType().GetField("_dataReceived", BindingFlags.Instance | BindingFlags.NonPublic);
         var value = field.GetValue(serialPort);
 

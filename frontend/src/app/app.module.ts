@@ -13,7 +13,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { ManualControlComponent } from './manual-control/manual-control.component';
 import { ProgramSettingsComponent } from './program-settings/program-settings.component';
-import { ConnectionComponent } from './connection/connection.component';
 import {MatCardModule} from '@angular/material/card';
 import {MatSliderModule} from '@angular/material/slider';
 import {MatSelectModule} from '@angular/material/select';
@@ -28,6 +27,8 @@ import { SeatSettingsComponent } from './seat-settings/seat-settings.component';
 import { NumericSettingComponent } from './seat-settings/numeric-setting/numeric-setting.component';
 import { BooleanSettingComponent } from './seat-settings/boolean-setting/boolean-setting.component';
 import { ActionSettingComponent } from './seat-settings/action-setting/action-setting.component';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+
 
 
 PlotlyModule.plotlyjs = PlotlyJS;
@@ -37,7 +38,6 @@ PlotlyModule.plotlyjs = PlotlyJS;
     AppComponent,
     ManualControlComponent,
     ProgramSettingsComponent,
-    ConnectionComponent,
     TelemetryComponent,
     SeatSettingsComponent,
     NumericSettingComponent,
@@ -62,7 +62,8 @@ PlotlyModule.plotlyjs = PlotlyJS;
     QRCodeModule,
     PlotlyModule,
     FormsModule,
-    CurveEditorModule
+    CurveEditorModule,
+    MatProgressSpinnerModule
   ],
   providers: [],
   bootstrap: [AppComponent]
