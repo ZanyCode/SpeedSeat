@@ -101,8 +101,8 @@ public class CommandValue
 
 public class Command
 {
-    public const byte InitiateConnectionCommandId = 0;
-    public const byte ConnectionInitiatedCommandId = 1;
+    public const byte InitiateConnectionCommandId = 1;
+    public const byte ConnectionInitiatedCommandId = 2;
 
     public string GroupLabel { get; set; }
 
