@@ -68,6 +68,11 @@ public class Speedseat
         this.Tilt = (frontTilt, sideTilt);
     }
 
+    public void SetPositionsWithoutNotifyingMicrocontroller(double xMotorPosition, double yMotorPosition, double zMotorPosition)
+    {
+        
+    }
+
     private async Task UpdateTilt()
     {        
         var availableAbsoluteSideTilt = 1 - Math.Abs(this.Tilt.frontTilt);

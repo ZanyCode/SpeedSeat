@@ -30,6 +30,7 @@ public class CommandService
     private readonly ISerialPortConnectionFactory serialPortConnectionFactory;
     private readonly IOptionsMonitor<Config> options;
     private readonly ISpeedseatSettings settings;
+    private readonly Speedseat seat;
 
     public bool IsConnected => this.serialPort != null;
 
@@ -169,6 +170,7 @@ public class CommandService
                         frontendLogger.Log("Warning: Received Connection-Initiated confirmation command, but there actually wasn't any unfinished connection attempt. Very weird.");
                     }
 
+                    await SendAcknowledgeByteToMicrocontroller(Command.IsHashValid(commandData));
                     return;
                 }
 
@@ -180,26 +182,38 @@ public class CommandService
                 }
                 else
                 {
-                    var updatedCommand = command.CloneWithNewValuesFromByteArray(commandData.ToArray());
-                    await SendAcknowledgeByteToMicrocontroller(true);
-
-                    if (updatedCommand.IsReadRequest)
+                    try
                     {
-                        var (value1, value2, value3) = settings.GetConfigurableSettingsValues(updatedCommand);
-                        updatedCommand = updatedCommand.CloneWithNewValues(value1, value2, value3, false);
-                        frontendLogger.Log($"Successfully received read-request for command with id {updatedCommand.Id}, raw request: {Convert.ToHexString(commandData)}. Sending response with value {updatedCommand.ToString()}, raw response: {Convert.ToHexString(updatedCommand.ToByteArray())}");
-                        var result = await WriteBytesToSerialPort(updatedCommand.ToByteArray());
-                        if (result != SerialWriteResult.Success)
+                        var updatedCommand = command.CloneWithNewValuesFromByteArray(commandData.ToArray());
+                        if (updatedCommand.IsReadRequest)
                         {
-                            var errorMsg = $"Successfully received valid read request from UC, but unable to write response: {result}";
-                            frontendLogger.Log(errorMsg);
-                            throw new Exception(errorMsg);
+                            var (value1, value2, value3) = settings.GetConfigurableSettingsValues(updatedCommand);
+                            updatedCommand = updatedCommand.CloneWithNewValues(value1, value2, value3, false);
+                            frontendLogger.Log($"Successfully received read-request for command with id {updatedCommand.Id}, raw request: {Convert.ToHexString(commandData)}. Sending response with value {updatedCommand.ToString()}, raw response: {Convert.ToHexString(updatedCommand.ToByteArray())}");
+                            var result = await WriteBytesToSerialPort(updatedCommand.ToByteArray());
+                            if (result != SerialWriteResult.Success)
+                            {
+                                var errorMsg = $"Successfully received valid read request from UC, but unable to write response: {result}";
+                                frontendLogger.Log(errorMsg);
+                                throw new Exception(errorMsg);
+                            }
                         }
+                        else
+                        {
+                            frontendLogger.Log($"Successfully received write-request for command with id {updatedCommand.Id}, raw request: {Convert.ToHexString(commandData)}, interpreted as Command: {updatedCommand.ToString()}. Writing values to Database.");                            
+                            this.settings.SaveConfigurableSetting(updatedCommand);
+                            if(command.Id == Command.MotorPositionCommandId)
+                            {           
+                                // TODO: Update seat                     
+                            }
+                        }                        
+
+                        await this.SendAcknowledgeByteToMicrocontroller(true);
                     }
-                    else
+                    catch (Exception e)
                     {
-                        frontendLogger.Log($"Successfully received write-request for command with id {updatedCommand.Id}, raw request: {Convert.ToHexString(commandData)}, interpreted as Command: {updatedCommand.ToString()}. Writing values to Database.");
-                        this.settings.SaveConfigurableSetting(updatedCommand);
+                        frontendLogger.Log($"Error Processing command with id {command.Id}: {e.Message}. Responding with 0xFE");
+                        await this.SendAcknowledgeByteToMicrocontroller(false);
                     }
                 }
             }

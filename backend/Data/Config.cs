@@ -10,8 +10,8 @@ public class CommandValue
     public string? Label { get; set; }
     public ValueType Type { get; set; }
     public bool ScaleToFullRange { get; set; }
-    public double Min { get; set; }
-    public double Max { get; set; }
+    public double Min { get; set; } = 0;
+    public double Max { get; set; } = 0xFFFF;
     public double Value { get; set; }
 
     public double Default { get; set; }
@@ -57,6 +57,10 @@ public class CommandValue
         }
         else
         {
+            if(fullValue < this.Min || fullValue > this.Max)
+            {
+                throw new Exception($"If ScaleToFullRange is false, the value has to be between Min({this.Min}) and Max({this.Max}) but instead was {fullValue}");
+            }
             value = fullValue;
         }
 
@@ -101,6 +105,7 @@ public class CommandValue
 
 public class Command
 {
+    public const byte MotorPositionCommandId = 0;
     public const byte InitiateConnectionCommandId = 1;
     public const byte ConnectionInitiatedCommandId = 2;
 

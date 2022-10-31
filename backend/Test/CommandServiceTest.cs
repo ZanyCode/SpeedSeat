@@ -212,7 +212,13 @@ public class CommandServiceTest
         Assert.IsNotNull(responseCommand, "Did not receive any response command");
         Assert.IsFalse(responseCommand.IsReadRequest);
         Assert.IsTrue(Math.Abs(responseCommand.Value1.Value - commandValue) < 0.001);
+    }
 
+    [TestMethod]
+    public void ToStringShouldCorrectlyPrintRawAndDoubleRepresentation()
+    {
+        var commandValue = new CommandValue(ValueType.Numeric, 0, "", false, 20, 1500);
+        var res = commandValue.ToString();                
     }
 
     public SerialDataReceivedEventArgs CreateEventArgs()
