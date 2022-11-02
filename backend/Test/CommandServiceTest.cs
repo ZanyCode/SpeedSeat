@@ -1,5 +1,6 @@
 using System.IO.Ports;
 using System.Reflection;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
@@ -22,7 +23,7 @@ public class CommandServiceTest
         configOptionsMock = new Mock<IOptionsMonitor<Config>>();
         configOptionsMock.SetupGet(x => x.CurrentValue).Returns(new Config { ConnectionResponseTimeoutMs = 2000 });
 
-        sut = new CommandService(new Mock<IFrontendLogger>().Object, connectionFactoryMock.Object, configOptionsMock.Object, speedseatSettingsMock.Object);
+        sut = new CommandService(new Mock<IFrontendLogger>().Object, connectionFactoryMock.Object, configOptionsMock.Object, speedseatSettingsMock.Object, new Mock<IHubContext<SeatSettingsHub>>().Object);
     }
 
     [TestMethod]

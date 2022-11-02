@@ -30,6 +30,7 @@ public class CommandService
     private readonly ISerialPortConnectionFactory serialPortConnectionFactory;
     private readonly IOptionsMonitor<Config> options;
     private readonly ISpeedseatSettings settings;
+    private readonly IHubContext<SeatSettingsHub> settingsHubContext;
     private readonly Speedseat seat;
 
     public bool IsConnected => this.serialPort != null;
@@ -43,12 +44,13 @@ public class CommandService
     Timer commandReadTimer;
     private bool isReadingCommand = false;
 
-    public CommandService(IFrontendLogger frontendLogger, ISerialPortConnectionFactory serialPortConnectionFactory, IOptionsMonitor<Config> options, ISpeedseatSettings settings)
+    public CommandService(IFrontendLogger frontendLogger, ISerialPortConnectionFactory serialPortConnectionFactory, IOptionsMonitor<Config> options, ISpeedseatSettings settings, IHubContext<SeatSettingsHub> settingsHubContext)
     {
         this.frontendLogger = frontendLogger;
         this.serialPortConnectionFactory = serialPortConnectionFactory;
         this.options = options;
         this.settings = settings;
+        this.settingsHubContext = settingsHubContext;
         commandReadTimer = new Timer(x =>
         {
             this.isReadingCommand = false;
@@ -202,6 +204,7 @@ public class CommandService
                         {
                             frontendLogger.Log($"Successfully received write-request for command with id {updatedCommand.Id}, raw request: {Convert.ToHexString(commandData)}, interpreted as Command: {updatedCommand.ToString()}. Writing values to Database.");                            
                             this.settings.SaveConfigurableSetting(updatedCommand);
+                            this.settingsHubContext.Clients.All.SendAsync("SettingChanged", command);
                             if(command.Id == Command.MotorPositionCommandId)
                             {           
                                 // TODO: Update seat                     
