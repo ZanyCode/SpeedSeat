@@ -33,6 +33,11 @@ public class SeatSettingsHub : Hub
         return commands;
     }
 
+    public IAsyncEnumerable<Command> SubscribeToConfigurableSetting(Command command)
+    {
+        return this.settings.SubscribeToConfigurableSetting(command).ToAsyncEnumerable();
+    }
+
     public async Task<SerialWriteResult> UpdateSetting(Command command)
     {
         if (command.IsReadonly)

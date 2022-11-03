@@ -1,14 +1,14 @@
 <div class="container-fluid h-100 overflow-auto">
     <div class="row gy-3 mt-1">
         <!-- Create one Container for each specified command-->
-        <div class="col-12 col-xl-4" *ngFor="let command of commands">
-            <mat-card class="h-100">
+        <div class="col-12 col-xl-4" *ngFor="let command$ of commandObservables">
+            <mat-card class="h-100" *ngIf="command$ | async as command">
                 <mat-card-header>
                     <mat-card-title>{{command.groupLabel}}</mat-card-title>
                 </mat-card-header>
                 <mat-card-content class="position-relative">
                     <!-- Switch/Case for Value1 -->
-                    <ng-container *ngIf="command.value1 as value" [ngSwitch]="value.type">
+                    <ng-container *ngIf="isInitialized && command.value1 as value" [ngSwitch]="value.type">
                         <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value"
                             (valueChanged)="onSettingChanged(command)"></numeric-setting>
                         <action-setting *ngSwitchCase="ValueType.Action" [value]="value"
@@ -18,7 +18,7 @@
                     </ng-container>
 
                     <!-- Switch/Case for Value2 -->
-                     <ng-container *ngIf="command.value2 as value" [ngSwitch]="value.type">
+                     <ng-container *ngIf="isInitialized && command.value2 as value" [ngSwitch]="value.type">
                         <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value"
                             (valueChanged)="onSettingChanged(command)"></numeric-setting>
                         <action-setting *ngSwitchCase="ValueType.Action" [value]="value"
@@ -28,7 +28,7 @@
                     </ng-container>
 
                     <!-- Switch/Case for Value3 -->
-                    <ng-container *ngIf="command.value3 as value" [ngSwitch]="value.type">
+                    <ng-container *ngIf="isInitialized && command.value3 as value" [ngSwitch]="value.type">
                         <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value"
                             (valueChanged)="onSettingChanged(command)"></numeric-setting>
                         <action-setting *ngSwitchCase="ValueType.Action" [value]="value"

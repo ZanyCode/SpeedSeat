@@ -11,16 +11,9 @@ import { Command } from '../models/command';
 export class SeatSettingsDataService {
 
   connection!: HubConnection;
-  private settingChangedSubject = new Subject<Command>();
-  public $settingChanged: Observable<Command>;
-
-  constructor() {
-    this.$settingChanged = this.settingChangedSubject.asObservable();
-  }
 
   public async init() {
     this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/seatSettings`).build();
-    this.connection.on("SettingChanged", command => this.SettingChanged(command));
     await this.connection.start();
   }
 
@@ -32,10 +25,10 @@ export class SeatSettingsDataService {
     return this.connection.invoke("UpdateSetting", updateCommand);
   }
 
-  public SettingChanged(command: Command)
-  {
-    console.log(command);
-    this.settingChangedSubject.next(command);
+  public subscribeToConfigurableSetting(command: Command): Observable<Command> {
+    let subject = new Subject<Command>();
+    this.connection.stream("SubscribeToConfigurableSetting", command).subscribe(subject);
+    return subject.asObservable();
   }
 
   fakeWriteRequest(command: Command) {

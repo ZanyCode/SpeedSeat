@@ -40,6 +40,8 @@ public interface ISpeedseatSettings
 
     (double value1, double value2, double value3) GetConfigurableSettingsValues(Command command);
     void SaveConfigurableSetting(Command command);
+
+    IObservable<Command> SubscribeToConfigurableSetting(Command command);
 }
 
 public class SpeedseatSettings : ISpeedseatSettings
@@ -119,6 +121,8 @@ public class SpeedseatSettings : ISpeedseatSettings
     public int BaudRate { get => GetValue<int>(9600); set => SetValue(value); }
 
     /* Configurable settings */
+    private IDictionary<byte, Subject<Command>> configurableSettingSubscriptions = new Dictionary<byte, Subject<Command>>();
+
     public (double value1, double value2, double value3) GetConfigurableSettingsValues(Command command)
     {
         using (var scope = scopeFactory.CreateScope())
@@ -154,8 +158,23 @@ public class SpeedseatSettings : ISpeedseatSettings
             {
                 var value3 = JsonSerializer.Serialize(command.Value3.Value);
                 context.Set(value3Id, value3);
-            }          
+            }
+
+            if(this.configurableSettingSubscriptions.ContainsKey(command.Id))
+            {
+                this.configurableSettingSubscriptions[command.Id].OnNext(command);
+            }
         }
+    }
+
+    public IObservable<Command> SubscribeToConfigurableSetting(Command command)
+    {
+        if(!this.configurableSettingSubscriptions.ContainsKey(command.Id))
+        {
+            this.configurableSettingSubscriptions.Add(command.Id, new Subject<Command>());
+        }
+
+        return this.configurableSettingSubscriptions[command.Id];
     }
 
     private string ConstructSettingsValueId(Command command, int valueNr)
