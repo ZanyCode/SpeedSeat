@@ -68,11 +68,6 @@ public class Speedseat
         this.Tilt = (frontTilt, sideTilt);
     }
 
-    public void SetPositionsWithoutNotifyingMicrocontroller(double xMotorPosition, double yMotorPosition, double zMotorPosition)
-    {
-        
-    }
-
     private async Task UpdateTilt()
     {        
         var availableAbsoluteSideTilt = 1 - Math.Abs(this.Tilt.frontTilt);
@@ -92,6 +87,15 @@ public class Speedseat
         frontRightMotorPosition += additionalBackMotorTilt;
 
         await this.UpdatePosition();
+    }
+
+    public async Task SetMotorPositionsFromCommand(Command command)
+    {
+        var values = new[]{command.Value1.Value, command.Value2.Value, command.Value3.Value};
+        backMotorPosition = values[settings.BackMotorIdx];
+        frontLeftMotorPosition = values[settings.FrontLeftMotorIdx];
+        frontRightMotorPosition = values[settings.FrontRightMotorIdx];
+        await UpdatePosition();
     }
 
     private async Task UpdatePosition()

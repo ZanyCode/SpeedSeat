@@ -1,6 +1,6 @@
 {
     "config": {
-        "connectionResponseTimeoutMs": 25000,
+        "connectionResponseTimeoutMs": 3000,
         "commands": [
             {
                 "groupLabel": "Motor-Positions",
@@ -32,25 +32,231 @@
                 }
             },
             {
-                "groupLabel": "Important Settings",
-                "id": 1,
-                "readonly": false,
+                "groupLabel": "Frames Per Second",
+                "id": 11,
+                "readonly": true,
                 "value1": {
-                    "label": "Awesomeness Level",
+                    "label": "Frames",
                     "type": "numeric",
-                    "scaleToFullRange": true,
-                    "min": 0,
-                    "max": 100,
-                    "default": 10
+                    "scaleToFullRange": false,                  
+                    "default": 0
                 },
                 "value2": {
-                    "label": "Click this to get rich",
-                    "type": "action"                  
+                    "label": "wokload of motion cernel %",
+                    "type": "numeric",
+                    "scaleToFullRange": false,                 
+                    "default": 0.5
                 },
                 "value3": {
-                    "label": "Overtake Universe",
+                    "label": "???",
+                    "type": "numeric",
+                    "scaleToFullRange": false,                   
+                    "default": 0.5
+                }
+            },
+            {
+                "groupLabel": "Max Motor-Positions",
+                "id": 3,
+                "readonly": false,
+                "value1": {
+                    "label": "Front-Right",
+                    "type": "numeric",
+                    "scaleToFullRange": false,                 
+                    "default": 0.5
+                },
+                "value2": {
+                    "label": "Front-Left",
+                    "type": "numeric",
+                    "scaleToFullRange": false,                  
+                    "default": 0.5
+                },
+                "value3": {
+                    "label": "Back",
+                    "type": "numeric",
+                    "scaleToFullRange": false,                  
+                    "default": 0.5
+                }
+            },
+            {
+                "groupLabel": "Homing Offset",
+                "id": 4,
+                "readonly": false,
+                "value1": {
+                    "label": "Front-Right",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 0,
+                    "max": 100,
+                    "default": 0.5
+                },
+                "value2": {
+                    "label": "Front-Left",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 0,
+                    "max": 100,
+                    "default": 0.5
+                },
+                "value3": {
+                    "label": "Back",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 0,
+                    "max": 100,
+                    "default": 0.5
+                }
+            },
+            {
+                "groupLabel": "Acceleration",
+                "id": 5,
+                "readonly": false,
+                "value1": {
+                    "label": "Front-Right",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 20,
+                    "max": 1500,
+                    "default": 0.5
+                },
+                "value2": {
+                    "label": "Front-Left",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 20,
+                    "max": 1500,
+                    "default": 0.5
+                },
+                "value3": {
+                    "label": "Back",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 20,
+                    "max": 1500,
+                    "default": 0.5
+                }
+            },
+            {
+                "groupLabel": "Max Speed",
+                "id": 6,
+                "readonly": false,
+                "value1": {
+                    "label": "Front-Right",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 20,
+                    "max": 500,
+                    "default": 0.5
+                },
+                "value2": {
+                    "label": "Front-Left",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 20,
+                    "max": 500,
+                    "default": 0.5
+                },
+                "value3": {
+                    "label": "Back",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 20,
+                    "max": 500,
+                    "default": 0.5
+                }
+            },
+            {
+                "groupLabel": "Homing Status",
+                "id": 7,
+                "readonly": true,
+                "value1": {
+                    "label": "Front-Right",
                     "type": "boolean",
                     "default": 1
+                },
+                "value2": {
+                    "label": "Front-Left",
+                    "type": "boolean",
+                    "default": 1
+                },
+                "value3": {
+                    "label": "Back",
+                    "type": "boolean",
+                    "default": 1
+                }
+            },
+            {
+                "groupLabel": "New Homing",
+                "id": 8,
+                "readonly": false,
+                "value1": {
+                    "label": "Front-Right",
+                    "type": "action"
+                },
+                "value2": {
+                    "label": "Front-Left",
+                    "type": "action"
+                },
+                "value3": {
+                    "label": "Back",
+                    "type": "action"
+                }
+            },
+            {
+                "groupLabel": "Homing Speed",
+                "id": 9,
+                "readonly": false,
+                "value1": {
+                    "label": "Front-Right",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 20,
+                    "max": 500,
+                    "default": 0.5
+                },
+                "value2": {
+                    "label": "Front-Left",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 20,
+                    "max": 500,
+                    "default": 0.5
+                },
+                "value3": {
+                    "label": "Back",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 20,
+                    "max": 500,
+                    "default": 0.5
+                }
+            },
+            {
+                "groupLabel": "Homing Acceleration",
+                "id": 10,
+                "readonly": false,
+                "value1": {
+                    "label": "Front-Right",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 20,
+                    "max": 500,
+                    "default": 0.5
+                },
+                "value2": {
+                    "label": "Front-Left",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 20,
+                    "max": 500,
+                    "default": 0.5
+                },
+                "value3": {
+                    "label": "Back",
+                    "type": "numeric",
+                    "scaleToFullRange": false,
+                    "min": 20,
+                    "max": 500,
+                    "default": 0.5
                 }
             }
         ]

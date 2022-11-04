@@ -396,7 +396,10 @@ public class SerialPortConnection : ISerialPortConnection
 
     public void Write(byte[] buffer, int offset, int count)
     {
-        serialPort.Write(buffer, offset, count);
+        if(!isSimulating) // First write after simulating mc command is the response byte, we don't actually want to send this
+            serialPort.Write(buffer, offset, count);
+        else
+            this.isSimulating = false;
     }
 
     public int Read(byte[] buffer, int offset, int count)
@@ -430,7 +433,7 @@ public class SerialPortConnection : ISerialPortConnection
             }
         }
 
-        this.isSimulating = false;
+        // this.isSimulating = false;
     }
 
     public SerialDataReceivedEventArgs CreateEventArgs()

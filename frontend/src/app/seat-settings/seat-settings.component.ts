@@ -11,6 +11,7 @@ import { SeatSettingsDataService } from './seat-settings-data.service';
 })
 export class SeatSettingsComponent implements OnInit, OnDestroy {
   commands?: Command[];
+  fakeCommands?: Command[];
   ValueType = ValueType;
   commandObservables: Observable<Command>[] = [];
   connectionStateSubscription: any;
@@ -40,6 +41,7 @@ export class SeatSettingsComponent implements OnInit, OnDestroy {
   updateValuesFromDataservice() {
     this.data.init().then(async () => {
       this.commands = await this.data.getCommands();
+      this.fakeCommands = this.commands.map(x => JSON.parse(JSON.stringify(x)));
       this.commandObservables = this.commands.map(c => this.data.subscribeToConfigurableSetting(c).pipe(startWith(c)));
       this.isInitialized = true;
     });
@@ -51,5 +53,9 @@ export class SeatSettingsComponent implements OnInit, OnDestroy {
 
   onFakeWriteRequest(command: Command) {
     this.data.fakeWriteRequest(command);
+  }
+
+  cloneCommand(command: Command) {
+    return JSON.parse(JSON.stringify(command));
   }
 }
