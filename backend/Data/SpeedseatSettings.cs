@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
@@ -121,7 +122,7 @@ public class SpeedseatSettings : ISpeedseatSettings
     public int BaudRate { get => GetValue<int>(9600); set => SetValue(value); }
 
     /* Configurable settings */
-    private IDictionary<byte, Subject<Command>> configurableSettingSubscriptions = new Dictionary<byte, Subject<Command>>();
+    private IDictionary<byte, CountSubject<Command>> configurableSettingSubscriptions = new Dictionary<byte, CountSubject<Command>>();
 
     public (double value1, double value2, double value3) GetConfigurableSettingsValues(Command command)
     {
@@ -162,6 +163,7 @@ public class SpeedseatSettings : ISpeedseatSettings
 
             if(this.configurableSettingSubscriptions.ContainsKey(command.Id))
             {
+                System.Console.WriteLine($"Subscriptions left: {this.configurableSettingSubscriptions[command.Id].Count}");
                 this.configurableSettingSubscriptions[command.Id].OnNext(command);
             }
         }
@@ -171,7 +173,7 @@ public class SpeedseatSettings : ISpeedseatSettings
     {
         if(!this.configurableSettingSubscriptions.ContainsKey(command.Id))
         {
-            this.configurableSettingSubscriptions.Add(command.Id, new Subject<Command>());
+            this.configurableSettingSubscriptions.Add(command.Id, new CountSubject<Command>());
         }
 
         return this.configurableSettingSubscriptions[command.Id];
@@ -241,4 +243,69 @@ public class ResponseCurvePoint
 {
     public double Output { get; set; }
     public double Input { get; set; }
+}
+
+public class CountSubject<T> : ISubject<T>, IDisposable
+{
+    private readonly ISubject<T> _baseSubject;
+    private int _counter;
+    private IDisposable _disposer = Disposable.Empty;
+    private bool _disposed;
+
+    public int Count
+    {
+        get { return _counter; }
+    }
+
+    public CountSubject()
+        : this(new Subject<T>())
+    {
+        // Need to clear up Subject we created
+        _disposer = (IDisposable) _baseSubject;
+    }
+
+    public CountSubject(ISubject<T> baseSubject)
+    {
+        _baseSubject = baseSubject;
+    }
+
+    public void OnCompleted()
+    {
+        _baseSubject.OnCompleted();
+    }
+
+    public void OnError(Exception error)
+    {
+        _baseSubject.OnError(error);
+    }
+
+    public void OnNext(T value)
+    {
+        _baseSubject.OnNext(value);
+    }
+
+    public IDisposable Subscribe(IObserver<T> observer)
+    {
+        Interlocked.Increment(ref _counter);
+        return new CompositeDisposable(Disposable.Create(() => Interlocked.Decrement(ref _counter)),
+                                       _baseSubject.Subscribe(observer));
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _disposer.Dispose();
+            }
+            _disposed = true;
+        }
+    }
 }

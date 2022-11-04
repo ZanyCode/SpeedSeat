@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Observable, startWith } from 'rxjs';
 import { AppEventsService } from '../app-events.service';
 import { Command, ValueType } from '../models/command';
@@ -9,7 +9,7 @@ import { SeatSettingsDataService } from './seat-settings-data.service';
   templateUrl: './seat-settings.component.html',
   styleUrls: ['./seat-settings.component.scss']
 })
-export class SeatSettingsComponent implements OnInit {
+export class SeatSettingsComponent implements OnInit, OnDestroy {
   commands?: Command[];
   ValueType = ValueType;
   commandObservables: Observable<Command>[] = [];
@@ -24,10 +24,17 @@ export class SeatSettingsComponent implements OnInit {
       if (connected) {
         this.updateValuesFromDataservice();
       }
-      else {
+      else if (this.isInitialized) {
         this.isInitialized = false;
+        this.commands = [];
+        this.commandObservables = [];
+        setTimeout(() => this.data.destroy(), 0);
       }
     })
+  }
+
+  ngOnDestroy(): void {
+    this.data.destroy();
   }
 
   updateValuesFromDataservice() {

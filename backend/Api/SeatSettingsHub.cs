@@ -9,6 +9,8 @@ public class SeatSettingsHub : Hub
     private readonly IOptionsMonitor<Config> options;
     private readonly IFrontendLogger logger;
 
+    private IDictionary<byte, IAsyncEnumerable<Command>> commandEnumerables = new Dictionary<byte, IAsyncEnumerable<Command>>();
+
     public SeatSettingsHub(ISpeedseatSettings settings, CommandService commandService, IOptionsMonitor<Config> options, IFrontendLogger logger)
     {
         this.settings = settings;
@@ -35,7 +37,13 @@ public class SeatSettingsHub : Hub
 
     public IAsyncEnumerable<Command> SubscribeToConfigurableSetting(Command command)
     {
-        return this.settings.SubscribeToConfigurableSetting(command).ToAsyncEnumerable();
+        if (!commandEnumerables.ContainsKey(command.Id))
+        {
+            var enumerable = this.settings.SubscribeToConfigurableSetting(command).ToAsyncEnumerable();
+            commandEnumerables.Add(command.Id, enumerable);
+        }        
+        
+        return commandEnumerables[command.Id];
     }
 
     public async Task<SerialWriteResult> UpdateSetting(Command command)
@@ -58,5 +66,18 @@ public class SeatSettingsHub : Hub
             throw new Exception($"Command with id 0x{Convert.ToHexString(new[] { command.Id })} can't be updated since it is readonly");
 
         await commandService.FakeWriteRequest(command);
+    }
+
+    public override Task OnConnectedAsync()
+    {
+        return base.OnConnectedAsync();
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        foreach(var item in commandEnumerables.Values)    
+            await item.GetAsyncEnumerator().DisposeAsync();
+
+        await base.OnDisconnectedAsync(exception);
     }
 }
