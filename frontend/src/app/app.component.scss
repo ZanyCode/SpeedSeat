@@ -17,11 +17,11 @@
 }
 
 .upper-section {
-  flex: 1;
+  height: 75%;
 }
 
 .lower-section {
-  flex: 0.3;
+  height: 25%;
 }
 
 .no-connection-overlay {
@@ -42,4 +42,15 @@
   position: absolute;
   top: 10px;
   right: 20px;
+  z-index: 1;
+}
+
+.log-item {
+
+  padding-top: 7px;
+  padding-bottom: 7px;
+
+  border: {
+    top: 1px solid #b2b2b2;
+  }
 }

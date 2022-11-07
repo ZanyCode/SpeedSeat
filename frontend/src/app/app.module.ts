@@ -28,8 +28,8 @@ import { NumericSettingComponent } from './seat-settings/numeric-setting/numeric
 import { BooleanSettingComponent } from './seat-settings/boolean-setting/boolean-setting.component';
 import { ActionSettingComponent } from './seat-settings/action-setting/action-setting.component';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
-
-
+import {ScrollingModule as ExperimentalScrollingModule} from '@angular/cdk-experimental/scrolling';
+import {ScrollingModule } from '@angular/cdk/scrolling';
 
 PlotlyModule.plotlyjs = PlotlyJS;
 
@@ -63,7 +63,9 @@ PlotlyModule.plotlyjs = PlotlyJS;
     PlotlyModule,
     FormsModule,
     CurveEditorModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    ScrollingModule,
+    ExperimentalScrollingModule
   ],
   providers: [],
   bootstrap: [AppComponent]

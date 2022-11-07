@@ -1,10 +1,11 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Observable } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 import { AppDataService } from './app-data.service';
 import { ConnectionDataService } from './connection-data.service';
 import { AppEventsService } from './app-events.service';
+
 
 @Component({
   selector: 'app-root',
@@ -14,7 +15,8 @@ import { AppEventsService } from './app-events.service';
 export class AppComponent implements OnInit, OnDestroy {
   title = 'SpeedSeat';
   url: string | undefined = undefined;
-  log = '[LOG]';
+  log = [{ id: 0, msg: '[LOG]' }];
+  currentLogMessageId = 1;
   logTextareaScrolltop: number | null = null;
   @ViewChild('textarea') textarea: ElementRef | undefined;
 
@@ -32,7 +34,7 @@ export class AppComponent implements OnInit, OnDestroy {
       shareReplay()
     );
 
-  constructor(private breakpointObserver: BreakpointObserver, private data: AppDataService, private connectionService: ConnectionDataService, private events: AppEventsService) { }
+  constructor(private breakpointObserver: BreakpointObserver, private data: AppDataService, private connectionService: ConnectionDataService, private events: AppEventsService, private changeDetection: ChangeDetectorRef) { }
 
 
   ngOnInit(): void {
@@ -45,14 +47,19 @@ export class AppComponent implements OnInit, OnDestroy {
       this.selectedPort = this.ports.length > 0 ? this.ports[0] : undefined;
       this.selectedBaudRate = await this.connectionService.getBaudRate();
       this.isConnected = await this.connectionService.getIsConnected();
-      if(this.isConnected)
+      if (this.isConnected)
         this.events.signalConnectionStateChanged(true);
     });
   }
 
   onLogReceived = (message: string) => {
-    this.log += `\n[${new Date().toLocaleString()}]: ${message}`;
-    setTimeout(() => this.logTextareaScrolltop = this.textarea?.nativeElement.scrollHeight, 0);
+    const logMessage = `[${new Date().toLocaleString()}]: ${message}`;
+    // this.log.push(logMessage);
+    this.log = [{ id: this.currentLogMessageId, msg: logMessage }, ...this.log];
+    this.currentLogMessageId++;
+    // console.log(logMessage);
+    // setTimeout(() => this.changeDetection.detectChanges(), 1);
+    // setTimeout(() => this.logTextareaScrolltop = this.textarea?.nativeElement.scrollHeight, 0);
   }
 
   ngOnDestroy(): void {
@@ -61,11 +68,11 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   async connect() {
-    if (this.selectedPort) {      
+    if (this.selectedPort) {
       this.isConnecting = true;
       this.isConnected = await this.connectionService.connect(this.selectedPort, this.selectedBaudRate);;
       this.isConnecting = false;
-      if(this.isConnected)
+      if (this.isConnected)
         this.events.signalConnectionStateChanged(true);
     }
   }
@@ -87,5 +94,14 @@ export class AppComponent implements OnInit, OnDestroy {
 
   async cancelConnectionProcess() {
     await this.connectionService.cancelConnectionProcess();
+  }
+
+  clearLog() {
+    this.log = [{ id: 0, msg: '[LOG]' }];
+    this.currentLogMessageId = 1;
+  }
+
+  identifyLogItem(_index: number, item: { id: number, msg: string }) {
+    return item.id;
   }
 }

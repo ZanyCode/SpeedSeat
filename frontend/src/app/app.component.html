@@ -19,7 +19,7 @@
       <a mat-list-item routerLink="/seat-settings" routerLinkActive="active">
         <mat-icon>chair</mat-icon>
         Seat Settings
-      </a>    
+      </a>
     </mat-nav-list>
 
     <!-- Card with connection settings -->
@@ -73,8 +73,7 @@
         <div *ngIf="isConnecting" class="d-flex">
           <button mat-raised-button color="primary" (click)="fakeConnectionConfirmation()">Fake
             Confirmation</button>
-          <button mat-raised-button color="warn"
-            (click)="cancelConnectionProcess()">Cancel</button>
+          <button mat-raised-button color="warn" (click)="cancelConnectionProcess()">Cancel</button>
 
         </div>
       </mat-card-actions>
@@ -93,7 +92,7 @@
       </button>
       <span>SpeedSeat</span>
     </mat-toolbar>
-    <div class="col d-flex flex-column overflow-hidden">
+    <div class="col overflow-hidden">
       <div class="overflow-auto upper-section position-relative">
         <router-outlet></router-outlet>
         <div *ngIf="!isConnected" class="no-connection-overlay w-100 h-100 position-absolute top-0 d-flex">
@@ -108,10 +107,11 @@
         </div>
       </div>
       <!-- log console  -->
-      <div class="lower-section position-relative">
-        <textarea disabled="true" #textarea [scrollTop]="logTextareaScrolltop" class="w-100 h-100"        
-          [value]='log'></textarea>
-        <button mat-raised-button class="clear-console-button" (click)="log = '[LOG]'">Clear</button>
+      <div class="lower-section position-relative">      
+        <button mat-raised-button class="clear-console-button" (click)="clearLog()">Clear</button>
+        <cdk-virtual-scroll-viewport autosize  class="w-100 h-100">
+          <div *cdkVirtualFor="let item of log; trackBy: identifyLogItem" class="log-item">{{item.msg}}</div>
+        </cdk-virtual-scroll-viewport>       
       </div>
     </div>
   </mat-sidenav-content>
