@@ -65,7 +65,6 @@ public class F12020TelemetryAdaptor
         var first = motion.carMotionData.ElementAt(motion.header.playerCarIndex);      
         var frontTilt = Math.Clamp(first.gForceLongitudinal * frontTiltGForceMultiplier, -frontTiltOutputCap, frontTiltOutputCap) * (frontTiltReverse? -1 : 1);
         var sideTilt = Math.Clamp(first.gForceLateral * sideTiltGForceMultiplier, -sideTiltOutputCap, sideTiltOutputCap) * (sideTiltReverse? -1 : 1);
-        System.Console.WriteLine($"{frontTilt}, {sideTilt}, {first.gForceVertical}");
         seat.SetTilt(frontTilt, sideTilt);
         SendTelemetryToFrontend(frontTilt, sideTilt);
     }
