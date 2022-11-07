@@ -1,6 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { AppEventsService } from '../app-events.service';
+import { Command } from '../models/command';
+import { SeatSettingsDataService } from '../seat-settings/seat-settings-data.service';
 import { ManualControlDataService } from './manual-control-data.service';
 
 @Component({
@@ -14,6 +16,7 @@ export class ManualControlComponent implements OnInit, OnDestroy {
   public isMotorPositionValid = true;
   public isTiltPositionValid = true;
   private connectionStateSubscription: Subscription | undefined;
+  public command: Command | undefined;
 
   private _frontLeftMotorPosition: number | null = 0.5;
   public get frontLeftMotorPosition(): number | null {
@@ -60,7 +63,7 @@ export class ManualControlComponent implements OnInit, OnDestroy {
     this.data.setTilt(this.frontTilt ?? 0, value ?? 0);
   }
 
-  constructor(public data: ManualControlDataService, private events: AppEventsService) { }
+  constructor(public data: ManualControlDataService, private events: AppEventsService, private settings: SeatSettingsDataService) { }
 
   ngOnInit(): void {
     this.connectionStateSubscription = this.events.ConnectionStateChanged.subscribe(connected => {
@@ -71,21 +74,31 @@ export class ManualControlComponent implements OnInit, OnDestroy {
         this.isMotorPositionValid = false;
         this.isTiltPositionValid = false;
         this.isInitialized = false;
+        this.data.destroy();
+        this.settings.destroy();
       }
     })
   }
 
   updateValuesFromDataservice() {
     this.data.init().then(async () => {
-      const seat = await this.data.getCurrentState();
-      this._frontLeftMotorPosition = seat.frontLeftMotorPosition;
-      this._frontRightMotorPosition = seat.frontRightMotorPosition;
-      this._backMotorPosition = seat.backMotorPosition;
+      const seat = await this.data.getCurrentState();    
       this.isConnected = seat.isConnected;
       this.isMotorPositionValid = true;
       this.isTiltPositionValid = true;
       this.isInitialized = true;
     });
+
+    this.settings.init().then(async () => {
+      this.command = await (await this.settings.getCommands()).filter(x => x.id == 0)[0];
+      this._frontRightMotorPosition = this.command.value1.value;
+      this._frontLeftMotorPosition = this.command.value2.value;
+      this._backMotorPosition = this.command.value3.value;
+    });
+  }
+
+  onPositionsChanged(command: Command) {
+    this.settings.updateSetting(command);
   }
 
   ngOnDestroy(): void {

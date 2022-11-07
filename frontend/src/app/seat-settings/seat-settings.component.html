@@ -37,33 +37,29 @@
                             (valueChanged)="onSettingChanged(command)"></boolean-setting>
                     </ng-container>
 
-                    <!-- <button (click)="onFakeWriteRequest(command)" mat-raised-button>Fake Write Request from Microcontroller</button> -->
                 </mat-card-content>
             </mat-card>
         </div>
 
         <!-- Fake Commands -->
-        <div class="col-12 col-xl-4" *ngFor="let command of fakeCommands">
+        <!-- <div class="col-12 col-xl-4" *ngFor="let command of fakeCommands">
             <mat-card class="h-100">
                 <mat-card-header>
                     <mat-card-title>{{command.groupLabel}} Fake</mat-card-title>
                 </mat-card-header>
                 <mat-card-content class="position-relative">
-                    <!-- Switch/Case for Value1 -->
                     <ng-container *ngIf="isInitialized && command.value1 as value" [ngSwitch]="value.type">
                         <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value"></numeric-setting>
                         <action-setting *ngSwitchCase="ValueType.Action" [value]="value"></action-setting>
                         <boolean-setting *ngSwitchCase="ValueType.Boolean" [value]="value"></boolean-setting>
                     </ng-container>
 
-                    <!-- Switch/Case for Value2 -->
                     <ng-container *ngIf="isInitialized && command.value2 as value" [ngSwitch]="value.type">
                         <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value"></numeric-setting>
                         <action-setting *ngSwitchCase="ValueType.Action" [value]="value"></action-setting>
                         <boolean-setting *ngSwitchCase="ValueType.Boolean" [value]="value"></boolean-setting>
                     </ng-container>
 
-                    <!-- Switch/Case for Value3 -->
                     <ng-container *ngIf="isInitialized && command.value3 as value" [ngSwitch]="value.type">
                         <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value"></numeric-setting>
                         <action-setting *ngSwitchCase="ValueType.Action" [value]="value"></action-setting>
@@ -74,6 +70,6 @@
                         Microcontroller</button>
                 </mat-card-content>
             </mat-card>
-        </div>
+        </div> -->
     </div>
 </div>

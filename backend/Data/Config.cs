@@ -113,7 +113,7 @@ public class Command
 
     public byte Id { get; set; }
 
-    public bool IsReadonly { get; set; }
+    public bool Readonly { get; set; }
 
     public CommandValue Value1 { get; set; }
 
@@ -133,7 +133,7 @@ public class Command
         Value1 = value1;
         Value2 = value2;
         Value3 = value3;
-        IsReadonly = isReadonly;
+        Readonly = isReadonly;
         IsReadRequest = isReadRequest;
         GroupLabel = groupLabel;
     }
@@ -183,7 +183,7 @@ public class Command
         var value1 = this.Value1 == null ? null : this.Value1.CloneWithNewValuesFromBytes(data[1], data[2]);
         var value2 = this.Value2 == null ? null : this.Value2.CloneWithNewValuesFromBytes(data[3], data[4]);
         var value3 = this.Value3 == null ? null : this.Value3.CloneWithNewValuesFromBytes(data[5], data[6]);
-        return new Command(this.Id, value1, value2, value3, this.IsReadonly, isReadRequest, this.GroupLabel);
+        return new Command(this.Id, value1, value2, value3, this.Readonly, isReadRequest, this.GroupLabel);
     }
 
     public Command CloneWithNewValues(double value1, double value2, double value3, bool isReadRequest)
@@ -191,7 +191,7 @@ public class Command
         var commandValue1 = this.Value1 == null ? null : this.Value1.CloneWithNewValue(value1);
         var commandValue2 = this.Value2 == null ? null : this.Value2.CloneWithNewValue(value2);
         var commandValue3 = this.Value3 == null ? null : this.Value3.CloneWithNewValue(value3);
-        return new Command(this.Id, commandValue1, commandValue2, commandValue3, this.IsReadonly, isReadRequest, this.GroupLabel);
+        return new Command(this.Id, commandValue1, commandValue2, commandValue3, this.Readonly, isReadRequest, this.GroupLabel);
     }
 
 

@@ -49,8 +49,11 @@ public class SeatSettingsHub : Hub
 
     public async Task UpdateSetting(Command command)
     {
-        if (command.IsReadonly)
-            throw new Exception($"Command with id 0x{Convert.ToHexString(new[] { command.Id })} can't be updated since it is readonly");
+        if (command.Readonly)
+        {
+            logger.Log($"Command with id 0x{Convert.ToHexString(new[] { command.Id })} can't be updated since it is readonly");
+            return;
+        }
 
         if (command.Id == Command.MotorPositionCommandId)
         {
@@ -70,15 +73,10 @@ public class SeatSettingsHub : Hub
 
     public async Task FakeWriteRequest(Command command)
     {
-        if (command.IsReadonly)
+        if (command.Readonly)
             throw new Exception($"Command with id 0x{Convert.ToHexString(new[] { command.Id })} can't be updated since it is readonly");
 
         await commandService.FakeWriteRequest(command);
-    }
-
-    public override Task OnConnectedAsync()
-    {
-        return base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)

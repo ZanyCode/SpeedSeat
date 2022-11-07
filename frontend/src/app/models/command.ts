@@ -17,8 +17,7 @@ export interface CommandValue {
 
 export interface Command {
     groupLabel: string;
-    readId: Byte;
-    writeId: Byte;
+    id: Byte;    
     isReadonly: boolean;
     value1: CommandValue;
     value2: CommandValue;
