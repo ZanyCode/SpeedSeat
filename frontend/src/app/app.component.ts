@@ -49,17 +49,15 @@ export class AppComponent implements OnInit, OnDestroy {
       this.isConnected = await this.connectionService.getIsConnected();
       if (this.isConnected)
         this.events.signalConnectionStateChanged(true);
+      else if(this.selectedPort)
+        await this.connect();
     });
   }
 
   onLogReceived = (message: string) => {
     const logMessage = `[${new Date().toLocaleString()}]: ${message}`;
-    // this.log.push(logMessage);
     this.log = [{ id: this.currentLogMessageId, msg: logMessage }, ...this.log];
-    this.currentLogMessageId++;
-    // console.log(logMessage);
-    // setTimeout(() => this.changeDetection.detectChanges(), 1);
-    // setTimeout(() => this.logTextareaScrolltop = this.textarea?.nativeElement.scrollHeight, 0);
+    this.currentLogMessageId++;   
   }
 
   ngOnDestroy(): void {
