@@ -12,7 +12,7 @@
                         <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value"
                             (valueChanged)="onSettingChanged(command)"></numeric-setting>
                         <action-setting *ngSwitchCase="ValueType.Action" [value]="value"
-                            (valueChanged)="onSettingChanged(command)"></action-setting>
+                            (valueChanged)="onActionSettingChanged(command, 0)"></action-setting>
                         <boolean-setting *ngSwitchCase="ValueType.Boolean" [value]="value"
                             (valueChanged)="onSettingChanged(command)"></boolean-setting>
                     </ng-container>
@@ -22,7 +22,7 @@
                         <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value"
                             (valueChanged)="onSettingChanged(command)"></numeric-setting>
                         <action-setting *ngSwitchCase="ValueType.Action" [value]="value"
-                            (valueChanged)="onSettingChanged(command)"></action-setting>
+                            (valueChanged)="onActionSettingChanged(command, 1)"></action-setting>
                         <boolean-setting *ngSwitchCase="ValueType.Boolean" [value]="value"
                             (valueChanged)="onSettingChanged(command)"></boolean-setting>
                     </ng-container>
@@ -32,7 +32,7 @@
                         <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value"
                             (valueChanged)="onSettingChanged(command)"></numeric-setting>
                         <action-setting *ngSwitchCase="ValueType.Action" [value]="value"
-                            (valueChanged)="onSettingChanged(command)"></action-setting>
+                            (valueChanged)="onActionSettingChanged(command, 2)"></action-setting>
                         <boolean-setting *ngSwitchCase="ValueType.Boolean" [value]="value"
                             (valueChanged)="onSettingChanged(command)"></boolean-setting>
                     </ng-container>

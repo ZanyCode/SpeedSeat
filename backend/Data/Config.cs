@@ -40,7 +40,7 @@ public class CommandValue
             case ValueType.Numeric:
                 return GetRawValue();
             case ValueType.Action:
-                return 0;
+                return (ushort)(Value != 0 ? 1 : 0);
             default:
                 throw new Exception("Invalid Value Type");
         }
@@ -57,7 +57,7 @@ public class CommandValue
         }
         else
         {
-            if(fullValue < this.Min || fullValue > this.Max)
+            if (fullValue < this.Min || fullValue > this.Max)
             {
                 throw new Exception($"If ScaleToFullRange is false, the value has to be between Min({this.Min}) and Max({this.Max}) but instead was {fullValue}");
             }

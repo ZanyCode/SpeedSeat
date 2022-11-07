@@ -203,7 +203,7 @@ public class CommandService
                         else
                         {
                             frontendLogger.Log($"Successfully received write-request for command with id {updatedCommand.Id}, raw request: {Convert.ToHexString(commandData)}, interpreted as Command: {updatedCommand.ToString()}. Writing values to Database.");                            
-                            this.settings.SaveConfigurableSetting(updatedCommand);
+                            this.settings.SaveConfigurableSetting(updatedCommand, true);
                             this.settingsHubContext.Clients.All.SendAsync("SettingChanged", command);
                             if(command.Id == Command.MotorPositionCommandId)
                             {           

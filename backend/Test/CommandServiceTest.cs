@@ -141,7 +141,7 @@ public class CommandServiceTest
             });
 
             Command actualCommand = null;
-            speedseatSettingsMock.Setup(x => x.SaveConfigurableSetting(It.IsAny<Command>())).Callback<Command>(x => actualCommand = x);
+            speedseatSettingsMock.Setup(x => x.SaveConfigurableSetting(It.IsAny<Command>(), It.IsAny<bool>())).Callback<Command>(x => actualCommand = x);
 
             portConnectionMock.Raise(x => x.DataReceived += null, CreateEventArgs());
             Assert.IsNotNull(actualCommand);

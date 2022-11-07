@@ -65,7 +65,7 @@ public class SeatSettingsHub : Hub
             else
                 logger.Log($"Error sending command to Microcontroller: {command.ToString()}, raw representation: {Convert.ToHexString(command.ToByteArray())}, Result Code: {result}");
         }
-        settings.SaveConfigurableSetting(command);
+        settings.SaveConfigurableSetting(command, false);
     }
 
     public async Task FakeWriteRequest(Command command)

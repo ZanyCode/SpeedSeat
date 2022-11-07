@@ -51,6 +51,21 @@ export class SeatSettingsComponent implements OnInit, OnDestroy {
     this.data.updateSetting(command);
   }
 
+  onActionSettingChanged(command: Command, actionIdx: number) {
+    const updatedCommandValues = [command.value1, command.value2, command.value3].map((item, idx) => {
+      if(!item)
+        return item;
+        
+      if (idx == actionIdx)
+        return { ...item, value: 1 };
+      else
+        return { ...item, value: 0 };
+    })
+
+    const updatedCommand: Command = { ...command, value1: updatedCommandValues[0], value2: updatedCommandValues[1], value3: updatedCommandValues[2] };
+    this.onSettingChanged(updatedCommand)
+  }
+
   onFakeWriteRequest(command: Command) {
     this.data.fakeWriteRequest(command);
   }

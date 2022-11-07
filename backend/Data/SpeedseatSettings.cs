@@ -40,7 +40,7 @@ public interface ISpeedseatSettings
     int BaudRate { get; set; }
 
     (double value1, double value2, double value3) GetConfigurableSettingsValues(Command command);
-    void SaveConfigurableSetting(Command command);
+    void SaveConfigurableSetting(Command command, bool publishToFronted);
 
     IObservable<Command> SubscribeToConfigurableSetting(Command command);
 }
@@ -136,7 +136,7 @@ public class SpeedseatSettings : ISpeedseatSettings
         }
     }
 
-    public void SaveConfigurableSetting(Command command)
+    public void SaveConfigurableSetting(Command command, bool publishToFronted)
     {
         using (var scope = scopeFactory.CreateScope())
         {
@@ -161,7 +161,7 @@ public class SpeedseatSettings : ISpeedseatSettings
                 context.Set(value3Id, value3);
             }
 
-            if(this.configurableSettingSubscriptions.ContainsKey(command.Id))
+            if(publishToFronted && this.configurableSettingSubscriptions.ContainsKey(command.Id))
             {
                 System.Console.WriteLine($"Subscriptions left: {this.configurableSettingSubscriptions[command.Id].Count}");
                 this.configurableSettingSubscriptions[command.Id].OnNext(command);
