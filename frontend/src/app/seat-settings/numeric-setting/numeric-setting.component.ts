@@ -8,6 +8,7 @@ import { CommandValue } from 'src/app/models/command';
 })
 export class NumericSettingComponent implements OnInit {
    @Input() value!: CommandValue;
+   @Input() readonly: boolean = false;
    @Output() valueChanged = new EventEmitter();
 
   constructor() { }

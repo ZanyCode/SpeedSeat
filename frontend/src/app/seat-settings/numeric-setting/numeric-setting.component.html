@@ -2,12 +2,21 @@
     <div class="col-auto">
         <mat-form-field appearance="outline">
             <mat-label>{{value.label}}</mat-label>
-            <input matInput type="number" [min]="value.min" [max]="value.max" [step]="value.scaleToFullRange? 0.05 : 1" [(ngModel)]="value.value">
+            <input matInput type="number" [readonly]="readonly" [disabled]="!value.isUnblocked && !readonly" [min]="value.min" [max]="value.max" [step]="value.scaleToFullRange? 0.05 : 1"
+                [(ngModel)]="value.value">
         </mat-form-field>
     </div>
     <div class="col p-0">
-        <mat-slider [min]="value.min" [max]="value.max" aria-label="Percentage (%)" class="w-100"
+        <mat-slider [disabled]="!value.isUnblocked || readonly" [min]="value.min" [max]="value.max" aria-label="Percentage (%)" class="w-100"
             [step]="value.scaleToFullRange? 0.001 : 1" (input)="value.value = $event.value" [value]="value.value"
             (valueChange)="valueChanged.emit()"></mat-slider>
+    </div>
+    <div class="col-auto">
+        <button (click)="value.isUnblocked = false" *ngIf="!readonly && value.isUnblocked" mat-icon-button color="primary" aria-label="Example icon button with a home icon">
+            <mat-icon>lock</mat-icon>
+        </button>
+         <button (click)="value.isUnblocked = true" *ngIf="!readonly && !value.isUnblocked" mat-icon-button color="primary" aria-label="Example icon button with a home icon">
+            <mat-icon>lock_open</mat-icon>
+        </button>
     </div>
 </div>

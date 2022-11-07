@@ -9,7 +9,7 @@
                 <mat-card-content class="position-relative">
                     <!-- Switch/Case for Value1 -->
                     <ng-container *ngIf="isInitialized && command.value1 as value" [ngSwitch]="value.type">
-                        <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value"
+                        <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value" [readonly]="command.readonly"
                             (valueChanged)="onSettingChanged(command)"></numeric-setting>
                         <action-setting *ngSwitchCase="ValueType.Action" [value]="value"
                             (valueChanged)="onActionSettingChanged(command, 0)"></action-setting>
@@ -19,7 +19,7 @@
 
                     <!-- Switch/Case for Value2 -->
                     <ng-container *ngIf="isInitialized && command.value2 as value" [ngSwitch]="value.type">
-                        <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value"
+                        <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value" [readonly]="command.readonly"
                             (valueChanged)="onSettingChanged(command)"></numeric-setting>
                         <action-setting *ngSwitchCase="ValueType.Action" [value]="value"
                             (valueChanged)="onActionSettingChanged(command, 1)"></action-setting>
@@ -29,7 +29,7 @@
 
                     <!-- Switch/Case for Value3 -->
                     <ng-container *ngIf="isInitialized && command.value3 as value" [ngSwitch]="value.type">
-                        <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value"
+                        <numeric-setting *ngSwitchCase="ValueType.Numeric" [value]="value" [readonly]="command.readonly"
                             (valueChanged)="onSettingChanged(command)"></numeric-setting>
                         <action-setting *ngSwitchCase="ValueType.Action" [value]="value"
                             (valueChanged)="onActionSettingChanged(command, 2)"></action-setting>
