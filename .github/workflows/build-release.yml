@@ -24,7 +24,7 @@ jobs:
     - name: Build Frontend
       run: |
         cd frontend
-        npm ci
+        npm ci --force
         npm run build --if-present
 
     - name: Setup .NET
