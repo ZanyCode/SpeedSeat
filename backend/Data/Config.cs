@@ -213,6 +213,7 @@ public class Command
 public class Config
 {
     public int ConnectionResponseTimeoutMs { get; set; } = 1000;
+    public int CommandSendRetryIntervalMs { get; set; } = 1000;    
 
     public IEnumerable<Command> Commands { get; set; }
 }

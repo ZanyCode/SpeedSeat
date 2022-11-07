@@ -261,7 +261,6 @@ public class CommandService
             for (int attempt = 1; attempt <= 3; attempt++)
             {
                 waitingForResponse = true;
-                // frontendLogger.Log($"Sending message {Convert.ToHexString(data)}");
                 this.serialPort.Write(data, 0, data.Length);
                 receivedResponse = await responseReceivedSemaphore.WaitAsync(500);
 
@@ -272,9 +271,9 @@ public class CommandService
                 }
                 else if (currentSerialWriteResult != SerialWriteResult.Success)
                 {
-                    string error = $"Error writing value: Received non-success response from controller (Attempt {attempt}, response: {currentSerialWriteResult}).";
+                    string error = $"Error writing value: Received non-success response from controller (Attempt {attempt}, response: {currentSerialWriteResult}). Retrying in {options.CurrentValue.CommandSendRetryIntervalMs}mS (specified via config.json)";
                     frontendLogger.Log(error);
-                    await Task.Delay(100);
+                    await Task.Delay(options.CurrentValue.CommandSendRetryIntervalMs);
                 }
                 else
                 {
