@@ -41,7 +41,7 @@ public class InfoHub : Hub
                 var (_, messages) = x;
                 if(messages.Count <= 0)
                     return null;
-                else if(messages.Count > 20)
+                else if(messages.Count > 35)
                 {
                     var count = messages.Count;
                     messages.Clear();
