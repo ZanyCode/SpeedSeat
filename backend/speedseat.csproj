@@ -12,6 +12,8 @@
       </EmbeddedResource>
       <EmbeddedResource Include="config_template.json">      
       </EmbeddedResource>
+      <EmbeddedResource Include="appsettings_template.json">      
+      </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

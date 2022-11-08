@@ -8,7 +8,8 @@ using Microsoft.Extensions.FileProviders;
 try {
     RestoreConfigFile();
     var builder = WebApplication.CreateBuilder(args);
-    builder.Configuration.AddJsonFile("config.json", false, true);
+    builder.Configuration.AddJsonFile("config.json", false, true);    
+    builder.Configuration.AddJsonStream(GetAppsettingsJSONStream());
     builder.Services.Configure<Config>(builder.Configuration.GetSection("Config"));
     builder.Services.AddSignalR();
     builder.Services.AddCors();
@@ -18,7 +19,7 @@ try {
     builder.Services.AddSingleton<OutdatedDataDiscardQueue<Command>>();
     builder.Services.AddSingleton<Speedseat>();
     builder.Services.AddSingleton<F12020TelemetryAdaptor>();
-    builder.Services.AddTransient<IFrontendLogger, FrontendLogger>();
+    builder.Services.AddSingleton<IFrontendLogger, FrontendLogger>();
     builder.Services.AddTransient<ISerialPortConnectionFactory, SerialPortConnectionFactory>();
     
     builder.Services.AddDbContext<SpeedseatContext>(options => options.UseSqlite("Data Source=speedseat_dbversion2.sqlite3"));
@@ -77,7 +78,12 @@ try {
 catch(Exception e){
     System.Console.WriteLine(e);
     System.Console.WriteLine("Press enter to close window");
-    Console.ReadLine();
+    Console.ReadLine();    
+}
+
+Stream GetAppsettingsJSONStream()
+{
+    return Assembly.GetExecutingAssembly().GetManifestResourceStream("speedseat.appsettings_template.json");
 }
 
 void RestoreConfigFile()

@@ -214,6 +214,7 @@ public class Config
 {
     public int ConnectionResponseTimeoutMs { get; set; } = 1000;
     public int CommandSendRetryIntervalMs { get; set; } = 1000;    
+    public int UiUpdateIntervalMs { get; set; } = 600;    
 
     public IEnumerable<Command> Commands { get; set; }
 }

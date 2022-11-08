@@ -40,7 +40,7 @@ public class SeatSettingsHub : Hub
     {
         if (!commandEnumerables.ContainsKey(command.Id))
         {
-            var enumerable = this.settings.SubscribeToConfigurableSetting(command).ToAsyncEnumerable();
+            var enumerable = this.settings.SubscribeToConfigurableSetting(command).Sample(TimeSpan.FromMilliseconds(options.CurrentValue.UiUpdateIntervalMs)).ToAsyncEnumerable();
             commandEnumerables.Add(command.Id, enumerable);
         }
 

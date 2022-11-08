@@ -163,7 +163,6 @@ public class SpeedseatSettings : ISpeedseatSettings
 
             if(publishToFronted && this.configurableSettingSubscriptions.ContainsKey(command.Id))
             {
-                System.Console.WriteLine($"Subscriptions left: {this.configurableSettingSubscriptions[command.Id].Count}");
                 this.configurableSettingSubscriptions[command.Id].OnNext(command);
             }
         }

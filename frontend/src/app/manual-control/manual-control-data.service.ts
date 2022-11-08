@@ -43,7 +43,8 @@ export class ManualControlDataService {
   }
 
   public async destroy() {
-    await this.connection.stop();
+    if(this.connection)
+      await this.connection.stop();
   }
 }
 

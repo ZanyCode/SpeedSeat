@@ -36,8 +36,10 @@ export class SeatSettingsDataService {
   }
 
   public async destroy() {
-    this.connection.off("SettingChanged");
-    await this.connection.stop();
+    if (this.connection) {
+      this.connection.off("SettingChanged");
+      await this.connection.stop();
+    }
   }
 }
 

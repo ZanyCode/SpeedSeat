@@ -110,7 +110,7 @@
       <div class="lower-section position-relative">      
         <button mat-raised-button class="clear-console-button" (click)="clearLog()">Clear</button>
         <cdk-virtual-scroll-viewport autosize  class="w-100 h-100">
-          <div *cdkVirtualFor="let item of log; trackBy: identifyLogItem" class="log-item">{{item.msg}}</div>
+          <div *cdkVirtualFor="let message of logMessages; trackBy: identifyLogItem" class="log-item">{{message.msg}}</div>
         </cdk-virtual-scroll-viewport>       
       </div>
     </div>

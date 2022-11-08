@@ -74,31 +74,36 @@ public class CommandService
 
         serialPort.DataReceived += async (sender, args) =>
         {
-            byte[] data = new byte[this.serialPort.BytesToRead];
-            this.serialPort.Read(data, 0, data.Length);
-            foreach (var dataByte in data)
+            try
             {
-                if (!isReadingCommand && (dataByte == 0xFF || dataByte == 0xFE))
+                byte[] data = new byte[this.serialPort.BytesToRead];
+                this.serialPort.Read(data, 0, data.Length);
+                foreach (var dataByte in data)
                 {
-                    ResetCommandBytes();
-                    currentSerialWriteResult = dataByte == 0xFF ? SerialWriteResult.Success : SerialWriteResult.InvalidHash;
-                    responseReceivedSemaphore.Release();
-                    waitingForResponse = false;
-                }
-                else
-                {
-                    try
+                    if (!isReadingCommand && (dataByte == 0xFF || dataByte == 0xFE))
+                    {
+                        ResetCommandBytes();
+                        if (waitingForResponse)
+                        {
+                            currentSerialWriteResult = dataByte == 0xFF ? SerialWriteResult.Success : SerialWriteResult.InvalidHash;
+                            responseReceivedSemaphore.Release();
+                            waitingForResponse = false;
+                        }
+                        else
+                        {
+                            frontendLogger.Log($"Warning: Got Command Acknowledge Byte {dataByte} but no response was expected.");
+                        }
+                    }
+                    else
                     {
                         await ProcessCommandByte(dataByte);
                     }
-                    catch (Exception e)
-                    {
-                        frontendLogger.Log($"Error processing command: {e.Message}");
-                    }
                 }
             }
-
-            // frontendLogger.Log($"Got message {Convert.ToHexString(data)}");
+            catch (Exception e)
+            {
+                frontendLogger.Log($"Error processing data from Microcontroller: {e.Message}");
+            }
         };
 
         serialPort.Open();
@@ -202,14 +207,10 @@ public class CommandService
                         }
                         else
                         {
-                            frontendLogger.Log($"Successfully received write-request for command with id {updatedCommand.Id}, raw request: {Convert.ToHexString(commandData)}, interpreted as Command: {updatedCommand.ToString()}. Writing values to Database.");                            
+                            frontendLogger.Log($"Successfully received write-request for command with id {updatedCommand.Id}, raw request: {Convert.ToHexString(commandData)}, interpreted as Command: {updatedCommand.ToString()}. Writing values to Database.");
                             this.settings.SaveConfigurableSetting(updatedCommand, true);
-                            this.settingsHubContext.Clients.All.SendAsync("SettingChanged", command);
-                            if(command.Id == Command.MotorPositionCommandId)
-                            {           
-                                // TODO: Update seat                     
-                            }
-                        }                        
+                            await this.settingsHubContext.Clients.All.SendAsync("SettingChanged", command);
+                        }
 
                         await this.SendAcknowledgeByteToMicrocontroller(true);
                     }
@@ -262,7 +263,7 @@ public class CommandService
             {
                 waitingForResponse = true;
                 this.serialPort.Write(data, 0, data.Length);
-                receivedResponse = await responseReceivedSemaphore.WaitAsync(500);
+                receivedResponse = await responseReceivedSemaphore.WaitAsync(options.CurrentValue.CommandSendRetryIntervalMs);
 
                 if (!receivedResponse)
                 {
@@ -395,7 +396,7 @@ public class SerialPortConnection : ISerialPortConnection
 
     public void Write(byte[] buffer, int offset, int count)
     {
-        if(!isSimulating) // First write after simulating mc command is the response byte, we don't actually want to send this
+        if (!isSimulating) // First write after simulating mc command is the response byte, we don't actually want to send this
             serialPort.Write(buffer, offset, count);
         else
             this.isSimulating = false;

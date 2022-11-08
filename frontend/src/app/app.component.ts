@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 import { AppDataService } from './app-data.service';
 import { ConnectionDataService } from './connection-data.service';
@@ -15,7 +15,7 @@ import { AppEventsService } from './app-events.service';
 export class AppComponent implements OnInit, OnDestroy {
   title = 'SpeedSeat';
   url: string | undefined = undefined;
-  log = [{ id: 0, msg: '[LOG]' }];
+  logMessages = [{ id: 0, msg: '[LOG]' }];
   currentLogMessageId = 1;
   logTextareaScrolltop: number | null = null;
   @ViewChild('textarea') textarea: ElementRef | undefined;
@@ -33,13 +33,17 @@ export class AppComponent implements OnInit, OnDestroy {
       map(result => result.matches),
       shareReplay()
     );
+  logSubscription: Subscription | undefined;
 
   constructor(private breakpointObserver: BreakpointObserver, private data: AppDataService, private connectionService: ConnectionDataService, private events: AppEventsService, private changeDetection: ChangeDetectorRef) { }
 
 
   ngOnInit(): void {
-    this.data.init(this.onLogReceived).then(async () => {
+    this.data.init().then(async () => {
       this.url = await this.data.GetOwnUrl();
+      this.logSubscription = this.data.subscribeToLogs().subscribe(msg => {
+        this.onLogReceived(msg);
+      });
     });
 
     this.connectionService.init().then(async () => {
@@ -49,18 +53,24 @@ export class AppComponent implements OnInit, OnDestroy {
       this.isConnected = await this.connectionService.getIsConnected();
       if (this.isConnected)
         this.events.signalConnectionStateChanged(true);
-      else if(this.selectedPort)
+      else if (this.selectedPort)
         await this.connect();
     });
   }
 
   onLogReceived = (message: string) => {
+    if (this.logMessages.length > 1000) {
+      this.logMessages = [{id: 0, msg: `[${new Date().toLocaleString()}]: Log buffer cleared to prevent overflow. Old messages discarded.`}];
+      this.currentLogMessageId = 1;
+    }
+
     const logMessage = `[${new Date().toLocaleString()}]: ${message}`;
-    this.log = [{ id: this.currentLogMessageId, msg: logMessage }, ...this.log];
-    this.currentLogMessageId++;   
+    this.logMessages = [{ id: this.currentLogMessageId, msg: logMessage }, ...this.logMessages];
+    this.currentLogMessageId++;
   }
 
   ngOnDestroy(): void {
+    this.logSubscription?.unsubscribe();
     this.data.destroy();
     this.connectionService.destroy();
   }
@@ -95,7 +105,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   clearLog() {
-    this.log = [{ id: 0, msg: '[LOG]' }];
+    this.logMessages = [{ id: 0, msg: '[LOG]' }];
     this.currentLogMessageId = 1;
   }
 
