@@ -94,7 +94,10 @@
     </mat-toolbar>
     <div class="col overflow-hidden">
       <div class="overflow-auto upper-section position-relative">
+        <!-- Main content -->
         <router-outlet></router-outlet>
+
+        <!-- No-Connection overlay -->
         <div *ngIf="!isConnected" class="no-connection-overlay w-100 h-100 position-absolute top-0 d-flex">
           <ng-container *ngIf="!isConnecting">
             <mat-icon class="left-side-element">usb_off</mat-icon>
