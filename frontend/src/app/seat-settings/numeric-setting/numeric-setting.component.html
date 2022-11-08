@@ -3,7 +3,7 @@
         <mat-form-field appearance="outline">
             <mat-label>{{value.label}}</mat-label>
             <input matInput type="number" [readonly]="readonly" [disabled]="!value.isUnblocked && !readonly" [min]="value.min" [max]="value.max" [step]="value.scaleToFullRange? 0.05 : 1"
-                [(ngModel)]="value.value">
+                [(ngModel)]="value.value" (change)="valueChanged.emit()">
         </mat-form-field>
     </div>
     <div class="col p-0">
