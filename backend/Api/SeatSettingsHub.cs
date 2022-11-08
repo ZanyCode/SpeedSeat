@@ -70,7 +70,7 @@ public class SeatSettingsHub : Hub
         }
 
         if(!command.Readonly)
-            settings.SaveConfigurableSetting(command, false);
+            settings.SaveConfigurableSetting(command);
     }
 
     public async Task FakeWriteRequest(Command command)

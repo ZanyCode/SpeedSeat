@@ -40,9 +40,10 @@ public interface ISpeedseatSettings
     int BaudRate { get; set; }
 
     (double value1, double value2, double value3) GetConfigurableSettingsValues(Command command);
-    void SaveConfigurableSetting(Command command, bool publishToFronted);
+    void SaveConfigurableSetting(Command command);
 
     IObservable<Command> SubscribeToConfigurableSetting(Command command);
+    void NotifySettingChanged(Command updatedCommand);
 }
 
 public class SpeedseatSettings : ISpeedseatSettings
@@ -136,7 +137,7 @@ public class SpeedseatSettings : ISpeedseatSettings
         }
     }
 
-    public void SaveConfigurableSetting(Command command, bool publishToFronted)
+    public void SaveConfigurableSetting(Command command)
     {
         using (var scope = scopeFactory.CreateScope())
         {
@@ -159,18 +160,21 @@ public class SpeedseatSettings : ISpeedseatSettings
             {
                 var value3 = JsonSerializer.Serialize(command.Value3.Value);
                 context.Set(value3Id, value3);
-            }
+            }          
+        }
+    }
 
-            if(publishToFronted && this.configurableSettingSubscriptions.ContainsKey(command.Id))
-            {
-                this.configurableSettingSubscriptions[command.Id].OnNext(command);
-            }
+    public void NotifySettingChanged(Command command)
+    {
+        if (this.configurableSettingSubscriptions.ContainsKey(command.Id))
+        {
+            this.configurableSettingSubscriptions[command.Id].OnNext(command);
         }
     }
 
     public IObservable<Command> SubscribeToConfigurableSetting(Command command)
     {
-        if(!this.configurableSettingSubscriptions.ContainsKey(command.Id))
+        if (!this.configurableSettingSubscriptions.ContainsKey(command.Id))
         {
             this.configurableSettingSubscriptions.Add(command.Id, new CountSubject<Command>());
         }
@@ -260,7 +264,7 @@ public class CountSubject<T> : ISubject<T>, IDisposable
         : this(new Subject<T>())
     {
         // Need to clear up Subject we created
-        _disposer = (IDisposable) _baseSubject;
+        _disposer = (IDisposable)_baseSubject;
     }
 
     public CountSubject(ISubject<T> baseSubject)
