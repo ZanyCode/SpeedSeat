@@ -16,6 +16,7 @@ export class AppComponent implements OnInit, OnDestroy {
   title = 'SpeedSeat';
   url: string | undefined = undefined;
   logMessages = [{ id: 0, msg: '[LOG]' }];
+  fatalErrorText: string | undefined = undefined;
   currentLogMessageId = 1;
   logTextareaScrolltop: number | null = null;
   @ViewChild('textarea') textarea: ElementRef | undefined;
@@ -40,27 +41,30 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.data.init().then(async () => {
-      this.url = await this.data.GetOwnUrl();
-      this.logSubscription = this.data.subscribeToLogs().subscribe(msg => {
-        this.onLogReceived(msg);
-      });
-    });
+      this.fatalErrorText = await this.data.getConfigValidityErrors();
+      if (!this.fatalErrorText) {
+        this.url = await this.data.GetOwnUrl();
+        this.logSubscription = this.data.subscribeToLogs().subscribe(msg => {
+          this.onLogReceived(msg);
+        });
 
-    this.connectionService.init().then(async () => {
-      this.ports = await this.connectionService.getPorts();
-      this.selectedPort = this.ports.length > 0 ? this.ports[0] : undefined;
-      this.selectedBaudRate = await this.connectionService.getBaudRate();
-      this.isConnected = await this.connectionService.getIsConnected();
-      if (this.isConnected)
-        this.events.signalConnectionStateChanged(true);
-      else if (this.selectedPort)
-        await this.connect();
+        this.connectionService.init().then(async () => {
+          this.ports = await this.connectionService.getPorts();
+          this.selectedPort = this.ports.length > 0 ? this.ports[0] : undefined;
+          this.selectedBaudRate = await this.connectionService.getBaudRate();
+          this.isConnected = await this.connectionService.getIsConnected();
+          if (this.isConnected)
+            this.events.signalConnectionStateChanged(true);
+          else if (this.selectedPort)
+            await this.connect();
+        });
+      }
     });
   }
 
   onLogReceived = (message: string) => {
     if (this.logMessages.length > 1000) {
-      this.logMessages = [{id: 0, msg: `[${new Date().toLocaleString()}]: Log buffer cleared to prevent overflow. Old messages discarded.`}];
+      this.logMessages = [{ id: 0, msg: `[${new Date().toLocaleString()}]: Log buffer cleared to prevent overflow. Old messages discarded.` }];
       this.currentLogMessageId = 1;
     }
 

@@ -55,3 +55,12 @@
     top: 1px solid #b2b2b2;
   }
 }
+
+.fatal-error-overlay {
+  background: #000000e4;
+  color: red;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  z-index: 1000;
+}

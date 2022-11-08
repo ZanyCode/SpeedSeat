@@ -2,13 +2,18 @@ using System.Diagnostics;
 using System.IO.Ports;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 
-try {
-    RestoreConfigFile();
+try
+{
+    bool configValid = RestoreConfigFile();
     var builder = WebApplication.CreateBuilder(args);
-    builder.Configuration.AddJsonFile("config.json", false, true);    
+
+    if (configValid)
+        builder.Configuration.AddJsonFile("config.json", false, true);
+
     builder.Configuration.AddJsonStream(GetAppsettingsJSONStream());
     builder.Services.Configure<Config>(builder.Configuration.GetSection("Config"));
     builder.Services.AddSignalR();
@@ -21,7 +26,7 @@ try {
     builder.Services.AddSingleton<F12020TelemetryAdaptor>();
     builder.Services.AddSingleton<IFrontendLogger, FrontendLogger>();
     builder.Services.AddTransient<ISerialPortConnectionFactory, SerialPortConnectionFactory>();
-    
+
     builder.Services.AddDbContext<SpeedseatContext>(options => options.UseSqlite("Data Source=speedseat_dbversion2.sqlite3"));
     // builder.Services.AddHostedService<F12020TelemetryAdaptor>();
     builder.Services.AddHttpContextAccessor();
@@ -39,7 +44,8 @@ try {
         // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     }
 
-    app.UseCors(o => {
+    app.UseCors(o =>
+    {
         o.AllowAnyHeader();
         o.AllowAnyMethod();
         o.AllowCredentials();
@@ -50,11 +56,14 @@ try {
     {
         FileProvider = new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot")
     });
-    app.UseDefaultFiles(new DefaultFilesOptions {
+    app.UseDefaultFiles(new DefaultFilesOptions
+    {
         FileProvider = new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot")
     });
-    app.UseSpa(spa => {
-        spa.Options.DefaultPageStaticFileOptions = new StaticFileOptions {
+    app.UseSpa(spa =>
+    {
+        spa.Options.DefaultPageStaticFileOptions = new StaticFileOptions
+        {
             FileProvider = new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot")
         };
     });
@@ -67,18 +76,21 @@ try {
     app.MapHub<TelemetryHub>("/hub/telemetry");
 
     // Open in browser
-    if(!app.Environment.IsDevelopment()) {
-        Task.Factory.StartNew(async () => {
+    if (!app.Environment.IsDevelopment())
+    {
+        Task.Factory.StartNew(async () =>
+        {
             await Task.Delay(1000);
             OpenUrl(InfoHub.GetLocalIPAddress(false));
         });
     }
     app.Run();
 }
-catch(Exception e){
+catch (Exception e)
+{
     System.Console.WriteLine(e);
     System.Console.WriteLine("Press enter to close window");
-    Console.ReadLine();    
+    Console.ReadLine();
 }
 
 Stream GetAppsettingsJSONStream()
@@ -86,18 +98,39 @@ Stream GetAppsettingsJSONStream()
     return Assembly.GetExecutingAssembly().GetManifestResourceStream("speedseat.appsettings_template.json");
 }
 
-void RestoreConfigFile()
+bool RestoreConfigFile()
 {
-    if(!File.Exists("config.json"))
+    if (!File.Exists("config.json"))
     {
-        using(var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream("speedseat.config_template.json"))
+        using (var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream("speedseat.config_template.json"))
         {
-            using(var file = new FileStream("config.json", FileMode.Create, FileAccess.Write))
+            using (var file = new FileStream("config.json", FileMode.Create, FileAccess.Write))
             {
                 resource.CopyTo(file);
-            } 
+            }
         }
     }
+
+    return ValidateConfigFile() == null;
+}
+
+string ValidateConfigFile()
+{
+    if (File.Exists("config.json"))
+    {
+        var json = File.ReadAllText("config.json");
+        try
+        {
+            JsonSerializer.Deserialize<Config>(json);
+            return null;
+        }
+        catch (Exception e)
+        {
+            return e.Message;
+        }
+    }
+    else
+        return "File does not exist";
 }
 
 void OpenUrl(string url)

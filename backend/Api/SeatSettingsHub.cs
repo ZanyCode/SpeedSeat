@@ -17,7 +17,7 @@ public class SeatSettingsHub : Hub
         this.commandService = commandService;
         this.options = options;
         this.logger = logger;
-        this.seat = seat;
+        this.seat = seat;        
     }
 
     public IEnumerable<Command> GetCommands()

@@ -1,4 +1,10 @@
-<mat-sidenav-container class="sidenav-container">
+<!-- Fatal Error overlay -->
+<div *ngIf="fatalErrorText" class="fatal-error-overlay w-100 h-100 position-absolute top-0 d-flex">
+  <mat-icon class="left-side-element">error</mat-icon>
+  <span class="ms-2">{{fatalErrorText}}</span>
+</div>
+
+<mat-sidenav-container class="sidenav-container position-relative">
   <!-- side area with links -->
   <mat-sidenav #drawer class="sidenav" fixedInViewport [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
     [mode]="(isHandset$ | async) ? 'over' : 'side'" [opened]="(isHandset$ | async) === false">
@@ -110,11 +116,12 @@
         </div>
       </div>
       <!-- log console  -->
-      <div class="lower-section position-relative">      
+      <div class="lower-section position-relative">
         <button mat-raised-button class="clear-console-button" (click)="clearLog()">Clear</button>
-        <cdk-virtual-scroll-viewport autosize  class="w-100 h-100">
-          <div *cdkVirtualFor="let message of logMessages; trackBy: identifyLogItem" class="log-item">{{message.msg}}</div>
-        </cdk-virtual-scroll-viewport>       
+        <cdk-virtual-scroll-viewport autosize class="w-100 h-100">
+          <div *cdkVirtualFor="let message of logMessages; trackBy: identifyLogItem" class="log-item">{{message.msg}}
+          </div>
+        </cdk-virtual-scroll-viewport>
       </div>
     </div>
   </mat-sidenav-content>

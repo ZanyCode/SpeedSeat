@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
@@ -27,21 +28,42 @@ public class InfoHub : Hub
         return GetLocalIPAddress(env.IsDevelopment());
     }
 
+    public string GetConfigValidityErrors()
+    {
+        if (File.Exists("config.json"))
+        {
+            var json = File.ReadAllText("config.json");
+            try
+            {
+                JsonSerializer.Deserialize<Config>(json);
+                return null;
+            }
+            catch (Exception e)
+            {
+                return $"config.json error: {e.Message}";
+            }
+        }
+        else
+            return "config.json error: File does not exist";
+    }
+
     public IAsyncEnumerable<string> LogMessages()
     {
         if (logMessages == null)
         {
-            var logMessagesLists = logger.Messages.Scan(new List<string>(), (acc, val) => {
+            var logMessagesLists = logger.Messages.Scan(new List<string>(), (acc, val) =>
+            {
                 acc.Add(val);
                 return acc;
             });
 
             var timer = Observable.Timer(TimeSpan.Zero, TimeSpan.FromMilliseconds(options.CurrentValue.UiUpdateIntervalMs));
-            var throttledMessages = timer.WithLatestFrom(logMessagesLists).Select(x => {                
+            var throttledMessages = timer.WithLatestFrom(logMessagesLists).Select(x =>
+            {
                 var (_, messages) = x;
-                if(messages.Count <= 0)
+                if (messages.Count <= 0)
                     return null;
-                else if(messages.Count > 35)
+                else if (messages.Count > 35)
                 {
                     var count = messages.Count;
                     messages.Clear();
@@ -49,9 +71,9 @@ public class InfoHub : Hub
                 }
                 var message = messages.ElementAt(0);
                 messages.RemoveAt(0);
-                return message;                
+                return message;
             }).Where(x => x != null);
-          
+
             logMessages = throttledMessages.ToAsyncEnumerable();
         }
 

@@ -19,6 +19,10 @@ export class AppDataService {
     return await this.connection.invoke<string>("GetOwnUrl");
   }
 
+  public async getConfigValidityErrors() {
+    return await this.connection.invoke<string>("GetConfigValidityErrors");
+  }
+
   public subscribeToLogs(): Observable<string> {
     let subject = new Subject<string>();
     this.connection.stream("LogMessages").subscribe(subject);
