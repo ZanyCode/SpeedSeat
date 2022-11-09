@@ -29,6 +29,7 @@ Commands are generally freely configurable via the config.json file, which is cr
 | 0x00            | Write / Read Motor Positions. Value1 = X-Axis, Value2 = Y-Axis, Value3 = Z-Axis | 
 | 0x01            | Start-Init-command. Sent to the microcontroller after connection to initiate the Initialization process  | 
 | 0x02            | Initialization-finished-command. Sent to the software by the Microcontroller to signal successful initialization | 
+| 0x42            | Reset stored EEPROM command. Requests the Microcontroller to reset stored eeprom values. This command can be sent without performing the connection sequence. This way, the controller can be reset, if no connection is possible due to stored invalid EEPROM values  | 
 
 ## Communication Flow
 Whenever a package is sent, a specific response is expected. There are two possible responses:

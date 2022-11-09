@@ -70,9 +70,10 @@
         </div>
       </mat-card-content>
       <mat-divider inset></mat-divider>
+      <!-- Connection card buttons -->
       <mat-card-actions>
-        <button *ngIf="!isConnected && !isConnecting" [disabled]="!selectedPort" mat-raised-button color="primary"
-          (click)="connect()" [disabled]="isConnecting">Connect</button>
+        <button *ngIf="!isConnected && !isConnecting" [disabled]="!selectedPort || isConnecting" mat-raised-button color="primary"
+          (click)="connect()">Connect</button>
         <button *ngIf="isConnected" mat-raised-button color="primary" (click)="disconnect()"
           [disabled]="isConnecting">Disconnect</button>
 
@@ -80,8 +81,9 @@
           <button mat-raised-button color="primary" (click)="fakeConnectionConfirmation()">Fake
             Confirmation</button>
           <button mat-raised-button color="warn" (click)="cancelConnectionProcess()">Cancel</button>
-
         </div>
+
+        <button *ngIf="!isConnecting" mat-raised-button color="warn" [disabled]="!selectedPort" (click)="resetEEPROM()">Reset EEPROM</button>
       </mat-card-actions>
     </mat-card>
 

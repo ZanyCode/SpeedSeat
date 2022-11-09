@@ -2,7 +2,7 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
-import { AppComponent } from './app.component';
+import { AppComponent, YesNoDialogComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { LayoutModule } from '@angular/cdk/layout';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -30,6 +30,7 @@ import { ActionSettingComponent } from './seat-settings/action-setting/action-se
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {ScrollingModule as ExperimentalScrollingModule} from '@angular/cdk-experimental/scrolling';
 import {ScrollingModule } from '@angular/cdk/scrolling';
+import {MatDialogModule} from '@angular/material/dialog';
 
 PlotlyModule.plotlyjs = PlotlyJS;
 
@@ -43,6 +44,7 @@ PlotlyModule.plotlyjs = PlotlyJS;
     NumericSettingComponent,
     BooleanSettingComponent,
     ActionSettingComponent,
+    YesNoDialogComponent
   ],
   imports: [
     BrowserModule,
@@ -65,7 +67,8 @@ PlotlyModule.plotlyjs = PlotlyJS;
     CurveEditorModule,
     MatProgressSpinnerModule,
     ScrollingModule,
-    ExperimentalScrollingModule
+    ExperimentalScrollingModule,
+    MatDialogModule
   ],
   providers: [],
   bootstrap: [AppComponent]

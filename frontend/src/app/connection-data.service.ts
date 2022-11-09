@@ -49,6 +49,10 @@ export class ConnectionDataService {
     await tempConnection.stop();
   }
 
+  public async deleteEEPROM(port: string, baudRate: number) {
+    return await this.connection.invoke<boolean>("DeleteEEPROM", port, baudRate);
+  }
+
   public async init() {
     this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/connection`).build();
     await this.connection.start();

@@ -1,11 +1,16 @@
-import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Observable, Subscription } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 import { AppDataService } from './app-data.service';
 import { ConnectionDataService } from './connection-data.service';
 import { AppEventsService } from './app-events.service';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
+export interface YesNoDialogData {
+  title: string;
+  content: string;
+}
 
 @Component({
   selector: 'app-root',
@@ -36,7 +41,7 @@ export class AppComponent implements OnInit, OnDestroy {
     );
   logSubscription: Subscription | undefined;
 
-  constructor(private breakpointObserver: BreakpointObserver, private data: AppDataService, private connectionService: ConnectionDataService, private events: AppEventsService, private changeDetection: ChangeDetectorRef) { }
+  constructor(private breakpointObserver: BreakpointObserver, private data: AppDataService, private connectionService: ConnectionDataService, private events: AppEventsService, private changeDetection: ChangeDetectorRef, public dialog: MatDialog) { }
 
 
   ngOnInit(): void {
@@ -115,5 +120,34 @@ export class AppComponent implements OnInit, OnDestroy {
 
   identifyLogItem(_index: number, item: { id: number, msg: string }) {
     return item.id;
+  }
+
+  resetEEPROM() {
+    const dialogRef = this.dialog.open(YesNoDialogComponent, {
+      width: '250px',
+      data: { title: "Delete EEPROM", content: "Do you really want to delete stored EEPROM-values?" },
+    });
+
+    dialogRef.afterClosed().subscribe(async result => {
+      if (result && this.selectedPort) {
+        await this.disconnect();
+        await this.connectionService.deleteEEPROM(this.selectedPort, this.selectedBaudRate);
+      }
+    });
+  }
+}
+
+@Component({
+  selector: 'yes-no-dialog',
+  templateUrl: './yes-no-dialog.html',
+})
+export class YesNoDialogComponent {
+  constructor(
+    public dialogRef: MatDialogRef<YesNoDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: YesNoDialogData,
+  ) { }
+
+  onNoClick(): void {
+    this.dialogRef.close();
   }
 }

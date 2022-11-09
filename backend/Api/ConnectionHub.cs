@@ -17,19 +17,25 @@ public class ConnectionHub : Hub
         this.context = context;
     }
 
-    public string[] GetPorts() 
+    public string[] GetPorts()
     {
         return SerialPort.GetPortNames();
     }
 
-    public bool GetIsConnected() {
+    public bool GetIsConnected()
+    {
         return commandService.IsConnected;
     }
 
     public async Task<bool> Connect(string port, int baudrate)
     {
         settings.BaudRate = baudrate;
-        return await commandService.Connect(port, baudrate);       
+        return await commandService.Connect(port, baudrate);
+    }
+
+    public async Task DeleteEEPROM(string port, int baudrate)
+    {
+        this.commandService.DeleteEEPROM(port, baudrate);
     }
 
     public int GetBaudRate()
@@ -44,7 +50,7 @@ public class ConnectionHub : Hub
 
     public void Disconnect()
     {
-        commandService.Disconnect();       
+        commandService.Disconnect();
     }
 
     public void FakeConnectionConfirmation()

@@ -108,6 +108,7 @@ public class Command
     public const byte MotorPositionCommandId = 0;
     public const byte InitiateConnectionCommandId = 1;
     public const byte ConnectionInitiatedCommandId = 2;
+    public const byte ResetEEPROMCommandId = 0x42;
 
     public string GroupLabel { get; set; }
 

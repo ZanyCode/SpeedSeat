@@ -133,6 +133,38 @@ public class CommandService
         return true;
     }
 
+    public void DeleteEEPROM(string port, int baudrate)
+    {
+        try
+        {
+            frontendLogger.Log($"Attempting to delete stored EEPROM-values. Using port {port} and baud rate {baudrate}");
+
+            if(this.IsConnected)
+                this.Disconnect();
+
+            // Create a new SerialPort object with default settings.
+            var deleteEEPROMPort = serialPortConnectionFactory.Create(port, baudrate);
+            deleteEEPROMPort.ErrorReceived += (sender, args) =>
+            {
+                frontendLogger.Log($"Serial port experienced unexpected error ({args.EventType})");
+            };
+
+            deleteEEPROMPort.Open();
+            frontendLogger.Log($"Successfully opened port {port} with baud rate {baudrate}");
+            var command = new Command(Command.ResetEEPROMCommandId, null, null, null, true, false);
+            var bytesToWrite = command.ToByteArray();
+            frontendLogger.Log($"Sending reset command to Microcontroller. Hex-representation: {Convert.ToHexString(bytesToWrite)}");
+            deleteEEPROMPort.Write(bytesToWrite, 0, bytesToWrite.Length);
+            frontendLogger.Log("Closing Port");
+            deleteEEPROMPort.Dispose();
+            frontendLogger.Log("Successfully sent command to Mirocontroller.");
+        }
+        catch (Exception e)
+        {
+            frontendLogger.Log($"Error sending reset EEPROM command: {e.Message}");
+        }
+    }
+
     public void CancelConnectionProcess()
     {
         if (waitingForConnection)
@@ -208,9 +240,9 @@ public class CommandService
                         else
                         {
                             frontendLogger.Log($"Successfully received write-request for command with id {updatedCommand.Id}, raw request: {Convert.ToHexString(commandData)}, interpreted as Command: {updatedCommand.ToString()}. Writing values to Database.");
-                            if(!command.Readonly)
+                            if (!command.Readonly)
                                 this.settings.SaveConfigurableSetting(updatedCommand);
-                            
+
                             this.settings.NotifySettingChanged(updatedCommand);
                         }
 
