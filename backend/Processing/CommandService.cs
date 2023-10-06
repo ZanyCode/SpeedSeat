@@ -68,8 +68,7 @@ public class CommandService
         serialPort = serialPortConnectionFactory.Create(port, baudrate);
         serialPort.ErrorReceived += (sender, args) =>
         {
-            this.Disconnect();
-            frontendLogger.Log($"Serial port experienced unexpected error, disconnecting ({args.EventType})");
+            frontendLogger.Log($"Serial port experienced unexpected error: {args.EventType}");
         };
 
         serialPort.DataReceived += async (sender, args) =>
