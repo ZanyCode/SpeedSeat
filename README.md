@@ -1,3 +1,24 @@
+# Setup of Development environment
+## Backend
+The backend is located in the ``backend`` folder of the repository. To start the project, just open the .sln file and run the "speedseat"-Project. No further configuration required, provided you have the correct dotnet-version installed
+
+## Frontend
+The frontend code is located in the ``frontend``-folder of the repository. To start the project, a recent version of [Node.js](https://nodejs.org/en/download) needs to be installed on your system. To run the project, execute the following commands in a terminal in the frontend folder:
+- Install dependencies
+    ```console
+    npm i
+    ```
+
+- Run the development server
+    ```console
+    npm run start
+    ```
+
+- The application should now be available under http://localhost:4200
+
+Note: Make sure both backend and frontend projects are running when testing. 
+
+
 # Communication Protocol
 Communication between Notebook and Arduino microcontroller is implemented using 8 byte packages. Each package consists of a command-id, up to three values (2 bytes each), and a hash-byte to verify it's integrity.
 
