@@ -18,6 +18,7 @@ public class F12020TelemetryAdaptor
     private ISubject<PacketMotionData> updateRequestSubject = new Subject<PacketMotionData>();
 
     private DateTime lastFrontendTelemetryUpdate = DateTime.Now;
+    private DateTime lastConsoleTelemetryUpdate = DateTime.Now;
 
     private List<Datapoint> frontTiltTelemetry = new List<Datapoint>();
     private List<Datapoint> sideTiltTelemetry = new List<Datapoint>();
@@ -67,6 +68,7 @@ public class F12020TelemetryAdaptor
         var sideTilt = Math.Clamp(first.gForceLateral * sideTiltGForceMultiplier, -sideTiltOutputCap, sideTiltOutputCap) * (sideTiltReverse? -1 : 1);
         seat.SetTilt(frontTilt, sideTilt);
         SendTelemetryToFrontend(frontTilt, sideTilt);
+        PrintTelemetryToConsole(frontTilt, sideTilt);
     }
 
     private void SendTelemetryToFrontend(double frontTilt, double sideTilt)
@@ -79,6 +81,16 @@ public class F12020TelemetryAdaptor
             this.frontTiltTelemetry.Clear();
             this.sideTiltTelemetry.Clear();
             this.lastFrontendTelemetryUpdate = DateTime.Now;
+        }
+    }
+
+    private void PrintTelemetryToConsole(double frontTilt, double sideTilt)
+    {
+        if ((DateTime.Now - lastConsoleTelemetryUpdate).TotalMilliseconds > 250)
+        {
+            Console.SetCursorPosition(0, Console.CursorTop - 1);
+            Console.WriteLine($"[{DateTime.Now}] Received telemetry update. FrontTilt: {frontTilt}, SideTilt: {sideTilt}");
+            this.lastConsoleTelemetryUpdate = DateTime.Now;
         }
     }
 
