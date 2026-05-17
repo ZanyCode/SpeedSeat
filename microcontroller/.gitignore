@@ -1,1 +1,4 @@
 .pio
+.vscode
+test
+lib
