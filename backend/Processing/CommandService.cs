@@ -62,10 +62,9 @@ public class CommandService
         }, null, Timeout.Infinite, Timeout.Infinite);
     }
 
-    public async Task<bool> Connect(string port, int baudrate)
+    public async Task<bool> Connect(string port)
     {
-        // Create a new SerialPort object with default settings.
-        serialPort = serialPortConnectionFactory.Create(port, baudrate);
+        serialPort = serialPortConnectionFactory.Create(port);
         serialPort.ErrorReceived += (sender, args) =>
         {
             frontendLogger.Log($"Serial port experienced unexpected error: {args.EventType}");
@@ -132,24 +131,23 @@ public class CommandService
         return true;
     }
 
-    public void DeleteEEPROM(string port, int baudrate)
+    public void DeleteEEPROM(string port)
     {
         try
         {
-            frontendLogger.Log($"Attempting to delete stored EEPROM-values. Using port {port} and baud rate {baudrate}");
+            frontendLogger.Log($"Attempting to delete stored EEPROM-values. Using port {port}");
 
             if(this.IsConnected)
                 this.Disconnect();
 
-            // Create a new SerialPort object with default settings.
-            var deleteEEPROMPort = serialPortConnectionFactory.Create(port, baudrate);
+            var deleteEEPROMPort = serialPortConnectionFactory.Create(port);
             deleteEEPROMPort.ErrorReceived += (sender, args) =>
             {
                 frontendLogger.Log($"Serial port experienced unexpected error ({args.EventType})");
             };
 
             deleteEEPROMPort.Open();
-            frontendLogger.Log($"Successfully opened port {port} with baud rate {baudrate}");
+            frontendLogger.Log($"Successfully opened port {port}");
             var command = new Command(Command.ResetEEPROMCommandId, null, null, null, true, false);
             var bytesToWrite = command.ToByteArray();
             frontendLogger.Log($"Sending reset command to Microcontroller. Hex-representation: {Convert.ToHexString(bytesToWrite)}");
@@ -370,7 +368,6 @@ public class SerialPortConnection : ISerialPortConnection
 {
     private SerialPort serialPort;
     private readonly string port;
-    private readonly int baudrate;
     private readonly IFrontendLogger frontendLogger;
 
     public int BytesToRead => isSimulating ? simulatedData.Count() : serialPort.BytesToRead;
@@ -404,15 +401,13 @@ public class SerialPortConnection : ISerialPortConnection
         }
     }
 
-    public SerialPortConnection(string port, int baudrate, IFrontendLogger frontendLogger)
+    public SerialPortConnection(string port, IFrontendLogger frontendLogger)
     {
-        // Create a new SerialPort object with default settings.
         serialPort = new SerialPort(port);
-        serialPort.BaudRate = baudrate;
+        serialPort.BaudRate = 38400;
         serialPort.ReadTimeout = 500;
         serialPort.WriteTimeout = 500;
         this.port = port;
-        this.baudrate = baudrate;
         this.frontendLogger = frontendLogger;
     }
 
@@ -424,7 +419,7 @@ public class SerialPortConnection : ISerialPortConnection
     public void Open()
     {
         serialPort.Open();
-        frontendLogger.Log($"Successfully connected to port {port} with baud rate {baudrate}");
+        frontendLogger.Log($"Successfully connected to port {port} at 38400 baud");
     }
 
     public void Write(byte[] buffer, int offset, int count)
@@ -499,7 +494,7 @@ public class SerialPortConnection : ISerialPortConnection
 
 public interface ISerialPortConnectionFactory
 {
-    public ISerialPortConnection Create(string port, int baudrate);
+    public ISerialPortConnection Create(string port);
 }
 
 public class SerialPortConnectionFactory : ISerialPortConnectionFactory
@@ -511,8 +506,8 @@ public class SerialPortConnectionFactory : ISerialPortConnectionFactory
         this.frontendLogger = frontendLogger;
     }
 
-    public ISerialPortConnection Create(string port, int baudrate)
+    public ISerialPortConnection Create(string port)
     {
-        return new SerialPortConnection(port, baudrate, frontendLogger);
+        return new SerialPortConnection(port, frontendLogger);
     }
 }

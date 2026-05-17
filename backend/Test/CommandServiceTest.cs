@@ -18,7 +18,7 @@ public class CommandServiceTest
     {
         var connectionFactoryMock = new Mock<ISerialPortConnectionFactory>();
         portConnectionMock = new Mock<ISerialPortConnection>();
-        connectionFactoryMock.Setup(x => x.Create(It.IsAny<string>(), It.IsAny<int>())).Returns(portConnectionMock.Object);
+        connectionFactoryMock.Setup(x => x.Create(It.IsAny<string>())).Returns(portConnectionMock.Object);
         speedseatSettingsMock = new Mock<ISpeedseatSettings>();
         configOptionsMock = new Mock<IOptionsMonitor<Config>>();
         configOptionsMock.SetupGet(x => x.CurrentValue).Returns(new Config { ConnectionResponseTimeoutMs = 2000 });
@@ -36,7 +36,7 @@ public class CommandServiceTest
         }, millisecondDelayBeforeResponse: 100);
 
         // Act
-        bool result = await sut.Connect("", 0);
+        bool result = await sut.Connect("");
 
         // Assert        
         Assert.IsTrue(result);
@@ -46,7 +46,7 @@ public class CommandServiceTest
     public async Task ConnectWithoutSendingResponseShouldReturnFalse()
     {
         // Act
-        bool result = await sut.Connect("", 0);
+        bool result = await sut.Connect("");
 
         // Assert
         portConnectionMock.Verify(x => x.Write(It.Is<byte[]>(data => Command.ExtractIdFromByteArray(data) == Command.InitiateConnectionCommandId), It.IsAny<int>(), It.IsAny<int>()));
@@ -64,7 +64,7 @@ public class CommandServiceTest
 
 
         // Act
-        await sut.Connect("", 0);
+        await sut.Connect("");
         var result = await sut.WriteCommand(new Command(0, value1: null, value2: null, value3: null, false, false, "Fetter Command"));
 
         // Assert
@@ -81,7 +81,7 @@ public class CommandServiceTest
             [Command.InitiateConnectionCommandId] = x => new Command(Command.ConnectionInitiatedCommandId, null, null, null, false, false).ToByteArray()
         });
 
-        await sut.Connect("", 0);
+        await sut.Connect("");
         SetupPortResponses(alwaysSendAckByte: false);
 
         // Act
@@ -99,7 +99,7 @@ public class CommandServiceTest
         {
             [Command.InitiateConnectionCommandId] = x => new Command(Command.ConnectionInitiatedCommandId, null, null, null, false, false).ToByteArray()
         });
-        await sut.Connect("", 0);
+        await sut.Connect("");
 
         var testConfigCommands = new[] {
             new Command(2,
@@ -167,7 +167,7 @@ public class CommandServiceTest
         {
             [Command.InitiateConnectionCommandId] = x => new Command(Command.ConnectionInitiatedCommandId, null, null, null, false, false).ToByteArray()
         });
-        await sut.Connect("", 0);
+        await sut.Connect("");
         this.portConnectionMock.Setup(x => x.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())).Callback(() => { });
 
         double commandValue = 0.5;

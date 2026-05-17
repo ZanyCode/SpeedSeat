@@ -27,20 +27,14 @@ public class ConnectionHub : Hub
         return commandService.IsConnected;
     }
 
-    public async Task<bool> Connect(string port, int baudrate)
+    public async Task<bool> Connect(string port)
     {
-        settings.BaudRate = baudrate;
-        return await commandService.Connect(port, baudrate);
+        return await commandService.Connect(port);
     }
 
-    public async Task DeleteEEPROM(string port, int baudrate)
+    public async Task DeleteEEPROM(string port)
     {
-        this.commandService.DeleteEEPROM(port, baudrate);
-    }
-
-    public int GetBaudRate()
-    {
-        return settings.BaudRate;
+        this.commandService.DeleteEEPROM(port);
     }
 
     public void CancelConnectionProcess()

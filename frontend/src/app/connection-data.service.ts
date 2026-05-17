@@ -13,8 +13,8 @@ export class ConnectionDataService {
   constructor() {
   }
 
-  public async connect(port: string, baudRate: number) {
-    return await this.connection.invoke<boolean>("Connect", port, baudRate);
+  public async connect(port: string) {
+    return await this.connection.invoke<boolean>("Connect", port);
   }
 
   public async disconnect() {
@@ -23,10 +23,6 @@ export class ConnectionDataService {
 
   public async getPorts() {
     return await this.connection.invoke<string[]>("GetPorts");
-  }
-
-  public async getBaudRate() {
-    return await this.connection.invoke<number>("GetBaudRate");
   }
 
   public async getIsConnected() {
@@ -49,8 +45,8 @@ export class ConnectionDataService {
     await tempConnection.stop();
   }
 
-  public async deleteEEPROM(port: string, baudRate: number) {
-    return await this.connection.invoke<boolean>("DeleteEEPROM", port, baudRate);
+  public async deleteEEPROM(port: string) {
+    return await this.connection.invoke<boolean>("DeleteEEPROM", port);
   }
 
   public async init() {

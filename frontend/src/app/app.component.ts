@@ -29,7 +29,6 @@ export class AppComponent implements OnInit, OnDestroy {
   // Connection properties
   ports: string[] = [];
   selectedPort: string | undefined = undefined;
-  selectedBaudRate: number = 9600;
   isConnected = false;
   isConnecting = false;
 
@@ -56,7 +55,6 @@ export class AppComponent implements OnInit, OnDestroy {
         this.connectionService.init().then(async () => {
           this.ports = await this.connectionService.getPorts();
           this.selectedPort = this.ports.length > 0 ? this.ports[0] : undefined;
-          this.selectedBaudRate = await this.connectionService.getBaudRate();
           this.isConnected = await this.connectionService.getIsConnected();
           if (this.isConnected)
             this.events.signalConnectionStateChanged(true);
@@ -87,7 +85,7 @@ export class AppComponent implements OnInit, OnDestroy {
   async connect() {
     if (this.selectedPort) {
       this.isConnecting = true;
-      this.isConnected = await this.connectionService.connect(this.selectedPort, this.selectedBaudRate);;
+      this.isConnected = await this.connectionService.connect(this.selectedPort);
       this.isConnecting = false;
       if (this.isConnected)
         this.events.signalConnectionStateChanged(true);
@@ -131,7 +129,7 @@ export class AppComponent implements OnInit, OnDestroy {
     dialogRef.afterClosed().subscribe(async result => {
       if (result && this.selectedPort) {
         await this.disconnect();
-        await this.connectionService.deleteEEPROM(this.selectedPort, this.selectedBaudRate);
+        await this.connectionService.deleteEEPROM(this.selectedPort);
       }
     });
   }
