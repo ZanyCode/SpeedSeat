@@ -1,4 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { AppEventsService } from '../app-events.service';
 import { DataPoint, TelemetryDataService } from './telemetry-data.service';
 
 @Component({
@@ -8,6 +10,7 @@ import { DataPoint, TelemetryDataService } from './telemetry-data.service';
 })
 export class TelemetryComponent implements OnInit, OnDestroy {
   isStreaming = false;
+  private connectionSubscription: Subscription | undefined;
   frontTiltTelemetry: DataPoint[] = [];
   sideTiltTelemetry: DataPoint[] = [];
 
@@ -100,21 +103,27 @@ export class TelemetryComponent implements OnInit, OnDestroy {
     this.data.setSideTiltReverse(value);
   }
 
-  constructor(private data: TelemetryDataService) { }
+  constructor(private data: TelemetryDataService, private events: AppEventsService) { }
 
 
   ngOnInit(): void {
     this.data.init(this.onUpdateTelemetry).then(async () => {
       const settings = await this.data.getCurrentState();
       this.isStreaming = await this.data.getIsStreaming();
-      this._frontTiltGForceMultiplier = settings.frontTiltGforceMultiplier;    
-      this._frontTiltOutputCap = settings.frontTiltOutputCap;    
-      this._frontTiltSmoothing = settings.frontTiltSmoothing;    
-      this._sideTiltGForceMultiplier = settings.sideTiltGforceMultiplier;    
-      this._sideTiltOutputCap = settings.sideTiltOutputCap;    
-      this._sideTiltSmoothing = settings.sideTiltSmoothing;    
+      this._frontTiltGForceMultiplier = settings.frontTiltGforceMultiplier;
+      this._frontTiltOutputCap = settings.frontTiltOutputCap;
+      this._frontTiltSmoothing = settings.frontTiltSmoothing;
+      this._sideTiltGForceMultiplier = settings.sideTiltGforceMultiplier;
+      this._sideTiltOutputCap = settings.sideTiltOutputCap;
+      this._sideTiltSmoothing = settings.sideTiltSmoothing;
       this._frontTiltReverse = settings.frontTiltReverse;
       this._sideTiltReverse = settings.sideTiltReverse;
+
+      this.connectionSubscription = this.events.ConnectionStateChanged.subscribe(async isConnected => {
+        if (isConnected && !this.isStreaming) {
+          await this.startStreaming();
+        }
+      });
     });
   }
 
@@ -147,6 +156,7 @@ export class TelemetryComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.connectionSubscription?.unsubscribe();
     this.data.destroy();
   }
 }
