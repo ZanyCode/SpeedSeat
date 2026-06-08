@@ -10,7 +10,7 @@
   <ItemGroup>
       <EmbeddedResource Include="wwwroot\**\*">      
       </EmbeddedResource>
-      <EmbeddedResource Include="config_template.json">      
+      <EmbeddedResource Include="config.json">
       </EmbeddedResource>
       <EmbeddedResource Include="appsettings_template.json">      
       </EmbeddedResource>

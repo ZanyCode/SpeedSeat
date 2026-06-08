@@ -1,19 +1,14 @@
 using System.Diagnostics;
-using System.IO.Ports;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 
 try
 {
-    bool configValid = RestoreConfigFile();
     var builder = WebApplication.CreateBuilder(args);
 
-    if (configValid)
-        builder.Configuration.AddJsonFile("config.json", false, true);
-
+    builder.Configuration.AddJsonStream(GetConfigJSONStream());
     builder.Configuration.AddJsonStream(GetAppsettingsJSONStream());
     builder.Services.Configure<Config>(builder.Configuration.GetSection("Config"));
     builder.Services.AddSignalR();
@@ -93,44 +88,14 @@ catch (Exception e)
     Console.ReadLine();
 }
 
+Stream GetConfigJSONStream()
+{
+    return Assembly.GetExecutingAssembly().GetManifestResourceStream("speedseat.config.json");
+}
+
 Stream GetAppsettingsJSONStream()
 {
     return Assembly.GetExecutingAssembly().GetManifestResourceStream("speedseat.appsettings_template.json");
-}
-
-bool RestoreConfigFile()
-{
-    if (!File.Exists("config.json"))
-    {
-        using (var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream("speedseat.config_template.json"))
-        {
-            using (var file = new FileStream("config.json", FileMode.Create, FileAccess.Write))
-            {
-                resource.CopyTo(file);
-            }
-        }
-    }
-
-    return ValidateConfigFile() == null;
-}
-
-string ValidateConfigFile()
-{
-    if (File.Exists("config.json"))
-    {
-        var json = File.ReadAllText("config.json");
-        try
-        {
-            JsonSerializer.Deserialize<Config>(json);
-            return null;
-        }
-        catch (Exception e)
-        {
-            return e.Message;
-        }
-    }
-    else
-        return "File does not exist";
 }
 
 void OpenUrl(string url)
