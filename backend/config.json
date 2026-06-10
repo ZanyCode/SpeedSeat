@@ -3,6 +3,7 @@
     "connectionResponseTimeoutMs": 3000,
     "commandSendRetryIntervalMs": 1000,
     "uiUpdateIntervalMs": 100,
+    "espDiscoveryTimeoutMs": 1000,
     "commands": [
       {
         "groupLabel": "Motor-Comand-Positions",

@@ -54,7 +54,12 @@ public class TelemetryHub : Hub
         this.settings.SideTiltReverse = reverse;
     }
 
-    public void StartStreaming() 
+    public void SetTelemetryGameVersion(int version)
+    {
+        this.settings.TelemetryGameVersion = version;
+    }
+
+    public void StartStreaming()
     {
         this.telemetryAdaptor.StartStreaming();
     }

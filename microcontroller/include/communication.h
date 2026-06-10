@@ -2,6 +2,7 @@
 #define COMMUNICATION_H
 
 #include "Arduino.h"
+#include "transport.h"
 #ifndef PROTOCOL_LENGTH
 #define PROTOCOL_LENGTH 8
 #endif
@@ -68,6 +69,7 @@ struct AvailableInfos
 
 class communication
 {
+    Transport *transport;
     unsigned short buffer[PROTOCOL_LENGTH];
     unsigned short recived_buffer[PROTOCOL_LENGTH + 1];
     int bytesRecived;
@@ -92,7 +94,7 @@ class communication
     void sendValue(CMD command, unsigned value1, unsigned value2, unsigned value3);
 
 public:
-    communication();
+    communication(Transport *transport);
     void addCommandToRequestLine(CMD);
     void execute();
     void fillValueBuffer(unsigned Value1, unsigned Value2, unsigned Value3);

@@ -1,6 +1,7 @@
 #include "Arduino.h"
 #include "configuration.h"
 #include "Axis.h"
+#include "transport.h"
 #include "communication.h"
 #include "EEPROM.h"
 #include "Beeping.h"
@@ -22,7 +23,12 @@ unsigned long timeStamp;
 unsigned long timeStamp1;
 bool gamingActive = false;
 
-communication com;
+#ifdef USE_UDP
+UdpTransport transport;
+#else
+SerialTransport transport;
+#endif
+communication com(&transport);
 Axis X_Axis(PIN_X_STEP, PIN_X_DIRECTION, PIN_X_ENABLE, PIN_X_ENDSTOP, PIN_X_TROUBLE);
 Axis Y_Axis(PIN_Y_STEP, PIN_Y_DIRECTION, PIN_Y_ENABLE, PIN_Y_ENDSTOP, PIN_Y_TROUBLE);
 Axis Z_Axis(PIN_Z_STEP, PIN_Z_DIRECTION, PIN_Z_ENABLE, PIN_Z_ENDSTOP, PIN_Z_TROUBLE);
@@ -39,6 +45,9 @@ void setup()
   while (!Serial)
     ;
   delay(500);
+#ifdef USE_UDP
+  transport.begin(WIFI_SSID, WIFI_PASSWORD, UDP_PORT);
+#endif
 #ifdef USE_EEPROM
   EEPROM.begin(512);
   X_Axis.loadEEPROM();

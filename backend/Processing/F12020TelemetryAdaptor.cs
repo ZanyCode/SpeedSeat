@@ -48,6 +48,8 @@ public class F12020TelemetryAdaptor
             .Subscribe(x => UpdateSeatPosition(x.First, x.Second, x.Third, x.Fourth, x.Fifth, x.Sixth, x.Seventh));
 
         client = new F12020TelemetryClient(20777);
+        settings.TelemetryGameVersionObs.Subscribe(version =>
+            client.GameVersion = version == 2025 ? F12025Telemetry.GameVersion.F12025 : F12025Telemetry.GameVersion.F12020);
         client.OnMotionDataReceive += (data) => {
             if(this.isStreaming)
                 updateRequestSubject.OnNext(data);

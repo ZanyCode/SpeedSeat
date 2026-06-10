@@ -57,6 +57,10 @@ export class TelemetryDataService {
     await this.connection.invoke("SetSideTiltReverse", reverse);
   }
 
+  public async setTelemetryGameVersion(version: number) {
+    await this.connection.invoke("SetTelemetryGameVersion", version);
+  }
+
   public async startStreaming() {
     await this.connection.invoke("StartStreaming");
   }

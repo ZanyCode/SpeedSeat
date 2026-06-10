@@ -1,6 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
-#define LED_BUILTIN 2
+#define LED_BUILTIN 17
 #define STEP_SETTING 800
 #define ACTUAL_STEPS_PER_ROTATION (STEP_SETTING * 2)
 //Spindel 4mm hub/Undrehung | Übersetzung Zahnräder 4/1
@@ -20,6 +20,15 @@
 
 //define to spit out Serial information about state of the loop. Usefull when micocontroller crashes.
 //#define DEBUG
+
+//Communicate with the PC over WiFi/UDP instead of USB-serial. The PC finds the ESP via UDP broadcast discovery.
+#define USE_UDP
+#ifdef USE_UDP
+#define WIFI_SSID "Henrys Bude"
+#define WIFI_PASSWORD "Apfelkaugummi"
+//Must match SpeedseatUdpProtocol.Port in backend/Processing/UdpConnection.cs
+#define UDP_PORT 8888
+#endif
 
 
 

@@ -3,15 +3,22 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Timers;
+using F12025Telemetry;
 using Timer = System.Timers.Timer;
 
 namespace F12020Telemetry
 {
     /// <summary>
-    /// Client receiving telemetry updates from the F1 2020 game.
+    /// Client receiving telemetry updates from the F1 2020 or F1 2025 game.
     /// </summary>
     public class F12020TelemetryClient
     {
+        /// <summary>
+        /// Game selected in the UI. Informational only: parsing auto-detects the
+        /// packet layout from the packetFormat field of each incoming packet.
+        /// </summary>
+        public GameVersion GameVersion { get; set; } = GameVersion.F12020;
+
         /// <summary>
         /// Time required to time out in MS.
         /// </summary>
@@ -107,8 +114,29 @@ namespace F12020Telemetry
 
             try
             {
+                // The packet format is the first ushort of every header in all game versions,
+                // so the game can be auto-detected per packet: F1 23 and later use the
+                // 29-byte header, F1 2020-2022 the 24-byte one.
+                if (data.Length < 2)
+                    return;
+                ushort packetFormat = BitConverter.ToUInt16(data, 0);
+
+                if (packetFormat >= 2023)
+                {
+                    HandleF12025Packet(data, handle, packetFormat);
+                    return;
+                }
+
+                if (packetFormat < 2020)
+                    return;
+
                 // Get the header to retrieve the packet ID.
                 PacketHeader header = (PacketHeader)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(PacketHeader));
+
+                // The motion packet (the only one SpeedSeat consumes) is byte-identical in
+                // F1 2020-2022, but the other packet layouts changed between those games.
+                if (packetFormat != 2020 && header.packetId != PacketID.MOTION)
+                    return;
 
                 // Switch on packet id, and call the correct event.
                 // Cast the packet to the correct type based on the ID.
@@ -158,12 +186,31 @@ namespace F12020Telemetry
             }
             catch
             {
-                Console.WriteLine("Failed to receive F1 2020 packet.");
+                Console.WriteLine("Failed to receive F1 telemetry packet.");
             }
             finally
             {
                 handle.Free();
             }
+        }
+
+        /// <summary>
+        /// Parses a packet using the F1 25 layout (header shared by F1 23 and later).
+        /// Only the motion packet is needed for seat control.
+        /// </summary>
+        private void HandleF12025Packet(byte[] data, GCHandle handle, ushort packetFormat)
+        {
+            // The 29-byte header layout was introduced with F1 23; reject older formats.
+            if (packetFormat < 2023 || data.Length < Marshal.SizeOf(typeof(PacketHeader2025)))
+                return;
+
+            PacketHeader2025 header = (PacketHeader2025)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(PacketHeader2025));
+
+            if (header.packetId != PacketID.MOTION || data.Length < Marshal.SizeOf(typeof(PacketMotionData2025)))
+                return;
+
+            PacketMotionData2025 motionData = (PacketMotionData2025)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(PacketMotionData2025));
+            OnMotionDataReceive?.Invoke(motionData.ToPacketMotionData());
         }
 
         /// <summary>

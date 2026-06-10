@@ -2,7 +2,7 @@
 
 ## What this project is
 
-SpeedSeat is a motion-simulator racing seat controller. It drives three stepper-motor axes (FrontLeft, FrontRight, Back) to tilt a seat in real time based on F1 2020 game telemetry or manual input. The system has three parts:
+SpeedSeat is a motion-simulator racing seat controller. It drives three stepper-motor axes (FrontLeft, FrontRight, Back) to tilt a seat in real time based on F1 2020 / F1 25 game telemetry or manual input. The system has three parts:
 
 | Layer | Tech | Entry point |
 |---|---|---|
@@ -47,8 +47,10 @@ Serial monitor speed: **38400 baud**.
 |---|---|
 | `Program.cs` | App startup, DI registration, SignalR hub mapping, config loading |
 | `Processing/Speedseat.cs` | Core seat logic — converts front/side tilt to motor positions, applies response curves |
-| `Processing/CommandService.cs` | Serial port management, 8-byte protocol read/write, ACK handling |
-| `Processing/F12020TelemetryAdaptor.cs` | Receives F1 2020 UDP telemetry (port 20777), maps G-forces to tilt |
+| `Processing/CommandService.cs` | Connection management (serial or UDP), 8-byte protocol read/write, ACK handling |
+| `Processing/UdpConnection.cs` | UDP transport: broadcast discovery of ESP32s (`EspDiscovery`) + `UdpDeviceConnection` implementing `ISerialPortConnection` |
+| `Processing/F12020TelemetryAdaptor.cs` | Receives F1 2020 / F1 25 UDP telemetry (port 20777), maps G-forces to tilt |
+| `F12025Telemetry/F12025Packets.cs` | F1 25 packet structs (29-byte header used since F1 23); motion data is converted to the F1 2020 shape, parsing selected via `TelemetryGameVersion` |
 | `Processing/OutdatedDataDiscardQueue.cs` | Drop-last-value queue to prevent stale motor position commands |
 | `Data/SpeedseatSettings.cs` | All user-configurable settings stored in SQLite; exposes `IObservable<T>` for reactive updates |
 | `Data/SpeedseatContext.cs` | EF Core SQLite context (`speedseat_dbversion2.sqlite3`) |
@@ -64,7 +66,7 @@ Angular SPA with Angular Material UI. Main views:
 - **ManualControl** — direct slider control of motor positions
 - **SeatSettings** — per-command settings read from `config.json` (numeric/boolean/action widgets)
 - **ProgramSettings** — response curve editor, telemetry multipliers/caps, motor index mapping
-- **Telemetry** — live Plotly chart of front/side tilt from F1 2020
+- **Telemetry** — live Plotly chart of front/side tilt from F1 2020 or F1 2025 (game selectable via buttons)
 
 All backend communication is over SignalR (not REST). Hub URLs: `/hub/manual`, `/hub/connection`, `/hub/info`, `/hub/programSettings`, `/hub/seatSettings`, `/hub/telemetry`.
 
@@ -74,7 +76,8 @@ Target: **AZ-Delivery DevKit v4 (ESP32)**. Built with PlatformIO.
 
 - `src/main.cpp` — setup/loop, dispatches commands to X/Y/Z Axis objects
 - `src/Axis.cpp` + `include/Axis*.h` — stepper axis: homing, movement, EEPROM load/save
-- `src/communication.cpp` + `include/communication.h` — 8-byte protocol implementation
+- `src/communication.cpp` + `include/communication.h` — 8-byte protocol implementation (transport-agnostic)
+- `src/transport.cpp` + `include/transport.h` — byte-stream transport abstraction: `SerialTransport` (USB) and `UdpTransport` (WiFi/AsyncUDP + discovery responder)
 - `src/smoothy.cpp` — motion smoothing/filter
 - `include/configuration.h` — compile-time flags (see below)
 - `include/pins.h` — ESP32 GPIO pin assignments
@@ -91,9 +94,15 @@ Target: **AZ-Delivery DevKit v4 (ESP32)**. Built with PlatformIO.
 
 ---
 
-## Serial Communication Protocol
+## Communication Protocol (serial or UDP)
 
-8-byte fixed-length packets over **38400 baud** serial.
+8-byte fixed-length packets, transported over **38400 baud** serial (USB) or **WiFi/UDP**. The packet format, ACK bytes and connection sequence are identical on both transports.
+
+**UDP transport** (default, `USE_UDP` in `configuration.h`):
+- ESP32 connects to WiFi (SSID/password plain text in `configuration.h`) and listens on UDP port **8888** (`SpeedseatUdpProtocol.Port` in backend ↔ `UDP_PORT` in firmware — keep in sync).
+- **Discovery handshake**: backend broadcasts `SPEEDSEAT_DISCOVERY` (to 255.255.255.255 and every interface's directed broadcast); each ESP replies `SPEEDSEAT_ESP32`. `ConnectionHub.GetPorts` lists discovered IPs alongside COM ports; an IP-formatted "port" makes the factory create a `UdpDeviceConnection` instead of a serial one.
+- After discovery, all traffic is **unicast** (WiFi broadcast frames are slow/unreliable). Each 8-byte command and each ACK byte is one datagram. The ESP replies to the endpoint of the last received protocol datagram.
+- ESP32 quirks: must use **AsyncUDP** (WiFiUDP can't receive broadcasts) and must call **`WiFi.setSleep(false)`** after connecting (modem sleep causes burst latency).
 
 | Byte | Content |
 |---|---|
@@ -138,6 +147,7 @@ Each command entry defines:
 
 | Flag | Effect |
 |---|---|
+| `USE_UDP` | Talk to the PC over WiFi/UDP instead of USB-serial; `WIFI_SSID`/`WIFI_PASSWORD`/`UDP_PORT` are defined next to it |
 | `NO_HARDWARE` | Skips real motor control; useful for software-only testing |
 | `USE_EEPROM` | Loads/saves axis settings from ESP32 EEPROM on boot/save command |
 | `AUTO_RETURN_TO_ZERO` | Seat returns to centre when telemetry FPS drops to 0 for 200 ms |
@@ -155,6 +165,7 @@ All persisted in SQLite. Properties expose `IObservable<T>` variants (`*Obs`) fo
 - `BackMotorResponseCurve` / `SideMotorResponseCurve` — piecewise-linear curves applied before sending positions
 - `FrontTiltPriority` — how much front tilt reduces side tilt when both are at max
 - `FrontTilt/SideTilt GforceMultiplier`, `OutputCap`, `Smoothing`, `Reverse` — telemetry scaling
+- `TelemetryGameVersion` — telemetry source game as year (2020 or 2025), set via the game buttons on the Telemetry page
 
 ---
 

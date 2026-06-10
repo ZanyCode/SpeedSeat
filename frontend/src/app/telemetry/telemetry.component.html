@@ -16,9 +16,21 @@
             </mat-card>
         </div>     -->
 
+      <div class="col-12">
+        <mat-card class="example-card mt-3">
+            <mat-card-header>
+              <mat-card-title>Game</mat-card-title>
+            </mat-card-header>
+            <mat-card-content class="position-relative">
+                <button mat-raised-button class="game-version-button" [color]="gameVersion === 2020 ? 'primary' : null" (click)="gameVersion = 2020">F1 2020</button>
+                <button mat-raised-button class="game-version-button" [color]="gameVersion === 2025 ? 'primary' : null" (click)="gameVersion = 2025">F1 2025</button>
+            </mat-card-content>
+        </mat-card>
+      </div>
+
       <div class="col-12 col-md-6">
         <mat-card class="example-card mt-3">
-            <mat-card-header>    
+            <mat-card-header>
               <mat-card-title>Front/Back Tilt Settings</mat-card-title>
             </mat-card-header>
             <mat-card-content class="position-relative">

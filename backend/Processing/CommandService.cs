@@ -508,6 +508,11 @@ public class SerialPortConnectionFactory : ISerialPortConnectionFactory
 
     public ISerialPortConnection Create(string port)
     {
+        // ConnectionHub.GetPorts lists discovered ESP32s by their IP address alongside
+        // classic COM ports, so the selected "port" decides the transport.
+        if (System.Net.IPAddress.TryParse(port, out var ipAddress))
+            return new UdpDeviceConnection(new System.Net.IPEndPoint(ipAddress, SpeedseatUdpProtocol.Port), frontendLogger);
+
         return new SerialPortConnection(port, frontendLogger);
     }
 }

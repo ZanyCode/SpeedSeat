@@ -103,6 +103,15 @@ export class TelemetryComponent implements OnInit, OnDestroy {
     this.data.setSideTiltReverse(value);
   }
 
+  private _gameVersion: number = 2020;
+  public get gameVersion(): number {
+    return this._gameVersion;
+  }
+  public set gameVersion(value: number) {
+    this._gameVersion = value;
+    this.data.setTelemetryGameVersion(value);
+  }
+
   constructor(private data: TelemetryDataService, private events: AppEventsService) { }
 
 
@@ -118,6 +127,7 @@ export class TelemetryComponent implements OnInit, OnDestroy {
       this._sideTiltSmoothing = settings.sideTiltSmoothing;
       this._frontTiltReverse = settings.frontTiltReverse;
       this._sideTiltReverse = settings.sideTiltReverse;
+      this._gameVersion = settings.telemetryGameVersion ?? 2020;
 
       this.connectionSubscription = this.events.ConnectionStateChanged.subscribe(async isConnected => {
         if (isConnected && !this.isStreaming) {

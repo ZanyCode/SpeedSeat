@@ -1,8 +1,9 @@
 #include "communication.h"
 #include "configuration.h"
 
-communication::communication()
+communication::communication(Transport *transport)
 {
+    this->transport = transport;
     for (size_t i = 0; i < sizeof request_buffer / sizeof request_buffer[0]; i++)
     {
         request_buffer[i] = IDLE;
@@ -12,7 +13,7 @@ communication::communication()
 
 void communication::execute()
 {
-    while (Serial.available() != 0)
+    while (transport->available() != 0)
     {
         addDataToRecivedBuffer();
     }
@@ -134,20 +135,26 @@ void communication::acknowledge(ANSWER answer)
     switch (answer)
     {
     case OKAY:
-        Serial.write(0xFF);
-        Serial.flush();
+    {
+        uint8_t okay = 0xFF;
+        transport->write(&okay, 1);
+        transport->flush();
         break;
+    }
 
     case NOT_OKAY:
+    {
         failedCommands++;
         delay(20); // wait for possible transmission to end
-        while (Serial.available() != 0)
+        while (transport->available() != 0)
         {
-            Serial.read();
+            transport->read();
         }
-        Serial.write(0xFE);
-        Serial.flush();
+        uint8_t notOkay = 0xFE;
+        transport->write(&notOkay, 1);
+        transport->flush();
         break;
+    }
 
     default:
         break;
@@ -253,11 +260,14 @@ void communication::sendBuffer()
     }
     buffer[PROTOCOL_LENGTH - 1] = veryfyingResult;
 
+    // write the whole frame, then flush once, so it leaves as a single UDP datagram
+    uint8_t frame[PROTOCOL_LENGTH];
     for (size_t i = 0; i < PROTOCOL_LENGTH; i++)
     {
-        Serial.write(buffer[i]);
-        Serial.flush();
+        frame[i] = (uint8_t)buffer[i];
     }
+    transport->write(frame, PROTOCOL_LENGTH);
+    transport->flush();
     waiting_for_okay = true;
     millisAtLastSendMessage = millis();
 }
@@ -351,10 +361,10 @@ void communication::addDataToRecivedBuffer()
         return;
     }
 
-    unsigned short c = Serial.read();
-    if (c <= 0xFF)
+    int c = transport->read();
+    if (c >= 0)
     {
-        recived_buffer[bytesRecived] = c;
+        recived_buffer[bytesRecived] = (unsigned short)c;
         bytesRecived++;
     }
 }
