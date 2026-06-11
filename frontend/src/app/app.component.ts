@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, ElementRef, Inject, OnDestroy, OnInit, Vi
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Observable, Subscription } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
-import { AppDataService } from './app-data.service';
+import { AppDataService, UpdateInfo } from './app-data.service';
 import { ConnectionDataService } from './connection-data.service';
 import { AppEventsService } from './app-events.service';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -32,6 +32,14 @@ export class AppComponent implements OnInit, OnDestroy {
   isConnected = false;
   isConnecting = false;
 
+  // Backend update check (GitHub releases)
+  updateInfo: UpdateInfo | undefined = undefined;
+
+  // Firmware version handshake / OTA status
+  firmwareState: string | undefined = undefined;
+  firmwareMessage: string | undefined = undefined;
+  isAutoReconnecting = false;
+
 
   isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset)
     .pipe(
@@ -52,7 +60,10 @@ export class AppComponent implements OnInit, OnDestroy {
           this.onLogReceived(msg);
         });
 
+        this.data.getUpdateInfo().then(info => this.updateInfo = info);
+
         this.connectionService.init().then(async () => {
+          this.connectionService.onFirmwareUpdateState((state, message) => this.onFirmwareUpdateState(state, message));
           this.ports = await this.connectionService.getPorts();
           this.selectedPort = this.ports.length > 0 ? this.ports[0] : undefined;
           this.isConnected = await this.connectionService.getIsConnected();
@@ -63,6 +74,62 @@ export class AppComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  downloadUpdate() {
+    if (this.updateInfo?.downloadUrl)
+      window.open(this.updateInfo.downloadUrl, '_blank');
+  }
+
+  onFirmwareUpdateState(state: string, message: string) {
+    this.firmwareState = state;
+    this.firmwareMessage = message;
+
+    if (state === 'updating') {
+      // The seat flashes the new firmware and restarts — reflect the lost connection
+      // and try to get it back automatically.
+      this.isConnected = false;
+      this.events.signalConnectionStateChanged(false);
+      this.autoReconnect();
+    }
+
+    if (state === 'upToDate') {
+      // Everything is fine — don't keep the banner around forever.
+      setTimeout(() => {
+        if (this.firmwareState === 'upToDate') {
+          this.firmwareState = undefined;
+          this.firmwareMessage = undefined;
+        }
+      }, 10000);
+    }
+  }
+
+  private async autoReconnect() {
+    if (this.isAutoReconnecting)
+      return;
+
+    this.isAutoReconnecting = true;
+    try {
+      // Give the seat time to download/flash/restart, then retry for up to two minutes.
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      for (let attempt = 0; attempt < 22 && !this.isConnected; attempt++) {
+        try {
+          await this.refreshPorts();
+          if (this.selectedPort)
+            await this.connect();
+        } catch { /* seat not back yet, keep trying */ }
+
+        if (!this.isConnected)
+          await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+
+      if (!this.isConnected) {
+        this.firmwareState = 'otaFailed';
+        this.firmwareMessage = 'The seat did not come back after the firmware update. Please check the seat and reconnect manually.';
+      }
+    } finally {
+      this.isAutoReconnecting = false;
+    }
   }
 
   onLogReceived = (message: string) => {

@@ -3,6 +3,14 @@ import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { Observable, Subject } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
+export interface UpdateInfo {
+  currentVersion: string;
+  latestVersion: string | null;
+  updateAvailable: boolean;
+  downloadUrl: string | null;
+  error: string | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -21,6 +29,10 @@ export class AppDataService {
 
   public async getConfigValidityErrors() {
     return await this.connection.invoke<string>("GetConfigValidityErrors");
+  }
+
+  public async getUpdateInfo() {
+    return await this.connection.invoke<UpdateInfo>("GetUpdateInfo");
   }
 
   public subscribeToLogs(): Observable<string> {

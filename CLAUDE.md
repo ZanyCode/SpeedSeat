@@ -58,7 +58,13 @@ Serial monitor speed: **38400 baud**.
 | `Api/*.cs` | SignalR hubs: `ManualControlHub`, `ConnectionHub`, `InfoHub`, `ProgramSettingsHub`, `SeatSettingsHub`, `TelemetryHub` |
 | `config.json` | Command definitions (IDs, value ranges, labels). Auto-created from embedded `config_template.json` if missing. |
 
-**DI singletons**: `Speedseat`, `CommandService`, `OutdatedDataDiscardQueue<Command>`, `F12020TelemetryAdaptor`, `SpeedseatSettings`, `FrontendLogger`.
+**DI singletons**: `Speedseat`, `CommandService`, `OutdatedDataDiscardQueue<Command>`, `F12020TelemetryAdaptor`, `SpeedseatSettings`, `FrontendLogger`, `FirmwareUpdateService`, `UpdateCheckService`.
+
+**Always-on telemetry**: `F12020TelemetryAdaptor.Start()` is called once in `Program.cs` — telemetry processing runs for the whole backend lifetime, there is no start/stop streaming state. The game is auto-detected per packet from the `packetFormat` header field (= game year); the detected game is pushed to the frontend via the `gameDetected` event on the telemetry hub.
+
+**Self-update** (`Processing/UpdateCheckService.cs`): at boot the backend queries the latest public GitHub release (`ZanyCode/SpeedSeat`) and compares it with its assembly version (set by CI via `-p:Version`); `InfoHub.GetUpdateInfo` exposes the result, the frontend toolbar shows a download button when an update exists.
+
+**Firmware OTA** (`Processing/FirmwareUpdateService.cs`): each release embeds the matching ESP32 `firmware.bin` + `firmware_version.txt` (created by CI next to the csproj, see `.gitignore`). After every successful connect the backend sends a version read request (0x40); on mismatch over UDP it sends 0x41 and the ESP downloads `http://<pc>:5000/firmware.bin`, flashes it (`Update.h`) and restarts. Progress is pushed via the `firmwareUpdateState` event on the connection hub; the frontend auto-reconnects afterwards. Serial connections / pre-OTA firmwares get a message to flash once manually via USB.
 
 ### Frontend (`frontend/src/app/`)
 
@@ -66,7 +72,7 @@ Angular SPA with Angular Material UI. Main views:
 - **ManualControl** — direct slider control of motor positions
 - **SeatSettings** — per-command settings read from `config.json` (numeric/boolean/action widgets)
 - **ProgramSettings** — response curve editor, telemetry multipliers/caps, motor index mapping
-- **Telemetry** — live Plotly chart of front/side tilt from F1 2020 or F1 2025 (game selectable via buttons)
+- **Telemetry** — live Plotly chart of front/side tilt; the source game (F1 2020–2025) is detected automatically from the incoming packets and shown as a status, streaming is always on (no buttons)
 
 All backend communication is over SignalR (not REST). Hub URLs: `/hub/manual`, `/hub/connection`, `/hub/info`, `/hub/programSettings`, `/hub/seatSettings`, `/hub/telemetry`.
 
@@ -123,9 +129,11 @@ Target: **AZ-Delivery DevKit v4 (ESP32)**. Built with PlatformIO.
 | 0x00 | Both | Motor positions (Value1=X/FrontRight, Value2=Y/FrontLeft, Value3=Z/Back) |
 | 0x01 | PC→MC | Start init (sent after connection opens) |
 | 0x02 | MC→PC | Init finished (MC signals readiness) |
+| 0x40 | PC→MC read, MC→PC write | Firmware version handshake: PC sends a read request after connect, MC answers with `FW_VERSION_NUMBER` in Value1. Old firmwares NACK → backend treats version as unknown/outdated |
+| 0x41 | PC→MC | Start OTA firmware update; Value1 = HTTP port of the backend (5000). ESP downloads `/firmware.bin` from the sender IP, flashes, restarts (UDP/WiFi builds only) |
 | 0x42 | PC→MC | Reset EEPROM (can be sent without full connection) |
 
-**Connection sequence**: PC sends 0x01 → MC performs sync (read/write requests) → MC sends 0x02 → UI unblocks.
+**Connection sequence**: PC sends 0x01 → MC performs sync (read/write requests) → MC sends 0x02 → UI unblocks → backend runs the firmware version handshake (0x40, possibly 0x41) in the background.
 
 ---
 
@@ -147,7 +155,8 @@ Each command entry defines:
 
 | Flag | Effect |
 |---|---|
-| `USE_UDP` | Talk to the PC over WiFi/UDP instead of USB-serial; `WIFI_SSID`/`WIFI_PASSWORD`/`UDP_PORT` are defined next to it |
+| `USE_UDP` | Talk to the PC over WiFi/UDP instead of USB-serial; `WIFI_SSID`/`WIFI_PASSWORD`/`UDP_PORT` are defined next to it. Also required for OTA updates |
+| `FW_VERSION_NUMBER` | Numeric firmware version reported in the 0x40 handshake. Defaults to 0 (dev build); CI overrides it with the release build number via `PLATFORMIO_BUILD_FLAGS` |
 | `NO_HARDWARE` | Skips real motor control; useful for software-only testing |
 | `USE_EEPROM` | Loads/saves axis settings from ESP32 EEPROM on boot/save command |
 | `AUTO_RETURN_TO_ZERO` | Seat returns to centre when telemetry FPS drops to 0 for 200 ms |
@@ -165,13 +174,18 @@ All persisted in SQLite. Properties expose `IObservable<T>` variants (`*Obs`) fo
 - `BackMotorResponseCurve` / `SideMotorResponseCurve` — piecewise-linear curves applied before sending positions
 - `FrontTiltPriority` — how much front tilt reduces side tilt when both are at max
 - `FrontTilt/SideTilt GforceMultiplier`, `OutputCap`, `Smoothing`, `Reverse` — telemetry scaling
-- `TelemetryGameVersion` — telemetry source game as year (2020 or 2025), set via the game buttons on the Telemetry page
+
+(The former `TelemetryGameVersion` setting is gone — the game is auto-detected from the telemetry packets.)
 
 ---
 
 ## Build & release
 
-`publish_release.ps1` — builds frontend (`npm run build`), copies output to `backend/wwwroot/`, then publishes the .NET project as a single-file self-contained executable. GitHub Actions workflow in `.github/` handles CI builds.
+**Every push to `main` creates a GitHub release** (`.github/workflows/build-release.yml`): version `0.2.<run_number>.0`, firmware version `<run_number>`. The workflow builds the frontend (Angular outputs directly to `backend/wwwroot/`), builds the ESP32 firmware with `FW_VERSION_NUMBER` set, copies `firmware.bin`/`firmware_version.txt` into `backend/` (gitignored, embedded by the csproj), then publishes the single-file self-contained `speedseat.exe` with `-p:Version`. Release assets: `speedseat.exe` and `firmware.bin`.
+
+Backend, frontend and firmware must always be released together — the update chain (GitHub release check → exe download → firmware OTA on next connect) assumes their versions match.
+
+`publish_release.ps1` (legacy) just bumps and pushes a tag; the workflow no longer triggers on tags.
 
 ---
 

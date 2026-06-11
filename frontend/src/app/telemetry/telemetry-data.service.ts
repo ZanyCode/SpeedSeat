@@ -19,10 +19,13 @@ export class TelemetryDataService {
   connection!: HubConnection;
   isConnected: boolean = false;
 
-  public async init(onUpdateTelemetry: (frontTiltTelemetry: DataPoint[], sideTiltTelemetry: DataPoint[]) => void) {
+  public async init(
+    onUpdateTelemetry: (frontTiltTelemetry: DataPoint[], sideTiltTelemetry: DataPoint[]) => void,
+    onGameDetected: (game: number | null) => void) {
     this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/telemetry`).build();
     this.connection.on('updateTelemetry', onUpdateTelemetry);
-    await this.connection.start().then(() => this.isConnected = true);   
+    this.connection.on('gameDetected', onGameDetected);
+    await this.connection.start().then(() => this.isConnected = true);
   }
 
   public async setFrontTiltGForceMultiplier(multiplier: number) {
@@ -57,24 +60,12 @@ export class TelemetryDataService {
     await this.connection.invoke("SetSideTiltReverse", reverse);
   }
 
-  public async setTelemetryGameVersion(version: number) {
-    await this.connection.invoke("SetTelemetryGameVersion", version);
-  }
-
-  public async startStreaming() {
-    await this.connection.invoke("StartStreaming");
-  }
-
-  public async stopStreaming() {
-    await this.connection.invoke("StopStreaming");
-  }
-
   public async getCurrentState() {
     return await this.connection.invoke<SpeedseatSettings>("GetCurrentState");
   }
 
-  public async getIsStreaming() {
-    return await this.connection.invoke<boolean>("GetIsStreaming");
+  public async getDetectedGame() {
+    return await this.connection.invoke<number | null>("GetDetectedGame");
   }
 
   public async destroy() {

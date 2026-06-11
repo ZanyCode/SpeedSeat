@@ -108,6 +108,13 @@ public class Command
     public const byte MotorPositionCommandId = 0;
     public const byte InitiateConnectionCommandId = 1;
     public const byte ConnectionInitiatedCommandId = 2;
+    // PC sends a read request for this id after connecting; the MC answers with its
+    // numeric firmware version in Value1. Old firmwares NACK the request, which the
+    // backend treats as "version unknown -> outdated".
+    public const byte FirmwareVersionCommandId = 0x40;
+    // PC -> MC: start an OTA firmware update. Value1 = HTTP port on the PC where
+    // /firmware.bin can be downloaded (the sender IP is known from the UDP datagram).
+    public const byte StartFirmwareUpdateCommandId = 0x41;
     public const byte ResetEEPROMCommandId = 0x42;
 
     public string GroupLabel { get; set; }

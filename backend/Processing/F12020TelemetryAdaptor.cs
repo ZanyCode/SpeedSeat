@@ -9,9 +9,6 @@ public class F12020TelemetryAdaptor
     private readonly Speedseat seat;
     private readonly ISpeedseatSettings settings;
     private readonly IHubContext<TelemetryHub> telemetryHubContext;
-    private bool isStreaming = false;
-
-    public bool IsStreaming {get => isStreaming;}
 
     private F12020TelemetryClient client;
 
@@ -23,6 +20,9 @@ public class F12020TelemetryAdaptor
     private List<Datapoint> frontTiltTelemetry = new List<Datapoint>();
     private List<Datapoint> sideTiltTelemetry = new List<Datapoint>();
 
+    // Game year from the packetFormat of the incoming telemetry, null while no game is sending.
+    public int? DetectedGame => client?.DetectedPacketFormat;
+
     public F12020TelemetryAdaptor(Speedseat seat, ISpeedseatSettings settings, IHubContext<TelemetryHub> telemetryHubContext)
     {
         this.seat = seat;
@@ -30,16 +30,17 @@ public class F12020TelemetryAdaptor
         this.telemetryHubContext = telemetryHubContext;
     }
 
-    public async void StartStreaming()
+    // Called once at application startup. Telemetry is processed for the whole lifetime
+    // of the backend, so there is no streaming state to manage from the UI.
+    public void Start()
     {
-        this.isStreaming = true;
-
-        if(client != null)
+        if(started)
             return;
-        
+        started = true;
+
         updateRequestSubject
             .CombineLatest(
-                settings.FrontTiltGforceMultiplierObs, 
+                settings.FrontTiltGforceMultiplierObs,
                 settings.FrontTiltOutputCapObs,
                 settings.FrontTiltReverseObs,
                 settings.SideTiltGforceMultiplierObs,
@@ -47,17 +48,36 @@ public class F12020TelemetryAdaptor
                 settings.SideTiltReverseObs)
             .Subscribe(x => UpdateSeatPosition(x.First, x.Second, x.Third, x.Fourth, x.Fifth, x.Sixth, x.Seventh));
 
-        client = new F12020TelemetryClient(20777);
-        settings.TelemetryGameVersionObs.Subscribe(version =>
-            client.GameVersion = version == 2025 ? F12025Telemetry.GameVersion.F12025 : F12025Telemetry.GameVersion.F12020);
-        client.OnMotionDataReceive += (data) => {
-            if(this.isStreaming)
-                updateRequestSubject.OnNext(data);
-        };
+        _ = CreateClientWithRetry();
+    }
+
+    private bool started = false;
+
+    // Binding UDP port 20777 fails while another process (a second backend instance,
+    // a debugging tool) still holds it — keep retrying instead of silently giving up.
+    private async Task CreateClientWithRetry()
+    {
+        while (client == null)
+        {
+            try
+            {
+                var newClient = new F12020TelemetryClient(20777);
+                newClient.OnDetectedPacketFormatChanged += format =>
+                    this.telemetryHubContext.Clients.All.SendAsync("gameDetected", (int?)format);
+                newClient.OnMotionDataReceive += (data) => updateRequestSubject.OnNext(data);
+                client = newClient;
+                Console.WriteLine("Listening for F1 telemetry on UDP port 20777.");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Could not open telemetry port 20777 ({e.Message}), retrying in 5 seconds.");
+                await Task.Delay(5000);
+            }
+        }
     }
 
     private void UpdateSeatPosition(
-        PacketMotionData motion, 
+        PacketMotionData motion,
         double frontTiltGForceMultiplier,
         double frontTiltOutputCap,
         bool frontTiltReverse,
@@ -65,12 +85,21 @@ public class F12020TelemetryAdaptor
         double sideTiltOutputCap,
         bool sideTiltReverse)
     {
-        var first = motion.carMotionData.ElementAt(motion.header.playerCarIndex);      
-        var frontTilt = Math.Clamp(first.gForceLongitudinal * frontTiltGForceMultiplier, -frontTiltOutputCap, frontTiltOutputCap) * (frontTiltReverse? -1 : 1);
-        var sideTilt = Math.Clamp(first.gForceLateral * sideTiltGForceMultiplier, -sideTiltOutputCap, sideTiltOutputCap) * (sideTiltReverse? -1 : 1);
-        seat.SetTilt(frontTilt, sideTilt);
-        SendTelemetryToFrontend(frontTilt, sideTilt);
-        PrintTelemetryToConsole(frontTilt, sideTilt);
+        // Never let an exception escape: this runs inside an Rx Subscribe callback, and a
+        // single throw would permanently kill the subscription (telemetry stops forever).
+        try
+        {
+            var first = motion.carMotionData.ElementAt(motion.header.playerCarIndex);
+            var frontTilt = Math.Clamp(first.gForceLongitudinal * frontTiltGForceMultiplier, -frontTiltOutputCap, frontTiltOutputCap) * (frontTiltReverse? -1 : 1);
+            var sideTilt = Math.Clamp(first.gForceLateral * sideTiltGForceMultiplier, -sideTiltOutputCap, sideTiltOutputCap) * (sideTiltReverse? -1 : 1);
+            seat.SetTilt(frontTilt, sideTilt);
+            SendTelemetryToFrontend(frontTilt, sideTilt);
+            PrintTelemetryToConsole(frontTilt, sideTilt);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error processing telemetry update: {e.Message}");
+        }
     }
 
     private void SendTelemetryToFrontend(double frontTilt, double sideTilt)
@@ -90,16 +119,18 @@ public class F12020TelemetryAdaptor
     {
         if ((DateTime.Now - lastConsoleTelemetryUpdate).TotalMilliseconds > 250)
         {
-            Console.SetCursorPosition(0, Console.CursorTop - 1);
+            // SetCursorPosition throws when the cursor is at the top or output is redirected.
+            try
+            {
+                if (!Console.IsOutputRedirected && Console.CursorTop > 0)
+                    Console.SetCursorPosition(0, Console.CursorTop - 1);
+            }
+            catch { }
             Console.WriteLine($"[{DateTime.Now}] Received telemetry update. FrontTilt: {frontTilt}, SideTilt: {sideTilt}");
             this.lastConsoleTelemetryUpdate = DateTime.Now;
         }
     }
 
-    public void StopStreaming()
-    {
-        this.isStreaming = false;
-    }
 }
 
 class Datapoint

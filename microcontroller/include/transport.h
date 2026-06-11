@@ -38,6 +38,10 @@ public:
     void write(const uint8_t *data, size_t length) override;
     void flush() override;
 
+    // IP of the PC the protocol is currently talking to (needed for OTA downloads).
+    IPAddress getPeerIp() { return peerIp; }
+    bool hasPeerEndpoint() { return hasPeer; }
+
 private:
     static const size_t RX_BUFFER_SIZE = 1024;
     static const size_t TX_BUFFER_SIZE = 64;

@@ -23,7 +23,9 @@ public class CommandServiceTest
         configOptionsMock = new Mock<IOptionsMonitor<Config>>();
         configOptionsMock.SetupGet(x => x.CurrentValue).Returns(new Config { ConnectionResponseTimeoutMs = 2000 });
 
-        sut = new CommandService(new Mock<IFrontendLogger>().Object, connectionFactoryMock.Object, configOptionsMock.Object, speedseatSettingsMock.Object, new Mock<IHubContext<SeatSettingsHub>>().Object);
+        var loggerMock = new Mock<IFrontendLogger>();
+        loggerMock.Setup(x => x.Log(It.IsAny<string>())).Callback<string>(m => Console.WriteLine("[LOG] " + m));
+        sut = new CommandService(loggerMock.Object, connectionFactoryMock.Object, configOptionsMock.Object, speedseatSettingsMock.Object, new Mock<IHubContext<SeatSettingsHub>>().Object);
     }
 
     [TestMethod]
@@ -68,7 +70,7 @@ public class CommandServiceTest
         var result = await sut.WriteCommand(new Command(0, value1: null, value2: null, value3: null, false, false, "Fetter Command"));
 
         // Assert
-        portConnectionMock.Verify(x => x.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Exactly(2)); // Should have called write once for confirmation of Connection-Initiated-Command, once for command that was sent
+        portConnectionMock.Verify(x => x.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Exactly(3)); // Initiate-Connection command, ack byte for the Connection-Initiated response, and the command that was sent
         Assert.AreEqual(SerialWriteResult.Success, result);
     }
 
@@ -88,7 +90,8 @@ public class CommandServiceTest
         await sut.WriteCommand(new Command(0, value1: null, value2: null, value3: null, false, false, "Fetter Command"));
 
         // Assert
-        portConnectionMock.Verify(x => x.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Exactly(4));
+        // 2 writes from Connect (Initiate-Connection command + ack byte) and 3 unanswered send attempts
+        portConnectionMock.Verify(x => x.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Exactly(5));
     }
 
     [TestMethod]
@@ -100,14 +103,17 @@ public class CommandServiceTest
             [Command.InitiateConnectionCommandId] = x => new Command(Command.ConnectionInitiatedCommandId, null, null, null, false, false).ToByteArray()
         });
         await sut.Connect("");
+        await Task.Delay(50); // let the background ack write from Connect finish before re-mocking the port
 
+        // Ids 4/5 — must not collide with the reserved ids (0x00-0x02, 0x40-0x42),
+        // those are intercepted by CommandService before the config lookup.
         var testConfigCommands = new[] {
-            new Command(2,
+            new Command(4,
                 new CommandValue(ValueType.Numeric, 0, "V1", true, 0, 1),
                 new CommandValue(ValueType.Numeric, 0, "V2", false, 0, ushort.MaxValue),
                 new CommandValue(ValueType.Boolean, 0, "V3", false, 0, 1),
                 false, false, ""),
-            new Command(3,
+            new Command(5,
                 new CommandValue(ValueType.Numeric, 0, "V2", false, 0, ushort.MaxValue),
                 new CommandValue(ValueType.Boolean, 0, "V3", false, 0, 1),
                 null,
@@ -115,12 +121,12 @@ public class CommandServiceTest
             };
 
         var testWriteCommands = new[] {
-            new Command(2,
+            new Command(4,
                 new CommandValue(ValueType.Numeric, 0.5, "V1", true, 0, 1),
                 new CommandValue(ValueType.Numeric, 12587, "V2", false, 0, ushort.MaxValue),
                 new CommandValue(ValueType.Boolean, 1, "V3", true, 0, 1),
                 false, false, ""),
-            new Command(3,
+            new Command(5,
                 new CommandValue(ValueType.Numeric, 12587, "V2", false, 0, ushort.MaxValue),
                 new CommandValue(ValueType.Boolean, 1, "V3", true, 0, 1),
                 null,
@@ -168,6 +174,7 @@ public class CommandServiceTest
             [Command.InitiateConnectionCommandId] = x => new Command(Command.ConnectionInitiatedCommandId, null, null, null, false, false).ToByteArray()
         });
         await sut.Connect("");
+        await Task.Delay(50); // let the background ack write from Connect finish before re-mocking the port
         this.portConnectionMock.Setup(x => x.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())).Callback(() => { });
 
         double commandValue = 0.5;
@@ -269,6 +276,7 @@ public class CommandServiceTest
             else if (alwaysSendAckByte)
             {
                 byte[] responseBytes = { 0xFF };
+                portConnectionMock.SetupGet(x => x.BytesToRead).Returns(responseBytes.Length);
                 portConnectionMock.Setup(x => x.Read(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())).Callback<byte[], int, int>((buffer, offset, count) =>
                        {
                            Array.Copy(responseBytes.Skip(offset).ToArray(), buffer, count);

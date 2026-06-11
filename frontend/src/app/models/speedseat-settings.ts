@@ -18,6 +18,4 @@ export interface SpeedseatSettings
   sideTiltOutputCap: number;
   sideTiltSmoothing: number;
   sideTiltReverse: boolean;
-
-  telemetryGameVersion: number;
 }

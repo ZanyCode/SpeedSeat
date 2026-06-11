@@ -13,14 +13,21 @@ public class InfoHub : Hub
     private readonly IWebHostEnvironment env;
     private readonly IFrontendLogger logger;
     private readonly IOptionsMonitor<Config> options;
+    private readonly UpdateCheckService updateCheckService;
     private IAsyncEnumerable<string> logMessages;
 
-    public InfoHub(IHttpContextAccessor ctx, IWebHostEnvironment env, IFrontendLogger logger, IOptionsMonitor<Config> options)
+    public InfoHub(IHttpContextAccessor ctx, IWebHostEnvironment env, IFrontendLogger logger, IOptionsMonitor<Config> options, UpdateCheckService updateCheckService)
     {
         this.ctx = ctx;
         this.env = env;
         this.logger = logger;
         this.options = options;
+        this.updateCheckService = updateCheckService;
+    }
+
+    public async Task<UpdateInfo> GetUpdateInfo()
+    {
+        return await updateCheckService.GetUpdateInfo();
     }
 
     public string GetOwnUrl()

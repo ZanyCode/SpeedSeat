@@ -56,6 +56,33 @@
   }
 }
 
+.toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.version-label {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.firmware-banner {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: #e3f2fd;
+  color: #0d47a1;
+  border-bottom: 1px solid #90caf9;
+  position: sticky;
+  top: 64px;
+  z-index: 1;
+}
+
+.firmware-banner-warn {
+  background: #fff3e0;
+  color: #e65100;
+  border-bottom-color: #ffb74d;
+}
+
 .fatal-error-overlay {
   background: #000000e4;
   color: red;

@@ -26,6 +26,7 @@ void communication::execute()
         {
             waiting_for_okay = false;
             valuesHavBeenFilled = false;
+            resendAttempts = 0;
             bytesRecived--;
             int x = 0;
 
@@ -80,7 +81,25 @@ void communication::execute()
     {
         if (millis() - millisAtLastSendMessage > TIMEOUT)
         {
-            sendBuffer();
+            // Don't resend forever — when the PC disappears (disconnect, restart,
+            // firmware update), abandon the request so a future connection
+            // doesn't meet a communication state stuck in an endless resend loop.
+            if (++resendAttempts > MAX_RESEND_ATTEMPTS)
+            {
+                waiting_for_okay = false;
+                valuesHavBeenFilled = false;
+                resendAttempts = 0;
+                int x = 0;
+                while (request_buffer[x] != IDLE)
+                {
+                    request_buffer[x] = request_buffer[x + 1];
+                    x++;
+                }
+            }
+            else
+            {
+                sendBuffer();
+            }
         }
     }
 
@@ -205,6 +224,8 @@ void communication::readNewCommand()
     case SAVE_SETTINGS:
     case RESET_EEPROM:
     case FILTER_CONSTANT:
+    case FIRMWARE_VERSION:
+    case START_FIRMWARE_UPDATE:
         if (reading)
         {
             addCommandToRequestLine(command);
@@ -224,6 +245,17 @@ void communication::readNewCommand()
         break;
 
     case INIT_REQUEST:
+        // A new PC connection: drop all leftover state from a previous session
+        // (pending resends, half-finished request queue) so the init sequence
+        // always starts deterministically.
+        waiting_for_okay = false;
+        valuesHavBeenFilled = false;
+        recived_value.is_available = false;
+        resendAttempts = 0;
+        for (int i = 0; i < REQUEST_BUFFER_LENGTH; i++)
+        {
+            request_buffer[i] = IDLE;
+        }
         addAllCommandsToRequestLine();
         successfulExecuted = true;
         break;

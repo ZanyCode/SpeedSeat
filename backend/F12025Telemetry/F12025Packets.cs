@@ -4,15 +4,6 @@ using F12020Telemetry;
 namespace F12025Telemetry
 {
     /// <summary>
-    /// Supported telemetry source games.
-    /// </summary>
-    public enum GameVersion
-    {
-        F12020 = 2020,
-        F12025 = 2025
-    }
-
-    /// <summary>
     /// Packet header used by F1 23 and later (incl. F1 25).
     /// Compared to F1 2020 it adds gameYear and overallFrameIdentifier (29 bytes total).
     /// </summary>

@@ -5,15 +5,20 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+    <!-- CI overrides this with the release version; 0.0.0.1 marks local dev builds. -->
+    <Version Condition="'$(Version)' == ''">0.0.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
-      <EmbeddedResource Include="wwwroot\**\*">      
+      <EmbeddedResource Include="wwwroot\**\*">
       </EmbeddedResource>
       <EmbeddedResource Include="config.json">
       </EmbeddedResource>
-      <EmbeddedResource Include="appsettings_template.json">      
+      <EmbeddedResource Include="appsettings_template.json">
       </EmbeddedResource>
+      <!-- Created by CI before publish: the matching ESP32 firmware for OTA updates. -->
+      <EmbeddedResource Include="firmware.bin" Condition="Exists('firmware.bin')" LogicalName="speedseat.firmware.bin" />
+      <EmbeddedResource Include="firmware_version.txt" Condition="Exists('firmware_version.txt')" LogicalName="speedseat.firmware_version.txt" />
   </ItemGroup>
 
   <ItemGroup>

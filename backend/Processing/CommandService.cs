@@ -35,6 +35,13 @@ public class CommandService
 
     public bool IsConnected => this.serialPort != null;
 
+    // True when the current connection runs over WiFi/UDP (OTA firmware updates are only possible there).
+    public bool IsUdpConnection { get; private set; }
+
+    // Firmware version reported by the MC in response to the FirmwareVersion read request,
+    // null until (and unless) the MC answers — old firmwares don't know the command.
+    public ushort? ReportedFirmwareVersion { get; private set; }
+
     private bool waitingForConnection = false;
     private bool connectionCancelled = false;
     private SemaphoreSlim waitingForConnectionSemaphore = new SemaphoreSlim(0, 1);
@@ -64,6 +71,8 @@ public class CommandService
 
     public async Task<bool> Connect(string port)
     {
+        ReportedFirmwareVersion = null;
+        IsUdpConnection = System.Net.IPAddress.TryParse(port, out _);
         serialPort = serialPortConnectionFactory.Create(port);
         serialPort.ErrorReceived += (sender, args) =>
         {
@@ -210,6 +219,14 @@ public class CommandService
                     return;
                 }
 
+                if (id == Command.FirmwareVersionCommandId)
+                {
+                    ReportedFirmwareVersion = (ushort)((commandData[1] << 8) | commandData[2]);
+                    frontendLogger.Log($"Microcontroller reported firmware version {ReportedFirmwareVersion}.");
+                    await SendAcknowledgeByteToMicrocontroller(true);
+                    return;
+                }
+
                 var command = options.CurrentValue.Commands.SingleOrDefault(x => x.Id == id);
                 if (command == null)
                 {
@@ -267,9 +284,12 @@ public class CommandService
 
     public void Disconnect()
     {
-        this.writeDataSemaphore.Release();
+        // Note: writeDataSemaphore must NOT be released here. Every WriteBytesToSerialPort
+        // call releases it itself (success and error paths), and an extra release would
+        // inflate the count so two writers could interleave on the next connection.
         this.serialPort?.Dispose();
         this.serialPort = null;
+        this.ReportedFirmwareVersion = null;
         frontendLogger.Log("Connection to Serial Port closed");
     }
 

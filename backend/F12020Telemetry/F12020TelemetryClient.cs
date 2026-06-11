@@ -14,10 +14,16 @@ namespace F12020Telemetry
     public class F12020TelemetryClient
     {
         /// <summary>
-        /// Game selected in the UI. Informational only: parsing auto-detects the
-        /// packet layout from the packetFormat field of each incoming packet.
+        /// packetFormat of the most recently received packet (the game year, e.g. 2020 or 2025),
+        /// or null while no telemetry is being received. Parsing auto-detects the packet layout
+        /// from this field, so the game never has to be selected manually.
         /// </summary>
-        public GameVersion GameVersion { get; set; } = GameVersion.F12020;
+        public ushort? DetectedPacketFormat { get; private set; }
+
+        /// <summary>
+        /// Raised whenever DetectedPacketFormat changes (new game detected or telemetry timed out).
+        /// </summary>
+        public event Action<ushort?> OnDetectedPacketFormatChanged;
 
         /// <summary>
         /// Time required to time out in MS.
@@ -121,6 +127,12 @@ namespace F12020Telemetry
                     return;
                 ushort packetFormat = BitConverter.ToUInt16(data, 0);
 
+                if (packetFormat >= 2020 && DetectedPacketFormat != packetFormat)
+                {
+                    DetectedPacketFormat = packetFormat;
+                    OnDetectedPacketFormatChanged?.Invoke(packetFormat);
+                }
+
                 if (packetFormat >= 2023)
                 {
                     HandleF12025Packet(data, handle, packetFormat);
@@ -222,6 +234,11 @@ namespace F12020Telemetry
         {
             Connected = false;
             OnConnectStatusChanged?.Invoke(false);
+            if (DetectedPacketFormat != null)
+            {
+                DetectedPacketFormat = null;
+                OnDetectedPacketFormatChanged?.Invoke(null);
+            }
         }
     }
 }

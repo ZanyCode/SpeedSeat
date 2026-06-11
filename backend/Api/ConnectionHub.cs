@@ -11,8 +11,9 @@ public class ConnectionHub : Hub
     private readonly IHubContext<ConnectionHub> context;
     private readonly IOptionsMonitor<Config> options;
     private readonly IFrontendLogger frontendLogger;
+    private readonly FirmwareUpdateService firmwareUpdateService;
 
-    public ConnectionHub(Speedseat seat, ISpeedseatSettings settings, CommandService commandService, IHubContext<ConnectionHub> context, IOptionsMonitor<Config> options, IFrontendLogger frontendLogger)
+    public ConnectionHub(Speedseat seat, ISpeedseatSettings settings, CommandService commandService, IHubContext<ConnectionHub> context, IOptionsMonitor<Config> options, IFrontendLogger frontendLogger, FirmwareUpdateService firmwareUpdateService)
     {
         this.seat = seat;
         this.settings = settings;
@@ -20,6 +21,7 @@ public class ConnectionHub : Hub
         this.context = context;
         this.options = options;
         this.frontendLogger = frontendLogger;
+        this.firmwareUpdateService = firmwareUpdateService;
     }
 
     public async Task<string[]> GetPorts()
@@ -37,7 +39,19 @@ public class ConnectionHub : Hub
 
     public async Task<bool> Connect(string port)
     {
-        return await commandService.Connect(port);
+        var connected = await commandService.Connect(port);
+
+        // Version handshake + OTA update run in the background so the UI unblocks immediately;
+        // progress is pushed to all clients via the "firmwareUpdateState" event.
+        if (connected)
+            _ = Task.Run(() => firmwareUpdateService.CheckFirmwareAfterConnect());
+
+        return connected;
+    }
+
+    public object GetFirmwareUpdateState()
+    {
+        return new { state = firmwareUpdateService.State, message = firmwareUpdateService.Message };
     }
 
     public async Task DeleteEEPROM(string port)

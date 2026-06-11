@@ -37,9 +37,6 @@ public interface ISpeedseatSettings
     bool FrontTiltReverse { get; set; }
     IObservable<bool> SideTiltReverseObs { get; }
     bool SideTiltReverse { get; set; }
-    IObservable<int> TelemetryGameVersionObs { get; }
-    int TelemetryGameVersion { get; set; }
-
 
     (double value1, double value2, double value3) GetConfigurableSettingsValues(Command command);
     void SaveConfigurableSetting(Command command);
@@ -119,12 +116,6 @@ public class SpeedseatSettings : ISpeedseatSettings
     [JsonIgnore]
     public IObservable<bool> SideTiltReverseObs => GetObservable<bool>(nameof(SideTiltReverse), SideTiltReverse);
     public bool SideTiltReverse { get => GetValue<bool>(false); set => SetValue(value); }
-
-    /* Telemetry source game (stored as year, e.g. 2020 or 2025) */
-    [JsonIgnore]
-    public IObservable<int> TelemetryGameVersionObs => GetObservable<int>(nameof(TelemetryGameVersion), TelemetryGameVersion);
-    public int TelemetryGameVersion { get => GetValue<int>(2020); set => SetValue(value); }
-
 
     /* Configurable settings */
     private IDictionary<byte, CountSubject<Command>> configurableSettingSubscriptions = new Dictionary<byte, CountSubject<Command>>();

@@ -80,7 +80,25 @@
         <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
       </button>
       <span>SpeedSeat</span>
+      <span class="toolbar-spacer"></span>
+      <span *ngIf="updateInfo" class="version-label">v{{updateInfo.currentVersion}}</span>
+      <button *ngIf="updateInfo?.updateAvailable" mat-raised-button color="accent" class="ms-3"
+        (click)="downloadUpdate()">
+        <mat-icon>download</mat-icon>
+        Download update {{updateInfo?.latestVersion}}
+      </button>
     </mat-toolbar>
+
+    <!-- Firmware update status banner -->
+    <div *ngIf="firmwareMessage" class="firmware-banner"
+      [class.firmware-banner-warn]="firmwareState === 'otaFailed' || firmwareState === 'otaUnavailable' || firmwareState === 'updateRequiresWifi'">
+      <mat-spinner diameter="20" class="me-2"
+        *ngIf="firmwareState === 'checking' || firmwareState === 'updating' || isAutoReconnecting"></mat-spinner>
+      <mat-icon class="me-2" *ngIf="firmwareState === 'upToDate'">check_circle</mat-icon>
+      <mat-icon class="me-2"
+        *ngIf="firmwareState === 'otaFailed' || firmwareState === 'otaUnavailable' || firmwareState === 'updateRequiresWifi'">warning</mat-icon>
+      <span>{{firmwareMessage}}</span>
+    </div>
     <div class="col overflow-hidden">
       <div class="overflow-auto upper-section position-relative">
         <!-- Main content -->

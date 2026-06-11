@@ -19,6 +19,8 @@ try
     builder.Services.AddSingleton<OutdatedDataDiscardQueue<Command>>();
     builder.Services.AddSingleton<Speedseat>();
     builder.Services.AddSingleton<F12020TelemetryAdaptor>();
+    builder.Services.AddSingleton<FirmwareUpdateService>();
+    builder.Services.AddSingleton<UpdateCheckService>();
     builder.Services.AddSingleton<IFrontendLogger, FrontendLogger>();
     builder.Services.AddTransient<ISerialPortConnectionFactory, SerialPortConnectionFactory>();
 
@@ -62,6 +64,19 @@ try
             FileProvider = new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot")
         };
     });
+
+    // Telemetry processing runs for the whole lifetime of the backend — the game is
+    // auto-detected from the incoming packets, there is no streaming state to manage.
+    app.Services.GetRequiredService<F12020TelemetryAdaptor>().Start();
+
+    // The ESP32 downloads the bundled firmware from here during an OTA update.
+    var firmwareService = app.Services.GetRequiredService<FirmwareUpdateService>();
+    app.MapGet("/firmware.bin", () => firmwareService.FirmwareBinary != null
+        ? Results.Bytes(firmwareService.FirmwareBinary, "application/octet-stream", "firmware.bin")
+        : Results.NotFound());
+
+    // Check for new releases in the background; the frontend picks the result up via InfoHub.
+    _ = Task.Run(() => app.Services.GetRequiredService<UpdateCheckService>().GetUpdateInfo());
 
     app.MapHub<ManualControlHub>("/hub/manual");
     app.MapHub<ConnectionHub>("/hub/connection");

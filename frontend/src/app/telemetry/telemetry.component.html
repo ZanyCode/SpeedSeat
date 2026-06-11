@@ -1,29 +1,19 @@
 <div class="container-fluid">
     <div class="row align-items-center justify-content-center">
-        <!-- <div class="col-12 col-md-4">
-            <mat-card class="example-card mt-3">
-              <mat-card-header>    
-                  <mat-card-title>Stream</mat-card-title>
-                </mat-card-header>
-                <mat-card-content class="position-relative">                  
-                  
-                </mat-card-content> 
-                <mat-divider inset></mat-divider>
-                <mat-card-actions>
-                  <button *ngIf="!isStreaming" mat-raised-button color="primary" (click)="startStreaming()">Start Streaming</button>
-                  <button *ngIf="isStreaming" mat-raised-button color="primary" (click)="stopStreaming()">Stop Streaming</button>
-                </mat-card-actions>
-            </mat-card>
-        </div>     -->
-
       <div class="col-12">
         <mat-card class="example-card mt-3">
             <mat-card-header>
               <mat-card-title>Game</mat-card-title>
             </mat-card-header>
             <mat-card-content class="position-relative">
-                <button mat-raised-button class="game-version-button" [color]="gameVersion === 2020 ? 'primary' : null" (click)="gameVersion = 2020">F1 2020</button>
-                <button mat-raised-button class="game-version-button" [color]="gameVersion === 2025 ? 'primary' : null" (click)="gameVersion = 2025">F1 2025</button>
+                <div *ngIf="detectedGame" class="game-status game-status-detected">
+                    <mat-icon>sports_esports</mat-icon>
+                    <span>Receiving telemetry from <b>F1 {{detectedGame}}</b> — the game is detected automatically.</span>
+                </div>
+                <div *ngIf="!detectedGame" class="game-status game-status-waiting">
+                    <mat-icon>hourglass_empty</mat-icon>
+                    <span>No game telemetry detected. Start your F1 game and enable UDP telemetry (IP of this PC or 127.0.0.1, port 20777) — streaming starts automatically.</span>
+                </div>
             </mat-card-content>
         </mat-card>
       </div>
@@ -136,6 +126,4 @@
         </div>    
     </div>
 
-    <button class="streaming-button" *ngIf="!isStreaming" mat-raised-button color="primary" (click)="startStreaming()">Start Streaming</button>
-    <button class="streaming-button" *ngIf="isStreaming" mat-raised-button color="primary" (click)="stopStreaming()">Stop Streaming</button>
 </div>

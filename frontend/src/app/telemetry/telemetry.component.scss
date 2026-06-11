@@ -1,8 +1,16 @@
-.streaming-button {
-    position: sticky;
-    bottom: 20px
+.game-status {
+    display: flex;
+    align-items: center;
+
+    mat-icon {
+        margin-right: 10px;
+    }
 }
 
-.game-version-button {
-    margin-right: 10px;
+.game-status-detected {
+    color: #2e7d32;
+}
+
+.game-status-waiting {
+    color: rgba(0, 0, 0, 0.6);
 }

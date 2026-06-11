@@ -1,6 +1,4 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Subscription } from 'rxjs';
-import { AppEventsService } from '../app-events.service';
 import { DataPoint, TelemetryDataService } from './telemetry-data.service';
 
 @Component({
@@ -9,8 +7,8 @@ import { DataPoint, TelemetryDataService } from './telemetry-data.service';
   styleUrls: ['./telemetry.component.scss']
 })
 export class TelemetryComponent implements OnInit, OnDestroy {
-  isStreaming = false;
-  private connectionSubscription: Subscription | undefined;
+  // Game year detected from incoming telemetry (e.g. 2020 or 2025), null while no game is sending.
+  detectedGame: number | null = null;
   frontTiltTelemetry: DataPoint[] = [];
   sideTiltTelemetry: DataPoint[] = [];
 
@@ -103,22 +101,13 @@ export class TelemetryComponent implements OnInit, OnDestroy {
     this.data.setSideTiltReverse(value);
   }
 
-  private _gameVersion: number = 2020;
-  public get gameVersion(): number {
-    return this._gameVersion;
-  }
-  public set gameVersion(value: number) {
-    this._gameVersion = value;
-    this.data.setTelemetryGameVersion(value);
-  }
-
-  constructor(private data: TelemetryDataService, private events: AppEventsService) { }
+  constructor(private data: TelemetryDataService) { }
 
 
   ngOnInit(): void {
-    this.data.init(this.onUpdateTelemetry).then(async () => {
+    this.data.init(this.onUpdateTelemetry, this.onGameDetected).then(async () => {
       const settings = await this.data.getCurrentState();
-      this.isStreaming = await this.data.getIsStreaming();
+      this.detectedGame = await this.data.getDetectedGame();
       this._frontTiltGForceMultiplier = settings.frontTiltGforceMultiplier;
       this._frontTiltOutputCap = settings.frontTiltOutputCap;
       this._frontTiltSmoothing = settings.frontTiltSmoothing;
@@ -127,24 +116,11 @@ export class TelemetryComponent implements OnInit, OnDestroy {
       this._sideTiltSmoothing = settings.sideTiltSmoothing;
       this._frontTiltReverse = settings.frontTiltReverse;
       this._sideTiltReverse = settings.sideTiltReverse;
-      this._gameVersion = settings.telemetryGameVersion ?? 2020;
-
-      this.connectionSubscription = this.events.ConnectionStateChanged.subscribe(async isConnected => {
-        if (isConnected && !this.isStreaming) {
-          await this.startStreaming();
-        }
-      });
     });
   }
 
-  async startStreaming() {
-    await this.data.startStreaming();
-    this.isStreaming = true;    
-  }
-
-  async stopStreaming() {
-    await this.data.stopStreaming();
-    this.isStreaming = false;
+  onGameDetected = (game: number | null) => {
+    this.detectedGame = game;
   }
 
   onUpdateTelemetry = (frontTiltTelemetry: DataPoint[], sideTiltTelemetry: DataPoint[]) => {
@@ -166,7 +142,6 @@ export class TelemetryComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.connectionSubscription?.unsubscribe();
     this.data.destroy();
   }
 }

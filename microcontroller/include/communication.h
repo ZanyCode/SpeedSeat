@@ -19,6 +19,12 @@
 #define REQUEST_BUFFER_LENGTH 100
 #endif
 
+// How often an unacknowledged command is resent before it is abandoned
+// (prevents endless resend loops when the PC disappears).
+#ifndef MAX_RESEND_ATTEMPTS
+#define MAX_RESEND_ATTEMPTS 10
+#endif
+
 #ifndef STRUCT_CMD
 #define STRUCT_CMD
 enum CMD
@@ -47,6 +53,10 @@ enum CMD
     ERROR_ID = 21,
     DRIVE_STATE =22,
     FILTER_CONSTANT =23,
+    // PC sends a read request, MC answers with its numeric firmware version in Value1
+    FIRMWARE_VERSION = 0x40,
+    // PC requests an OTA update; Value1 = HTTP port on the PC serving /firmware.bin
+    START_FIRMWARE_UPDATE = 0x41,
     RESET_EEPROM = 0x42,
 
     IDLE = 999
@@ -81,6 +91,7 @@ class communication
     unsigned long millisAtLastFPSCalculation = 0;
     bool waiting_for_okay;
     bool valuesHavBeenFilled = false;
+    unsigned resendAttempts = 0;
     unsigned valuesToSend[3];
     CMD request_buffer[REQUEST_BUFFER_LENGTH];
 

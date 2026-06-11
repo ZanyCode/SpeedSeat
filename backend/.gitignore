@@ -456,3 +456,7 @@ $RECYCLE.BIN/
 !.vscode/launch.json
 !.vscode/extensions.json
 speedseat.sqlite3*
+
+# Created by CI (or locally for testing) before publish — the bundled ESP32 firmware
+firmware.bin
+firmware_version.txt

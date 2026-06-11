@@ -6,6 +6,7 @@
 #include "EEPROM.h"
 #include "Beeping.h"
 #include "compileChecker.h"
+#include "ota.h"
 
 #ifdef DEBUG
 void printPosition(int i)
@@ -273,6 +274,10 @@ void writeRequestedValue()
     com.fillValueBuffer(X_Axis.getFilterConstant(), 0, 0);
     break;
 
+  case FIRMWARE_VERSION:
+    com.fillValueBuffer(FW_VERSION_NUMBER, 0, 0);
+    break;
+
   default:
     break;
   }
@@ -371,6 +376,20 @@ void readNewCommand()
     X_Axis.setFilterConstant(com.recived_value.as_int16[0]);
     Y_Axis.setFilterConstant(com.recived_value.as_int16[0]);
     Z_Axis.setFilterConstant(com.recived_value.as_int16[0]);
+    break;
+
+  case START_FIRMWARE_UPDATE:
+#ifdef USE_UDP
+    if (transport.hasPeerEndpoint())
+    {
+      // Value1 carries the HTTP port of the backend; the host is the PC we talk to.
+      // Stop the motors, give the OKAY datagram time to leave, then flash + restart.
+      Axis::disableStepping();
+      delay(100);
+      performOtaUpdate(transport.getPeerIp(), com.recived_value.as_int16[0]);
+    }
+#endif
+    break;
 
   default:
     break;

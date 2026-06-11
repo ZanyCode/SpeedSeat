@@ -21,6 +21,12 @@
 //define to spit out Serial information about state of the loop. Usefull when micocontroller crashes.
 //#define DEBUG
 
+//Numeric firmware version reported to the PC for the OTA update handshake.
+//CI overrides this via build flag (-DFW_VERSION_NUMBER=<release build number>); 0 = local dev build.
+#ifndef FW_VERSION_NUMBER
+#define FW_VERSION_NUMBER 0
+#endif
+
 //Communicate with the PC over WiFi/UDP instead of USB-serial. The PC finds the ESP via UDP broadcast discovery.
 #define USE_UDP
 #ifdef USE_UDP

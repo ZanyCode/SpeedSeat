@@ -54,6 +54,15 @@ export class ConnectionDataService {
     await this.connection.start();
   }
 
+  // Firmware version handshake / OTA progress pushed by the backend after every connect.
+  public onFirmwareUpdateState(callback: (state: string, message: string) => void) {
+    this.connection.on('firmwareUpdateState', callback);
+  }
+
+  public async getFirmwareUpdateState() {
+    return await this.connection.invoke<{ state: string, message: string }>("GetFirmwareUpdateState");
+  }
+
   public async destroy() {
     await this.connection.stop();
   }

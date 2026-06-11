@@ -54,26 +54,12 @@ public class TelemetryHub : Hub
         this.settings.SideTiltReverse = reverse;
     }
 
-    public void SetTelemetryGameVersion(int version)
-    {
-        this.settings.TelemetryGameVersion = version;
-    }
-
-    public void StartStreaming()
-    {
-        this.telemetryAdaptor.StartStreaming();
-    }
-
-    public void StopStreaming()
-    {
-        this.telemetryAdaptor.StopStreaming();
-    }
-
     public ISpeedseatSettings GetCurrentState() {
         return settings;
     }
 
-    public bool GetIsStreaming() {
-        return telemetryAdaptor.IsStreaming;
+    // Game year detected from incoming telemetry (e.g. 2020 or 2025), null if no game is sending.
+    public int? GetDetectedGame() {
+        return telemetryAdaptor.DetectedGame;
     }
 }
