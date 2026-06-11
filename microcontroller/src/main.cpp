@@ -8,6 +8,7 @@
 #include "compileChecker.h"
 #include "ota.h"
 
+
 #ifdef DEBUG
 void printPosition(int i)
 {
