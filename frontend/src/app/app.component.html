@@ -13,6 +13,24 @@
   <p class="ota-overlay-warning">Please do not power off the seat. It will reconnect automatically when done.</p>
 </div>
 
+<!-- Backend self-update overlay — shown while the app downloads the new version and restarts -->
+<div *ngIf="updateInstalling && updateInstallState !== 'failed'" class="ota-overlay">
+  <mat-spinner [diameter]="90" color="accent"></mat-spinner>
+  <mat-icon class="ota-overlay-icon">{{updateInstallState === 'restarting' ? 'restart_alt' : 'download'}}</mat-icon>
+  <h1 class="ota-overlay-title">{{updateInstallState === 'restarting' ? 'Restarting SpeedSeat' : 'Installing update'}}</h1>
+  <p class="ota-overlay-message">{{updateInstallMessage}}</p>
+  <p class="ota-overlay-warning" *ngIf="updateInstallState === 'restarting'">This page reloads automatically in a few seconds.</p>
+</div>
+
+<!-- USB flash overlay — shown while the bundled firmware is flashed to a USB-connected seat -->
+<div *ngIf="usbFlashState" class="ota-overlay">
+  <mat-spinner [diameter]="90" color="accent" *ngIf="usbFlashState === 'flashing'"></mat-spinner>
+  <mat-icon class="ota-overlay-icon">{{usbFlashState === 'success' ? 'check_circle' : usbFlashState === 'failed' ? 'error' : 'usb'}}</mat-icon>
+  <h1 class="ota-overlay-title">{{usbFlashState === 'success' ? 'Seat flashed' : usbFlashState === 'failed' ? 'USB flashing failed' : 'Flashing seat via USB'}}</h1>
+  <p class="ota-overlay-message">{{usbFlashMessage}}</p>
+  <p class="ota-overlay-warning" *ngIf="usbFlashState === 'flashing'">Do not unplug the seat.</p>
+</div>
+
 <mat-sidenav-container class="sidenav-container position-relative">
   <!-- side area with links -->
   <mat-sidenav #drawer class="sidenav" fixedInViewport [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
@@ -52,9 +70,9 @@
       <span class="toolbar-spacer"></span>
       <span *ngIf="updateInfo" class="version-label">v{{updateInfo.currentVersion}}</span>
       <button *ngIf="updateInfo?.updateAvailable" mat-raised-button color="accent" class="ms-3"
-        (click)="downloadUpdate()">
+        (click)="installUpdate()" [disabled]="updateInstalling">
         <mat-icon>download</mat-icon>
-        Download update {{updateInfo?.latestVersion}}
+        Install update {{updateInfo?.latestVersion}}
       </button>
     </mat-toolbar>
 
@@ -73,9 +91,27 @@
         <router-outlet></router-outlet>
 
         <!-- No-Connection overlay — the backend keeps trying to bind to the seat on its own -->
-        <div *ngIf="!isConnected" class="no-connection-overlay w-100 h-100 position-absolute top-0 d-flex">
-          <mat-spinner class="left-side-element"></mat-spinner>
-          <span class="ms-2">Connecting to seat&hellip;</span>
+        <div *ngIf="!isConnected" class="no-connection-overlay w-100 h-100 position-absolute top-0 d-flex flex-column">
+          <div class="d-flex align-items-center">
+            <mat-spinner class="left-side-element"></mat-spinner>
+            <span class="ms-2">Connecting to seat&hellip;</span>
+          </div>
+
+          <!-- Shown after the seat has stayed unreachable for a few seconds -->
+          <div *ngIf="showFlashHelp" class="flash-help">
+            <p>Not connecting? If you are setting the seat up for the <strong>first time</strong>, join its
+              <strong>“SpeedSeat-Setup”</strong> Wi-Fi access point from your phone or PC and choose your
+              network — the seat connects automatically from then on.</p>
+            <p>If the seat has <strong>not been flashed yet</strong>, connect it to this PC with a USB cable
+              and flash it:</p>
+            <button mat-raised-button color="primary" *ngIf="canFlashViaUsb" (click)="flashViaUsb()"
+              [disabled]="usbFlashing">
+              <mat-icon>usb</mat-icon>
+              Flash via USB
+            </button>
+            <p *ngIf="!canFlashViaUsb" class="flash-help-note">(USB flashing isn’t available in this build —
+              flash once via PlatformIO.)</p>
+          </div>
         </div>
       </div>
       <!-- log console  -->

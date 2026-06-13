@@ -37,6 +37,21 @@ export class AppComponent implements OnInit, OnDestroy {
   firmwareState: string | undefined = undefined;
   firmwareMessage: string | undefined = undefined;
 
+  // Backend self-update (in-place install) status
+  updateInstalling = false;
+  updateInstallState: string | undefined = undefined;
+  updateInstallMessage: string | undefined = undefined;
+  private updateFallbackDone = false;
+
+  // First-time-setup / USB-flash help, shown after the seat stays disconnected for a while
+  showFlashHelp = false;
+  canFlashViaUsb = false;
+  usbFlashState: string | undefined = undefined;
+  usbFlashMessage: string | undefined = undefined;
+  usbFlashing = false;
+  private flashHelpTimer: any = undefined;
+  private static readonly FLASH_HELP_DELAY_MS = 5000;
+
 
   isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset)
     .pipe(
@@ -58,10 +73,13 @@ export class AppComponent implements OnInit, OnDestroy {
         });
 
         this.data.getUpdateInfo().then(info => this.updateInfo = info);
+        this.data.onUpdateInstallState((state, message) => this.onUpdateInstallState(state, message));
 
         this.connectionService.init().then(async () => {
           this.connectionService.onConnectionStateChanged(isConnected => this.onConnectionStateChanged(isConnected));
           this.connectionService.onFirmwareUpdateState((state, message) => this.onFirmwareUpdateState(state, message));
+          this.connectionService.onUsbFlashState((state, message) => this.onUsbFlashState(state, message));
+          this.canFlashViaUsb = await this.connectionService.getCanFlashViaUsb();
 
           // Pick up whatever the backend is doing right now (it may already be connected
           // or mid firmware update when this page (re)loads).
@@ -74,7 +92,53 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
-  downloadUpdate() {
+  async installUpdate() {
+    if (this.updateInstalling)
+      return;
+
+    this.updateInstalling = true;
+    this.updateFallbackDone = false;
+    this.updateInstallState = 'downloading';
+    this.updateInstallMessage = 'Starting update…';
+
+    try {
+      const started = await this.data.installUpdate();
+      if (started)
+        this.scheduleReloadAfterRestart();
+      else
+        this.fallbackToManualDownload();
+    } catch {
+      // The hub call can reject if the backend already exited mid-restart — that's expected
+      // once we've seen the 'restarting' state; otherwise fall back to a manual download.
+      if (this.updateInstallState === 'restarting')
+        this.scheduleReloadAfterRestart();
+      else
+        this.fallbackToManualDownload();
+    }
+  }
+
+  onUpdateInstallState(state: string, message: string) {
+    this.updateInstallState = state;
+    this.updateInstallMessage = message;
+
+    if (state === 'failed')
+      this.fallbackToManualDownload();
+  }
+
+  private scheduleReloadAfterRestart() {
+    this.updateInstallState = 'restarting';
+    this.updateInstallMessage = this.updateInstallMessage ?? 'Update installed. Restarting SpeedSeat…';
+    // Give the new backend time to start and bind port 5000, then reload this tab onto it.
+    setTimeout(() => window.location.reload(), 9000);
+  }
+
+  private fallbackToManualDownload() {
+    if (this.updateFallbackDone)
+      return;
+    this.updateFallbackDone = true;
+    this.updateInstalling = false;
+    this.updateInstallState = undefined;
+    this.updateInstallMessage = undefined;
     if (this.updateInfo?.downloadUrl)
       window.open(this.updateInfo.downloadUrl, '_blank');
   }
@@ -87,6 +151,44 @@ export class AppComponent implements OnInit, OnDestroy {
     if (isConnected && this.firmwareState === 'updating') {
       this.firmwareState = undefined;
       this.firmwareMessage = undefined;
+    }
+
+    // Show the first-time-setup / USB-flash help only after the seat has failed to connect
+    // for a few seconds (a freshly flashed/unconfigured seat never shows up over WiFi).
+    if (isConnected) {
+      clearTimeout(this.flashHelpTimer);
+      this.flashHelpTimer = undefined;
+      this.showFlashHelp = false;
+    } else if (this.flashHelpTimer === undefined) {
+      this.flashHelpTimer = setTimeout(() => this.showFlashHelp = true, AppComponent.FLASH_HELP_DELAY_MS);
+    }
+  }
+
+  async flashViaUsb() {
+    if (this.usbFlashing)
+      return;
+    this.usbFlashing = true;
+    this.usbFlashState = 'flashing';
+    this.usbFlashMessage = 'Starting USB flash…';
+    try {
+      await this.connectionService.flashViaUsb();
+    } catch {
+      // Progress and the final result arrive via the usbFlashState push events.
+    }
+  }
+
+  onUsbFlashState(state: string, message: string) {
+    this.usbFlashState = state;
+    this.usbFlashMessage = message;
+    this.usbFlashing = state === 'flashing';
+
+    if (state === 'success' || state === 'failed') {
+      setTimeout(() => {
+        if (this.usbFlashState === state) {
+          this.usbFlashState = undefined;
+          this.usbFlashMessage = undefined;
+        }
+      }, 15000);
     }
   }
 

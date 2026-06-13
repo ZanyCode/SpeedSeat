@@ -14,20 +14,31 @@ public class InfoHub : Hub
     private readonly IFrontendLogger logger;
     private readonly IOptionsMonitor<Config> options;
     private readonly UpdateCheckService updateCheckService;
+    private readonly SelfUpdateService selfUpdateService;
     private IAsyncEnumerable<string> logMessages;
 
-    public InfoHub(IHttpContextAccessor ctx, IWebHostEnvironment env, IFrontendLogger logger, IOptionsMonitor<Config> options, UpdateCheckService updateCheckService)
+    public InfoHub(IHttpContextAccessor ctx, IWebHostEnvironment env, IFrontendLogger logger, IOptionsMonitor<Config> options, UpdateCheckService updateCheckService, SelfUpdateService selfUpdateService)
     {
         this.ctx = ctx;
         this.env = env;
         this.logger = logger;
         this.options = options;
         this.updateCheckService = updateCheckService;
+        this.selfUpdateService = selfUpdateService;
     }
 
     public async Task<UpdateInfo> GetUpdateInfo()
     {
         return await updateCheckService.GetUpdateInfo();
+    }
+
+    // Installs the newer release in place and restarts. Returns true if the update started
+    // (the backend will relaunch and exit shortly); false if it isn't possible — the frontend
+    // then falls back to opening the download URL in the browser. Progress is pushed to all
+    // clients via the "updateInstallState" event.
+    public async Task<bool> InstallUpdate()
+    {
+        return await selfUpdateService.InstallUpdate();
     }
 
     public string GetOwnUrl()

@@ -16,6 +16,22 @@ export class ConnectionDataService {
     return await this.connection.invoke<boolean>("GetIsConnected");
   }
 
+  // Whether this backend build can flash a USB-connected seat (packaged release builds only).
+  public async getCanFlashViaUsb() {
+    return await this.connection.invoke<boolean>("GetCanFlashViaUsb");
+  }
+
+  // Flashes the bundled firmware to a USB-connected seat (first-time setup / recovery).
+  // Returns immediately; progress arrives via onUsbFlashState.
+  public async flashViaUsb() {
+    await this.connection.invoke("FlashViaUsb");
+  }
+
+  // Progress of a USB flash pushed by the backend (flashing / success / failed).
+  public onUsbFlashState(callback: (state: string, message: string) => void) {
+    this.connection.on('usbFlashState', callback);
+  }
+
   public async init() {
     this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/connection`).build();
     await this.connection.start();

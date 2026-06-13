@@ -19,6 +19,12 @@
       <!-- Created by CI before publish: the matching ESP32 firmware for OTA updates. -->
       <EmbeddedResource Include="firmware.bin" Condition="Exists('firmware.bin')" LogicalName="speedseat.firmware.bin" />
       <EmbeddedResource Include="firmware_version.txt" Condition="Exists('firmware_version.txt')" LogicalName="speedseat.firmware_version.txt" />
+      <!-- Created by CI before publish: bundled USB-flash payload (standalone esptool + full
+           ESP32 image set) used by the "Flash via USB" button for first-time / recovery flashing. -->
+      <EmbeddedResource Include="esptool.exe" Condition="Exists('esptool.exe')" LogicalName="speedseat.esptool.exe" />
+      <EmbeddedResource Include="bootloader.bin" Condition="Exists('bootloader.bin')" LogicalName="speedseat.bootloader.bin" />
+      <EmbeddedResource Include="partitions.bin" Condition="Exists('partitions.bin')" LogicalName="speedseat.partitions.bin" />
+      <EmbeddedResource Include="boot_app0.bin" Condition="Exists('boot_app0.bin')" LogicalName="speedseat.boot_app0.bin" />
   </ItemGroup>
 
   <ItemGroup>

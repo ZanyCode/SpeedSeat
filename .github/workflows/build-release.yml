@@ -42,8 +42,18 @@ jobs:
         pip install platformio
         cd microcontroller
         PLATFORMIO_BUILD_FLAGS="-DFW_VERSION_NUMBER=${FW_VERSION}" pio run
-        cp .pio/build/az-delivery-devkit-v4/firmware.bin ../backend/firmware.bin
+        BUILD=.pio/build/az-delivery-devkit-v4
+        cp $BUILD/firmware.bin ../backend/firmware.bin
         printf '%s' "${FW_VERSION}" > ../backend/firmware_version.txt
+        # Full ESP32 image set + standalone esptool, embedded for the in-app "Flash via USB"
+        # button (first-time setup / recovery over USB). esptool is the Windows build because
+        # the backend ships as a win-x64 exe.
+        cp $BUILD/bootloader.bin ../backend/bootloader.bin
+        cp $BUILD/partitions.bin ../backend/partitions.bin
+        cp "$(find ~/.platformio/packages -name boot_app0.bin | head -1)" ../backend/boot_app0.bin
+        curl -sL -o /tmp/esptool.zip https://github.com/espressif/esptool/releases/download/v4.9.0/esptool-v4.9.0-windows-amd64.zip
+        unzip -o /tmp/esptool.zip -d /tmp/esptool
+        cp "$(find /tmp/esptool -name esptool.exe | head -1)" ../backend/esptool.exe
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4

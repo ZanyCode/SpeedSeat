@@ -21,6 +21,8 @@ try
     builder.Services.AddSingleton<F12020TelemetryAdaptor>();
     builder.Services.AddSingleton<FirmwareUpdateService>();
     builder.Services.AddSingleton<UpdateCheckService>();
+    builder.Services.AddSingleton<SelfUpdateService>();
+    builder.Services.AddSingleton<UsbFlashService>();
     builder.Services.AddSingleton<IFrontendLogger, FrontendLogger>();
     builder.Services.AddTransient<IDeviceConnectionFactory, DeviceConnectionFactory>();
     // Continuously discovers the ESP32 over UDP and keeps the backend bound to the seat.
@@ -77,6 +79,9 @@ try
         ? Results.Bytes(firmwareService.FirmwareBinary, "application/octet-stream", "firmware.bin")
         : Results.NotFound());
 
+    // Remove the previous executable left behind by the last in-place self-update (if any).
+    app.Services.GetRequiredService<SelfUpdateService>().CleanupOldVersion();
+
     // Check for new releases in the background; the frontend picks the result up via InfoHub.
     _ = Task.Run(() => app.Services.GetRequiredService<UpdateCheckService>().GetUpdateInfo());
 
@@ -87,8 +92,9 @@ try
     app.MapHub<SeatSettingsHub>("/hub/seatSettings");
     app.MapHub<TelemetryHub>("/hub/telemetry");
 
-    // Open in browser
-    if (!app.Environment.IsDevelopment())
+    // Open in browser — but not when we were relaunched by a self-update: the existing
+    // frontend tab reloads itself onto this new backend, so a second window would be noise.
+    if (!app.Environment.IsDevelopment() && !args.Contains(SelfUpdateService.UpdatedRelaunchArg))
     {
         Task.Factory.StartNew(async () =>
         {

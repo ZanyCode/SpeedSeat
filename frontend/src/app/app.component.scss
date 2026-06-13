@@ -33,6 +33,28 @@
   z-index: 100;
 }
 
+.flash-help {
+  margin-top: 28px;
+  max-width: 620px;
+  padding: 0 16px;
+  font-size: 16px;
+  line-height: 1.5;
+  text-align: center;
+
+  p {
+    margin: 0 0 12px;
+  }
+
+  button {
+    margin-top: 8px;
+  }
+
+  .flash-help-note {
+    font-size: 13px;
+    opacity: 0.7;
+  }
+}
+
 .left-side-element {
   font-size: 30px;
   width: 30px;

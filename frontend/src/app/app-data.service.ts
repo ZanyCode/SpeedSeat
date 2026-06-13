@@ -35,6 +35,18 @@ export class AppDataService {
     return await this.connection.invoke<UpdateInfo>("GetUpdateInfo");
   }
 
+  // Installs the newer release in place and restarts the backend. Resolves to true when the
+  // update started (the backend will relaunch and exit), false when it isn't possible — the
+  // caller then falls back to a manual browser download.
+  public async installUpdate() {
+    return await this.connection.invoke<boolean>("InstallUpdate");
+  }
+
+  // Progress of the in-place self-update pushed by the backend (downloading / restarting / failed).
+  public onUpdateInstallState(callback: (state: string, message: string) => void) {
+    this.connection.on('updateInstallState', callback);
+  }
+
   public subscribeToLogs(): Observable<string> {
     let subject = new Subject<string>();
     this.connection.stream("LogMessages").subscribe(subject);
