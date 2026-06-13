@@ -1,6 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
-#define LED_BUILTIN 17
+#define LED_BUILTIN 2
 #define STEP_SETTING 800
 #define ACTUAL_STEPS_PER_ROTATION (STEP_SETTING * 2)
 //Spindel 4mm hub/Undrehung | Übersetzung Zahnräder 4/1

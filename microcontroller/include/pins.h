@@ -7,7 +7,7 @@
 #define PIN_X_STEP 14
 #define PIN_X_DIRECTION 15
 #define PIN_X_ENABLE 16
-#define PIN_X_TROUBLE 20
+#define PIN_X_TROUBLE 17
 #define PIN_X_ENDSTOP 18
 
 // Y-Axis
