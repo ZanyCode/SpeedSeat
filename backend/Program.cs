@@ -4,6 +4,25 @@ using System.Runtime.InteropServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 
+// Single-instance guard: only one backend can own port 5000. A second launch must not crash
+// with "address already in use" — instead bring the running instance's UI to the front and
+// exit. We key off the port itself (not a mutex) so this also covers an older build or any
+// other process already holding 5000.
+bool isUpdateRelaunch = args.Contains(SelfUpdateService.UpdatedRelaunchArg);
+
+if (isUpdateRelaunch)
+{
+    // A self-update relaunch races the outgoing instance for port 5000 — wait for it to free.
+    for (int i = 0; i < 50 && IsPortInUse(5000); i++)
+        Thread.Sleep(200);
+}
+else if (IsPortInUse(5000))
+{
+    // Another instance already serves the UI — surface it and exit instead of crashing.
+    SurfaceRunningInstance();
+    return;
+}
+
 try
 {
     var builder = WebApplication.CreateBuilder(args);
@@ -106,6 +125,12 @@ try
     }
     app.Run();
 }
+catch (Exception e) when (IsAddressInUse(e))
+{
+    // Lost the startup race for port 5000 to another instance — surface its UI and exit
+    // quietly instead of showing a crash.
+    SurfaceRunningInstance();
+}
 catch (Exception e)
 {
     // The published exe has no console window, so also record fatal startup errors to a file
@@ -120,6 +145,38 @@ catch (Exception e)
     Console.ReadLine();
 }
 
+// True if some process is already listening on the given local TCP port.
+bool IsPortInUse(int port)
+{
+    try
+    {
+        return System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties()
+            .GetActiveTcpListeners().Any(endpoint => endpoint.Port == port);
+    }
+    catch
+    {
+        return false;
+    }
+}
+
+// True if the exception chain is a "port already in use" socket error.
+bool IsAddressInUse(Exception e)
+{
+    for (Exception? x = e; x != null; x = x.InnerException)
+        if (x is System.Net.Sockets.SocketException se && se.SocketErrorCode == System.Net.Sockets.SocketError.AddressAlreadyInUse)
+            return true;
+    return false;
+}
+
+// Bring an already-running instance's UI to the front. In a normal (published) run this opens
+// the app window; in Development a stray second launch just exits quietly.
+void SurfaceRunningInstance()
+{
+    var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+    if (!string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase))
+        OpenAppWindowDetached("http://localhost:5000");
+}
+
 Stream GetConfigJSONStream()
 {
     return Assembly.GetExecutingAssembly().GetManifestResourceStream("speedseat.config.json");
@@ -130,44 +187,56 @@ Stream GetAppsettingsJSONStream()
     return Assembly.GetExecutingAssembly().GetManifestResourceStream("speedseat.appsettings_template.json");
 }
 
-// Opens the frontend in a dedicated, chrome-less window (Edge/Chrome "--app" mode: no tabs,
-// no address bar) running its own isolated browser instance. Because that instance is its own
-// process, closing the window shuts the backend down too. Falls back to the default browser
-// (no window/lifetime binding) when no Chromium browser is found.
+// Opens the frontend in a dedicated, chrome-less window and shuts the backend down when that
+// window is closed (the launched browser instance is its own process — see LaunchAppWindow).
 void OpenAppWindow(string url, IHostApplicationLifetime lifetime)
+{
+    var proc = LaunchAppWindow(url);
+    if (proc != null)
+    {
+        proc.EnableRaisingEvents = true;
+        proc.Exited += (_, _) => Environment.Exit(0); // close the window -> close the backend
+    }
+    else
+    {
+        OpenUrl(url); // no Chromium browser found — fall back to the default browser (not lifetime-bound)
+    }
+}
+
+// Opens the UI window without tying the backend's lifetime to it. Used when another instance
+// already owns the server: we just surface its UI and this process exits.
+void OpenAppWindowDetached(string url)
+{
+    if (LaunchAppWindow(url) == null)
+        OpenUrl(url);
+}
+
+// Launches Edge/Chrome in "--app" mode (no tabs, no address bar) with a dedicated
+// user-data-dir, which forces a separate browser instance so the returned process stays alive
+// until the window is closed. Returns null when no Chromium browser is available.
+Process? LaunchAppWindow(string url)
 {
     try
     {
         var browser = FindChromiumBrowser();
-        if (browser != null)
-        {
-            // A dedicated user-data-dir forces a separate browser instance, so the launched
-            // process stays alive until the window is closed (instead of handing off to an
-            // already-running browser and exiting immediately).
-            var profileDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SpeedSeat", "ui-profile");
-            Directory.CreateDirectory(profileDir);
+        if (browser == null)
+            return null;
 
-            var psi = new ProcessStartInfo(browser) { UseShellExecute = false };
-            psi.ArgumentList.Add($"--app={url}");
-            psi.ArgumentList.Add($"--user-data-dir={profileDir}");
-            psi.ArgumentList.Add("--no-first-run");
-            psi.ArgumentList.Add("--no-default-browser-check");
+        var profileDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SpeedSeat", "ui-profile");
+        Directory.CreateDirectory(profileDir);
 
-            var proc = Process.Start(psi);
-            if (proc != null)
-            {
-                proc.EnableRaisingEvents = true;
-                proc.Exited += (_, _) => Environment.Exit(0); // close the window -> close the backend
-                return;
-            }
-        }
+        var psi = new ProcessStartInfo(browser) { UseShellExecute = false };
+        psi.ArgumentList.Add($"--app={url}");
+        psi.ArgumentList.Add($"--user-data-dir={profileDir}");
+        psi.ArgumentList.Add("--no-first-run");
+        psi.ArgumentList.Add("--no-default-browser-check");
+        return Process.Start(psi);
     }
     catch (Exception e)
     {
         System.Console.WriteLine($"Could not open app window, falling back to the default browser: {e.Message}");
+        return null;
     }
-
-    OpenUrl(url);
 }
 
 string? FindChromiumBrowser()
