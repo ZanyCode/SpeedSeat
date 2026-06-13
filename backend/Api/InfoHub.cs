@@ -37,21 +37,7 @@ public class InfoHub : Hub
 
     public string GetConfigValidityErrors()
     {
-        if (File.Exists("config.json"))
-        {
-            var json = File.ReadAllText("config.json");
-            try
-            {
-                JsonSerializer.Deserialize<Config>(json);
-                return null;
-            }
-            catch (Exception e)
-            {
-                return $"config.json error: {e.Message}";
-            }
-        }
-        else
-            return "config.json error: File does not exist";
+        return options.CurrentValue?.Commands == null ? "config.json error: Config not loaded" : null;
     }
 
     public IAsyncEnumerable<string> LogMessages()
