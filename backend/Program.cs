@@ -230,6 +230,10 @@ Process? LaunchAppWindow(string url)
         psi.ArgumentList.Add($"--user-data-dir={profileDir}");
         psi.ArgumentList.Add("--no-first-run");
         psi.ArgumentList.Add("--no-default-browser-check");
+        // Without this, Chromium keeps the browser process alive in the background after the
+        // last window closes (background/keepalive mode), so proc.Exited never fires and the
+        // backend never shuts down. Force the process to exit when its window is closed.
+        psi.ArgumentList.Add("--disable-background-mode");
         return Process.Start(psi);
     }
     catch (Exception e)
