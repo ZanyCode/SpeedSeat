@@ -92,21 +92,30 @@ try
     app.MapHub<SeatSettingsHub>("/hub/seatSettings");
     app.MapHub<TelemetryHub>("/hub/telemetry");
 
-    // Open in browser — but not when we were relaunched by a self-update: the existing
-    // frontend tab reloads itself onto this new backend, so a second window would be noise.
+    // Open the UI in its own chrome-less app window — but not when we were relaunched by a
+    // self-update: the existing window reloads itself onto this new backend, so a second
+    // window would be noise.
     if (!app.Environment.IsDevelopment() && !args.Contains(SelfUpdateService.UpdatedRelaunchArg))
     {
+        var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
         Task.Factory.StartNew(async () =>
         {
             await Task.Delay(1000);
-            OpenUrl(InfoHub.GetLocalIPAddress(false));
+            OpenAppWindow("http://localhost:5000", lifetime);
         });
     }
     app.Run();
 }
 catch (Exception e)
 {
+    // The published exe has no console window, so also record fatal startup errors to a file
+    // next to the exe — otherwise they'd be invisible.
     System.Console.WriteLine(e);
+    try
+    {
+        File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "speedseat-crash.log"), $"[{DateTime.Now:s}] {e}\n\n");
+    }
+    catch { /* logging the crash must never throw */ }
     System.Console.WriteLine("Press enter to close window");
     Console.ReadLine();
 }
@@ -119,6 +128,60 @@ Stream GetConfigJSONStream()
 Stream GetAppsettingsJSONStream()
 {
     return Assembly.GetExecutingAssembly().GetManifestResourceStream("speedseat.appsettings_template.json");
+}
+
+// Opens the frontend in a dedicated, chrome-less window (Edge/Chrome "--app" mode: no tabs,
+// no address bar) running its own isolated browser instance. Because that instance is its own
+// process, closing the window shuts the backend down too. Falls back to the default browser
+// (no window/lifetime binding) when no Chromium browser is found.
+void OpenAppWindow(string url, IHostApplicationLifetime lifetime)
+{
+    try
+    {
+        var browser = FindChromiumBrowser();
+        if (browser != null)
+        {
+            // A dedicated user-data-dir forces a separate browser instance, so the launched
+            // process stays alive until the window is closed (instead of handing off to an
+            // already-running browser and exiting immediately).
+            var profileDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SpeedSeat", "ui-profile");
+            Directory.CreateDirectory(profileDir);
+
+            var psi = new ProcessStartInfo(browser) { UseShellExecute = false };
+            psi.ArgumentList.Add($"--app={url}");
+            psi.ArgumentList.Add($"--user-data-dir={profileDir}");
+            psi.ArgumentList.Add("--no-first-run");
+            psi.ArgumentList.Add("--no-default-browser-check");
+
+            var proc = Process.Start(psi);
+            if (proc != null)
+            {
+                proc.EnableRaisingEvents = true;
+                proc.Exited += (_, _) => Environment.Exit(0); // close the window -> close the backend
+                return;
+            }
+        }
+    }
+    catch (Exception e)
+    {
+        System.Console.WriteLine($"Could not open app window, falling back to the default browser: {e.Message}");
+    }
+
+    OpenUrl(url);
+}
+
+string? FindChromiumBrowser()
+{
+    var pf = Environment.GetEnvironmentVariable("ProgramFiles") ?? @"C:\Program Files";
+    var pfx86 = Environment.GetEnvironmentVariable("ProgramFiles(x86)") ?? @"C:\Program Files (x86)";
+    var candidates = new[]
+    {
+        Path.Combine(pfx86, "Microsoft", "Edge", "Application", "msedge.exe"),
+        Path.Combine(pf, "Microsoft", "Edge", "Application", "msedge.exe"),
+        Path.Combine(pf, "Google", "Chrome", "Application", "chrome.exe"),
+        Path.Combine(pfx86, "Google", "Chrome", "Application", "chrome.exe"),
+    };
+    return candidates.FirstOrDefault(File.Exists);
 }
 
 void OpenUrl(string url)

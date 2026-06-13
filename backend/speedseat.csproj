@@ -7,6 +7,12 @@
     <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
     <!-- CI overrides this with the release version; 0.0.0.1 marks local dev builds. -->
     <Version Condition="'$(Version)' == ''">0.0.0.1</Version>
+    <!-- Release (the published exe) runs without a console window. The Web SDK forces
+         OutputType back to 'Exe', so setting WinExe has no effect; instead we set the
+         internal flag the apphost task reads to mark the exe as a GUI subsystem app (the SDK
+         only ever sets this flag true, never clears it, so our value survives). Debug keeps
+         the console so `dotnet run` and direct debugging still show logs. -->
+    <_UseWindowsGraphicalUserInterface Condition="'$(Configuration)' == 'Release'">true</_UseWindowsGraphicalUserInterface>
   </PropertyGroup>
 
   <ItemGroup>
