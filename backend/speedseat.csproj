@@ -7,6 +7,9 @@
     <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
     <!-- CI overrides this with the release version; 0.0.0.1 marks local dev builds. -->
     <Version Condition="'$(Version)' == ''">0.0.0.1</Version>
+    <!-- Windows exe icon (race car). The same icon is the frontend favicon, which the app
+         window/taskbar uses at runtime. -->
+    <ApplicationIcon>speedseat.ico</ApplicationIcon>
     <!-- Release (the published exe) runs without a console window. The Web SDK forces
          OutputType back to 'Exe', so setting WinExe has no effect; instead we set the
          internal flag the apphost task reads to mark the exe as a GUI subsystem app (the SDK
