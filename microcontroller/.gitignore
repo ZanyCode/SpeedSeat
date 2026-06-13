@@ -1,4 +1,5 @@
 .pio
 .vscode
 test
-lib
+lib/*
+!lib/WiFiManager/

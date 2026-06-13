@@ -1,23 +1,33 @@
 #include "transport.h"
 #include <WiFi.h>
+#include <WiFiManager.h>
 
 // Must match SpeedseatUdpProtocol in backend/Processing/UdpConnection.cs
 static const char *DISCOVERY_REQUEST = "SPEEDSEAT_DISCOVERY";
 static const char *DISCOVERY_RESPONSE = "SPEEDSEAT_ESP32";
 
-void UdpTransport::begin(const char *ssid, const char *password, uint16_t port)
+void UdpTransport::begin(uint16_t port)
 {
     WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
-    Serial.print("Connecting to WiFi");
-    while (WiFi.status() != WL_CONNECTED)
+
+    // No hard-coded credentials: WiFiManager tries the last saved network and, if that
+    // fails (or none is stored), opens the "SpeedSeat-Setup" access point with a captive
+    // portal so the user can pick a network from their phone/PC. Blocks until connected.
+    WiFiManager wm;
+    wm.setConfigPortalTimeout(0); // stay in the portal until WiFi is configured
+    Serial.println("Connecting to WiFi (opens 'SpeedSeat-Setup' portal if not yet configured)...");
+    if (!wm.autoConnect("SpeedSeat-Setup"))
     {
-        delay(250);
-        Serial.print(".");
+        Serial.println("WiFi connect/portal failed — restarting");
+        delay(1000);
+        ESP.restart();
     }
-    // Modem power save adds 100+ ms latency spikes to UDP — disable it.
+
+    // Modem power save adds 100+ ms latency spikes to UDP — disable it. Auto-reconnect keeps
+    // the saved network alive after a router/WiFi hiccup without reopening the portal.
     WiFi.setSleep(false);
-    Serial.printf("\nWiFi connected, IP: %s\n", WiFi.localIP().toString().c_str());
+    WiFi.setAutoReconnect(true);
+    Serial.printf("WiFi connected, IP: %s\n", WiFi.localIP().toString().c_str());
 
     if (udp.listen(port))
     {

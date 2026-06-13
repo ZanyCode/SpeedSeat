@@ -1,9 +1,47 @@
 using System.Collections.Concurrent;
-using System.IO.Ports;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
+
+// Thin abstraction over the byte-stream link to the microcontroller. The only transport
+// is WiFi/UDP — the backend never talks to the seat over USB-serial.
+public interface IDeviceConnection : IDisposable
+{
+    event EventHandler? DataReceived;
+
+    void Open();
+
+    void Write(byte[] buffer, int offset, int count);
+
+    int Read(byte[] data, int offset, int count);
+
+    void FakeWriteBytes(byte[] bytes);
+
+    public int BytesToRead { get; }
+}
+
+public interface IDeviceConnectionFactory
+{
+    public IDeviceConnection Create(string address);
+}
+
+public class DeviceConnectionFactory : IDeviceConnectionFactory
+{
+    private readonly IFrontendLogger frontendLogger;
+
+    public DeviceConnectionFactory(IFrontendLogger frontendLogger)
+    {
+        this.frontendLogger = frontendLogger;
+    }
+
+    public IDeviceConnection Create(string address)
+    {
+        // ESP32 controllers are discovered and addressed by their IP — UDP is the only transport.
+        var ipAddress = IPAddress.Parse(address);
+        return new UdpDeviceConnection(new IPEndPoint(ipAddress, SpeedseatUdpProtocol.Port), frontendLogger);
+    }
+}
 
 // Shared constants of the UDP transport. The ESP32 firmware (microcontroller/include/configuration.h
 // and src/transport.cpp) must use the same port and magic strings.
@@ -112,11 +150,11 @@ public static class EspDiscovery
     }
 }
 
-// Connection to the ESP32 over UDP. Implements ISerialPortConnection so CommandService
+// Connection to the ESP32 over UDP. Implements IDeviceConnection so CommandService
 // (8-byte protocol, ack handling, 0x01/0x02 connection handshake) works unchanged.
 // Every Write sends one datagram; received datagrams are buffered and exposed
-// through BytesToRead/Read like a serial byte stream.
-public class UdpDeviceConnection : ISerialPortConnection
+// through BytesToRead/Read like a byte stream.
+public class UdpDeviceConnection : IDeviceConnection
 {
     private readonly IPEndPoint endpoint;
     private readonly IFrontendLogger frontendLogger;
@@ -127,8 +165,7 @@ public class UdpDeviceConnection : ISerialPortConnection
     private bool isSimulating = false;
     private byte[]? simulatedData = null;
 
-    public event SerialErrorReceivedEventHandler? ErrorReceived; // UDP has no error notifications, never raised
-    public event SerialDataReceivedEventHandler? DataReceived;
+    public event EventHandler? DataReceived;
 
     public int BytesToRead => isSimulating ? simulatedData!.Length : receivedBytes.Count;
 
@@ -155,7 +192,7 @@ public class UdpDeviceConnection : ISerialPortConnection
                     foreach (var b in result.Buffer)
                         receivedBytes.Enqueue(b);
 
-                    DataReceived?.Invoke(this, CreateDataReceivedEventArgs());
+                    DataReceived?.Invoke(this, EventArgs.Empty);
                 }
                 catch (OperationCanceledException)
                 {
@@ -219,7 +256,7 @@ public class UdpDeviceConnection : ISerialPortConnection
     {
         isSimulating = true;
         simulatedData = bytes;
-        DataReceived?.Invoke(this, CreateDataReceivedEventArgs());
+        DataReceived?.Invoke(this, EventArgs.Empty);
     }
 
     public void Dispose()
@@ -227,12 +264,5 @@ public class UdpDeviceConnection : ISerialPortConnection
         receiveCts?.Cancel();
         udpClient?.Dispose();
         udpClient = null;
-    }
-
-    private static SerialDataReceivedEventArgs CreateDataReceivedEventArgs()
-    {
-        return SerialPortConnection.Construct<SerialDataReceivedEventArgs>(
-            new[] { typeof(SerialData) },
-            new object[] { SerialData.Chars });
     }
 }

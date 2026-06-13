@@ -1,5 +1,3 @@
-using System.IO.Ports;
-using System.Reflection;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -9,15 +7,15 @@ using Moq;
 public class CommandServiceTest
 {
     CommandService sut;
-    Mock<ISerialPortConnection> portConnectionMock;
+    Mock<IDeviceConnection> portConnectionMock;
     Mock<ISpeedseatSettings> speedseatSettingsMock;
     Mock<IOptionsMonitor<Config>> configOptionsMock;
 
     [TestInitialize]
     public void Init()
     {
-        var connectionFactoryMock = new Mock<ISerialPortConnectionFactory>();
-        portConnectionMock = new Mock<ISerialPortConnection>();
+        var connectionFactoryMock = new Mock<IDeviceConnectionFactory>();
+        portConnectionMock = new Mock<IDeviceConnection>();
         connectionFactoryMock.Setup(x => x.Create(It.IsAny<string>())).Returns(portConnectionMock.Object);
         speedseatSettingsMock = new Mock<ISpeedseatSettings>();
         configOptionsMock = new Mock<IOptionsMonitor<Config>>();
@@ -71,7 +69,7 @@ public class CommandServiceTest
 
         // Assert
         portConnectionMock.Verify(x => x.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Exactly(3)); // Initiate-Connection command, ack byte for the Connection-Initiated response, and the command that was sent
-        Assert.AreEqual(SerialWriteResult.Success, result);
+        Assert.AreEqual(WriteResult.Success, result);
     }
 
     [TestMethod]
@@ -149,7 +147,7 @@ public class CommandServiceTest
             Command actualCommand = null;
             speedseatSettingsMock.Setup(x => x.SaveConfigurableSetting(It.IsAny<Command>())).Callback<Command>(x => actualCommand = x);
 
-            portConnectionMock.Raise(x => x.DataReceived += null, CreateEventArgs());
+            portConnectionMock.Raise(x => x.DataReceived += null, EventArgs.Empty);
             Assert.IsNotNull(actualCommand);
             Assert.AreEqual(command.Id, actualCommand.Id);
 
@@ -204,7 +202,7 @@ public class CommandServiceTest
                 {
                     x[0] = 255;
                 }).Returns(1);
-                portConnectionMock.Raise(x => x.DataReceived += null, CreateEventArgs());
+                portConnectionMock.Raise(x => x.DataReceived += null, EventArgs.Empty);
             }
         });
 
@@ -212,7 +210,7 @@ public class CommandServiceTest
         speedseatSettingsMock.Setup(x => x.GetConfigurableSettingsValues(It.IsAny<Command>())).Returns((commandValue, 0, 0));
 
         // Act
-        portConnectionMock.Raise(x => x.DataReceived += null, CreateEventArgs());
+        portConnectionMock.Raise(x => x.DataReceived += null, EventArgs.Empty);
 
         // Assert
         // Should respond with ack byte
@@ -227,22 +225,6 @@ public class CommandServiceTest
     {
         var commandValue = new CommandValue(ValueType.Numeric, 0, "", false, 20, 1500);
         var res = commandValue.ToString();                
-    }
-
-    public SerialDataReceivedEventArgs CreateEventArgs()
-    {
-        // the types of the constructor parameters, in order
-        // use an empty Type[] array if the constructor takes no parameters
-        Type[] paramTypes = new Type[] { typeof(SerialData) };
-
-        // the values of the constructor parameters, in order
-        // use an empty object[] array if the constructor takes no parameters
-        object[] paramValues = new object[] { SerialData.Chars };
-
-        SerialDataReceivedEventArgs instance =
-            Construct<SerialDataReceivedEventArgs>(paramTypes, paramValues);
-
-        return instance;
     }
 
     private void SetupPortResponses(IDictionary<byte, Func<byte[], byte[]>>? responseFuncs = null, bool alwaysSendAckByte = true, int millisecondDelayBeforeResponse = 0)
@@ -288,17 +270,6 @@ public class CommandServiceTest
 
     private void RaisePortDataReceivedEvent()
     {
-        portConnectionMock.Raise(x => x.DataReceived += null, CreateEventArgs());
-    }
-
-    public static T Construct<T>(Type[] paramTypes, object[] paramValues)
-    {
-        Type t = typeof(T);
-
-        ConstructorInfo ci = t.GetConstructor(
-            BindingFlags.Instance | BindingFlags.NonPublic,
-            null, paramTypes, null);
-
-        return (T)ci.Invoke(paramValues);
+        portConnectionMock.Raise(x => x.DataReceived += null, EventArgs.Empty);
     }
 }

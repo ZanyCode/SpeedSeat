@@ -5,7 +5,7 @@
 
 // Downloads /firmware.bin from the given host (the PC running the SpeedSeat backend),
 // flashes it and restarts the ESP. Blocking; only returns on failure.
-// Requires an active WiFi connection (USE_UDP builds).
+// Requires an active WiFi connection.
 void performOtaUpdate(IPAddress host, uint16_t port);
 
 #endif

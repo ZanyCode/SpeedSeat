@@ -1,10 +1,8 @@
 using System;
-using System.IO.Ports;
-using System.Reflection;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 
-public enum SerialWriteResult
+public enum WriteResult
 {
     Success,
     InvalidHash,
@@ -17,7 +15,7 @@ public class CommandService
     private int commandCount = 0;
     private DateTime latestPerformaceUpdate = DateTime.Now;
 
-    private ISerialPortConnection? serialPort;
+    private IDeviceConnection? connection;
 
     private SemaphoreSlim writeDataSemaphore = new SemaphoreSlim(1);
 
@@ -25,25 +23,24 @@ public class CommandService
 
     private bool waitingForResponse = false;
 
-    private SerialWriteResult currentSerialWriteResult = SerialWriteResult.Success;
+    private WriteResult currentWriteResult = WriteResult.Success;
     private readonly IFrontendLogger frontendLogger;
-    private readonly ISerialPortConnectionFactory serialPortConnectionFactory;
+    private readonly IDeviceConnectionFactory connectionFactory;
     private readonly IOptionsMonitor<Config> options;
     private readonly ISpeedseatSettings settings;
     private readonly IHubContext<SeatSettingsHub> settingsHubContext;
-    private readonly Speedseat seat;
 
-    public bool IsConnected => this.serialPort != null;
+    public bool IsConnected => this.connection != null;
 
-    // True when the current connection runs over WiFi/UDP (OTA firmware updates are only possible there).
-    public bool IsUdpConnection { get; private set; }
+    // Raised whenever the connection is established (true) or dropped (false) so the
+    // auto-connect loop and the frontend can react. The whole transport is WiFi/UDP now.
+    public event Action<bool>? ConnectionStateChanged;
 
     // Firmware version reported by the MC in response to the FirmwareVersion read request,
     // null until (and unless) the MC answers — old firmwares don't know the command.
     public ushort? ReportedFirmwareVersion { get; private set; }
 
     private bool waitingForConnection = false;
-    private bool connectionCancelled = false;
     private SemaphoreSlim waitingForConnectionSemaphore = new SemaphoreSlim(0, 1);
 
 
@@ -51,10 +48,10 @@ public class CommandService
     Timer commandReadTimer;
     private bool isReadingCommand = false;
 
-    public CommandService(IFrontendLogger frontendLogger, ISerialPortConnectionFactory serialPortConnectionFactory, IOptionsMonitor<Config> options, ISpeedseatSettings settings, IHubContext<SeatSettingsHub> settingsHubContext)
+    public CommandService(IFrontendLogger frontendLogger, IDeviceConnectionFactory connectionFactory, IOptionsMonitor<Config> options, ISpeedseatSettings settings, IHubContext<SeatSettingsHub> settingsHubContext)
     {
         this.frontendLogger = frontendLogger;
-        this.serialPortConnectionFactory = serialPortConnectionFactory;
+        this.connectionFactory = connectionFactory;
         this.options = options;
         this.settings = settings;
         this.settingsHubContext = settingsHubContext;
@@ -69,22 +66,21 @@ public class CommandService
         }, null, Timeout.Infinite, Timeout.Infinite);
     }
 
-    public async Task<bool> Connect(string port)
+    public async Task<bool> Connect(string address)
     {
         ReportedFirmwareVersion = null;
-        IsUdpConnection = System.Net.IPAddress.TryParse(port, out _);
-        serialPort = serialPortConnectionFactory.Create(port);
-        serialPort.ErrorReceived += (sender, args) =>
-        {
-            frontendLogger.Log($"Serial port experienced unexpected error: {args.EventType}");
-        };
+        connection = connectionFactory.Create(address);
 
-        serialPort.DataReceived += async (sender, args) =>
+        connection.DataReceived += async (sender, args) =>
         {
             try
             {
-                byte[] data = new byte[this.serialPort.BytesToRead];
-                this.serialPort.Read(data, 0, data.Length);
+                var currentConnection = this.connection;
+                if (currentConnection == null)
+                    return;
+
+                byte[] data = new byte[currentConnection.BytesToRead];
+                currentConnection.Read(data, 0, data.Length);
                 foreach (var dataByte in data)
                 {
                     if (!isReadingCommand && (dataByte == 0xFF || dataByte == 0xFE))
@@ -92,7 +88,7 @@ public class CommandService
                         ResetCommandBytes();
                         if (waitingForResponse)
                         {
-                            currentSerialWriteResult = dataByte == 0xFF ? SerialWriteResult.Success : SerialWriteResult.InvalidHash;
+                            currentWriteResult = dataByte == 0xFF ? WriteResult.Success : WriteResult.InvalidHash;
                             responseReceivedSemaphore.Release();
                             waitingForResponse = false;
                         }
@@ -113,22 +109,14 @@ public class CommandService
             }
         };
 
-        serialPort.Open();
+        connection.Open();
         waitingForConnection = true;
         int timeoutMs = options.CurrentValue.ConnectionResponseTimeoutMs;
-        frontendLogger.Log($"Connection Attempt: Attempting to send Initiate-Connection command to Microcontroller and waiting for response command. Specified Timeout from config.json: {timeoutMs}mS");
+        frontendLogger.Log($"Connection Attempt: Sending Initiate-Connection command to Microcontroller and waiting for response. Specified Timeout from config.json: {timeoutMs}mS");
         await WriteCommand(new Command(Command.InitiateConnectionCommandId, null, null, null, false, false));
         bool connectionConfirmationReceived = true;
         if (waitingForConnection)
             connectionConfirmationReceived = await waitingForConnectionSemaphore.WaitAsync(timeoutMs);
-
-        if (connectionCancelled)
-        {
-            connectionCancelled = false;
-            frontendLogger.Log($"Error Connecting: Process cancelled by user");
-            this.Disconnect();
-            return false;
-        }
 
         if (!connectionConfirmationReceived)
         {
@@ -137,52 +125,13 @@ public class CommandService
             return false;
         }
 
+        ConnectionStateChanged?.Invoke(true);
         return true;
-    }
-
-    public void DeleteEEPROM(string port)
-    {
-        try
-        {
-            frontendLogger.Log($"Attempting to delete stored EEPROM-values. Using port {port}");
-
-            if(this.IsConnected)
-                this.Disconnect();
-
-            var deleteEEPROMPort = serialPortConnectionFactory.Create(port);
-            deleteEEPROMPort.ErrorReceived += (sender, args) =>
-            {
-                frontendLogger.Log($"Serial port experienced unexpected error ({args.EventType})");
-            };
-
-            deleteEEPROMPort.Open();
-            frontendLogger.Log($"Successfully opened port {port}");
-            var command = new Command(Command.ResetEEPROMCommandId, null, null, null, true, false);
-            var bytesToWrite = command.ToByteArray();
-            frontendLogger.Log($"Sending reset command to Microcontroller. Hex-representation: {Convert.ToHexString(bytesToWrite)}");
-            deleteEEPROMPort.Write(bytesToWrite, 0, bytesToWrite.Length);
-            frontendLogger.Log("Closing Port");
-            deleteEEPROMPort.Dispose();
-            frontendLogger.Log("Successfully sent command to Mirocontroller.");
-        }
-        catch (Exception e)
-        {
-            frontendLogger.Log($"Error sending reset EEPROM command: {e.Message}");
-        }
-    }
-
-    public void CancelConnectionProcess()
-    {
-        if (waitingForConnection)
-        {
-            connectionCancelled = true;
-            waitingForConnectionSemaphore.Release();
-        }
     }
 
     public async Task FakeWriteRequest(Command command)
     {
-        this.serialPort?.FakeWriteBytes(command.ToByteArray());
+        this.connection?.FakeWriteBytes(command.ToByteArray());
     }
 
     private List<byte> currentCommandBytes = new List<byte>();
@@ -243,8 +192,8 @@ public class CommandService
                             var (value1, value2, value3) = settings.GetConfigurableSettingsValues(updatedCommand);
                             updatedCommand = updatedCommand.CloneWithNewValues(value1, value2, value3, false);
                             frontendLogger.Log($"Successfully received read-request for command with id {updatedCommand.Id}, raw request: {Convert.ToHexString(commandData)}. Sending response with value {updatedCommand.ToString()}, raw response: {Convert.ToHexString(updatedCommand.ToByteArray())}");
-                            var result = await WriteBytesToSerialPort(updatedCommand.ToByteArray());
-                            if (result != SerialWriteResult.Success)
+                            var result = await WriteBytes(updatedCommand.ToByteArray());
+                            if (result != WriteResult.Success)
                             {
                                 var errorMsg = $"Successfully received valid read request from UC, but unable to write response: {result}";
                                 frontendLogger.Log(errorMsg);
@@ -284,36 +233,43 @@ public class CommandService
 
     public void Disconnect()
     {
-        // Note: writeDataSemaphore must NOT be released here. Every WriteBytesToSerialPort
-        // call releases it itself (success and error paths), and an extra release would
-        // inflate the count so two writers could interleave on the next connection.
-        this.serialPort?.Dispose();
-        this.serialPort = null;
+        // Note: writeDataSemaphore must NOT be released here. Every WriteBytes call releases
+        // it itself (success and error paths), and an extra release would inflate the count
+        // so two writers could interleave on the next connection.
+        bool wasConnected = this.connection != null;
+        this.connection?.Dispose();
+        this.connection = null;
         this.ReportedFirmwareVersion = null;
-        frontendLogger.Log("Connection to Serial Port closed");
+        if (wasConnected)
+        {
+            frontendLogger.Log("Connection to Microcontroller closed");
+            ConnectionStateChanged?.Invoke(false);
+        }
     }
 
-    public async Task<SerialWriteResult> WriteCommand(Command command)
+    public async Task<WriteResult> WriteCommand(Command command)
     {
         var data = command.ToByteArray();
-        return await WriteBytesToSerialPort(data);
+        return await WriteBytes(data);
     }
 
-    private async Task<SerialWriteResult> WriteBytesToSerialPort(byte[] data)
+    private async Task<WriteResult> WriteBytes(byte[] data)
     {
+        bool acquiredSemaphore = false;
         try
         {
-            if (serialPort == null)
+            if (connection == null)
                 throw new Exception("Attempted to write data to a closed connection");
 
             commandCount++;
             bool receivedResponse = false;
             await writeDataSemaphore.WaitAsync();
+            acquiredSemaphore = true;
 
             for (int attempt = 1; attempt <= 3; attempt++)
             {
                 waitingForResponse = true;
-                this.serialPort.Write(data, 0, data.Length);
+                this.connection.Write(data, 0, data.Length);
                 receivedResponse = await responseReceivedSemaphore.WaitAsync(options.CurrentValue.CommandSendRetryIntervalMs);
 
                 if (!receivedResponse)
@@ -321,9 +277,9 @@ public class CommandService
                     string error = $"Error writing value: No response from controller received (Attempt {attempt}).";
                     frontendLogger.Log(error);
                 }
-                else if (currentSerialWriteResult != SerialWriteResult.Success)
+                else if (currentWriteResult != WriteResult.Success)
                 {
-                    string error = $"Error writing value: Received non-success response from controller (Attempt {attempt}, response: {currentSerialWriteResult}). Retrying in {options.CurrentValue.CommandSendRetryIntervalMs}mS (specified via config.json)";
+                    string error = $"Error writing value: Received non-success response from controller (Attempt {attempt}, response: {currentWriteResult}). Retrying in {options.CurrentValue.CommandSendRetryIntervalMs}mS (specified via config.json)";
                     frontendLogger.Log(error);
                     await Task.Delay(options.CurrentValue.CommandSendRetryIntervalMs);
                 }
@@ -347,192 +303,28 @@ public class CommandService
             }
 
             writeDataSemaphore.Release();
-            return receivedResponse ? currentSerialWriteResult : SerialWriteResult.Timeout;
+            return receivedResponse ? currentWriteResult : WriteResult.Timeout;
         }
         catch (Exception e)
         {
             var message = $"Error writing value: {e.Message}";
             System.Console.WriteLine(message);
             frontendLogger.Log(message);
-            writeDataSemaphore.Release();
-            return SerialWriteResult.WriteError;
+            if (acquiredSemaphore)
+                writeDataSemaphore.Release();
+
+            // A failed transmission means the link to the seat is unreliable. Drop the
+            // connection so the auto-connect loop rediscovers and reconnects — no matter
+            // what happens, the backend keeps trying to bind to the seat.
+            this.Disconnect();
+            return WriteResult.WriteError;
         }
     }
 
     private async Task SendAcknowledgeByteToMicrocontroller(bool isValid)
     {
         await writeDataSemaphore.WaitAsync();
-        this.serialPort?.Write(new[] { (byte)(isValid ? 0xFF : 0xFE) }, 0, 1);
+        this.connection?.Write(new[] { (byte)(isValid ? 0xFF : 0xFE) }, 0, 1);
         writeDataSemaphore.Release();
-    }
-}
-
-// Thin wrapper around SerialPort to facilitate testing of command service
-public interface ISerialPortConnection : IDisposable
-{
-    public event SerialErrorReceivedEventHandler ErrorReceived;
-
-    public event SerialDataReceivedEventHandler DataReceived;
-
-    public void Open();
-
-    public void Write(byte[] buffer, int offset, int count);
-
-    public int Read(byte[] data, int offset, int count);
-    void FakeWriteBytes(byte[] bytes);
-
-    public int BytesToRead { get; }
-}
-
-public class SerialPortConnection : ISerialPortConnection
-{
-    private SerialPort serialPort;
-    private readonly string port;
-    private readonly IFrontendLogger frontendLogger;
-
-    public int BytesToRead => isSimulating ? simulatedData.Count() : serialPort.BytesToRead;
-
-    private bool isSimulating = false;
-    private byte[] simulatedData = null;
-
-    public event SerialErrorReceivedEventHandler ErrorReceived
-    {
-        add
-        {
-            serialPort.ErrorReceived -= value;
-            serialPort.ErrorReceived += value;
-        }
-        remove
-        {
-            serialPort.ErrorReceived -= value;
-        }
-    }
-
-    public event SerialDataReceivedEventHandler DataReceived
-    {
-        add
-        {
-            serialPort.DataReceived -= value;
-            serialPort.DataReceived += value;
-        }
-        remove
-        {
-            serialPort.DataReceived -= value;
-        }
-    }
-
-    public SerialPortConnection(string port, IFrontendLogger frontendLogger)
-    {
-        serialPort = new SerialPort(port);
-        serialPort.BaudRate = 38400;
-        serialPort.ReadTimeout = 500;
-        serialPort.WriteTimeout = 500;
-        this.port = port;
-        this.frontendLogger = frontendLogger;
-    }
-
-    public void Dispose()
-    {
-        serialPort.Dispose();
-    }
-
-    public void Open()
-    {
-        serialPort.Open();
-        frontendLogger.Log($"Successfully connected to port {port} at 38400 baud");
-    }
-
-    public void Write(byte[] buffer, int offset, int count)
-    {
-        if (!isSimulating) // First write after simulating mc command is the response byte, we don't actually want to send this
-            serialPort.Write(buffer, offset, count);
-        else
-            this.isSimulating = false;
-    }
-
-    public int Read(byte[] buffer, int offset, int count)
-    {
-        if (isSimulating)
-        {
-            Array.Copy(this.simulatedData.Skip(offset).ToArray(), buffer, count);
-            return count;
-        }
-        else
-            return serialPort.Read(buffer, offset, count);
-    }
-
-    public void FakeWriteBytes(byte[] bytes)
-    {
-        this.isSimulating = true;
-        this.simulatedData = bytes;
-        FieldInfo[] fields = serialPort.GetType().GetFields(
-                                 BindingFlags.NonPublic |
-                                 BindingFlags.Instance);
-
-        var field = serialPort.GetType().GetField("_dataReceived", BindingFlags.Instance | BindingFlags.NonPublic);
-        var value = field.GetValue(serialPort);
-
-        var eventDelegate = (MulticastDelegate)serialPort.GetType().GetField("_dataReceived", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(serialPort);
-        if (eventDelegate != null)
-        {
-            foreach (var handler in eventDelegate.GetInvocationList())
-            {
-                handler.Method.Invoke(handler.Target, new object[] { serialPort, CreateEventArgs() });
-            }
-        }
-
-        // this.isSimulating = false;
-    }
-
-    public SerialDataReceivedEventArgs CreateEventArgs()
-    {
-        // the types of the constructor parameters, in order
-        // use an empty Type[] array if the constructor takes no parameters
-        Type[] paramTypes = new Type[] { typeof(SerialData) };
-
-        // the values of the constructor parameters, in order
-        // use an empty object[] array if the constructor takes no parameters
-        object[] paramValues = new object[] { SerialData.Chars };
-
-        SerialDataReceivedEventArgs instance =
-            Construct<SerialDataReceivedEventArgs>(paramTypes, paramValues);
-
-        return instance;
-    }
-
-    public static T Construct<T>(Type[] paramTypes, object[] paramValues)
-    {
-        Type t = typeof(T);
-
-        ConstructorInfo ci = t.GetConstructor(
-            BindingFlags.Instance | BindingFlags.NonPublic,
-            null, paramTypes, null);
-
-        return (T)ci.Invoke(paramValues);
-    }
-}
-
-public interface ISerialPortConnectionFactory
-{
-    public ISerialPortConnection Create(string port);
-}
-
-public class SerialPortConnectionFactory : ISerialPortConnectionFactory
-{
-    private readonly IFrontendLogger frontendLogger;
-
-    public SerialPortConnectionFactory(IFrontendLogger frontendLogger)
-    {
-        this.frontendLogger = frontendLogger;
-    }
-
-    public ISerialPortConnection Create(string port)
-    {
-        // ConnectionHub.GetPorts lists discovered ESP32s by their IP address alongside
-        // classic COM ports, so the selected "port" decides the transport.
-        if (System.Net.IPAddress.TryParse(port, out var ipAddress))
-            return new UdpDeviceConnection(new System.Net.IPEndPoint(ipAddress, SpeedseatUdpProtocol.Port), frontendLogger);
-
-        return new SerialPortConnection(port, frontendLogger);
     }
 }

@@ -25,11 +25,7 @@ unsigned long timeStamp;
 unsigned long timeStamp1;
 bool gamingActive = false;
 
-#ifdef USE_UDP
 UdpTransport transport;
-#else
-SerialTransport transport;
-#endif
 communication com(&transport);
 Axis X_Axis(PIN_X_STEP, PIN_X_DIRECTION, PIN_X_ENABLE, PIN_X_ENDSTOP, PIN_X_TROUBLE);
 Axis Y_Axis(PIN_Y_STEP, PIN_Y_DIRECTION, PIN_Y_ENABLE, PIN_Y_ENDSTOP, PIN_Y_TROUBLE);
@@ -47,9 +43,7 @@ void setup()
   while (!Serial)
     ;
   delay(500);
-#ifdef USE_UDP
-  transport.begin(WIFI_SSID, WIFI_PASSWORD, UDP_PORT);
-#endif
+  transport.begin(UDP_PORT);
 #ifdef USE_EEPROM
   EEPROM.begin(512);
   X_Axis.loadEEPROM();
@@ -380,7 +374,6 @@ void readNewCommand()
     break;
 
   case START_FIRMWARE_UPDATE:
-#ifdef USE_UDP
     if (transport.hasPeerEndpoint())
     {
       // Value1 carries the HTTP port of the backend; the host is the PC we talk to.
@@ -389,7 +382,6 @@ void readNewCommand()
       delay(100);
       performOtaUpdate(transport.getPeerIp(), com.recived_value.as_int16[0]);
     }
-#endif
     break;
 
   default:

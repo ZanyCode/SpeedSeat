@@ -5,7 +5,7 @@
 #include <AsyncUDP.h>
 
 // Byte-stream abstraction so the communication class can run the 8-byte protocol
-// over USB-serial or WiFi/UDP without knowing the difference.
+// over WiFi/UDP. (USB-serial is no longer a transport — the seat talks to the PC over WiFi.)
 class Transport
 {
 public:
@@ -15,23 +15,15 @@ public:
     virtual void flush() = 0;
 };
 
-class SerialTransport : public Transport
-{
-public:
-    int available() override { return Serial.available(); }
-    int read() override { return Serial.read(); }
-    void write(const uint8_t *data, size_t length) override { Serial.write(data, length); }
-    void flush() override { Serial.flush(); }
-};
-
 // UDP transport. The PC discovers the ESP via a broadcast magic packet, then sends
 // protocol bytes as datagrams. Replies go to the endpoint of the last received
 // protocol datagram. write() collects bytes, flush() sends them as one datagram.
 class UdpTransport : public Transport
 {
 public:
-    // Connects to WiFi (blocking) and starts listening. Call once in setup().
-    void begin(const char *ssid, const char *password, uint16_t port);
+    // Connects to WiFi via the WiFiManager captive portal (blocking) and starts
+    // listening. Call once in setup().
+    void begin(uint16_t port);
 
     int available() override;
     int read() override;

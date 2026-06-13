@@ -63,7 +63,7 @@ public class SeatSettingsHub : Hub
         else
         {
             var result = await commandService.WriteCommand(command);
-            if (result == SerialWriteResult.Success)
+            if (result == WriteResult.Success)
                 logger.Log($"Success sending command to Microcontroller: {command.ToString()}, raw representation: {Convert.ToHexString(command.ToByteArray())}");
             else
                 logger.Log($"Error sending command to Microcontroller: {command.ToString()}, raw representation: {Convert.ToHexString(command.ToByteArray())}, Result Code: {result}");

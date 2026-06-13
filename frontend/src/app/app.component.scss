@@ -91,3 +91,45 @@
   font-size: 15px;
   z-index: 1000;
 }
+
+/* Full-screen, impossible-to-miss overlay shown while the seat is flashing new firmware. */
+.ota-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: #0d47a1f2;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+
+  .ota-overlay-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    margin-top: 28px;
+  }
+
+  .ota-overlay-title {
+    margin-top: 20px;
+    font-size: 34px;
+    font-weight: 600;
+  }
+
+  .ota-overlay-message {
+    margin-top: 12px;
+    font-size: 18px;
+    max-width: 680px;
+    opacity: 0.95;
+  }
+
+  .ota-overlay-warning {
+    margin-top: 24px;
+    font-size: 20px;
+    font-weight: 600;
+    color: #ffd54f;
+  }
+}

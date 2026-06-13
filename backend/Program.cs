@@ -22,7 +22,9 @@ try
     builder.Services.AddSingleton<FirmwareUpdateService>();
     builder.Services.AddSingleton<UpdateCheckService>();
     builder.Services.AddSingleton<IFrontendLogger, FrontendLogger>();
-    builder.Services.AddTransient<ISerialPortConnectionFactory, SerialPortConnectionFactory>();
+    builder.Services.AddTransient<IDeviceConnectionFactory, DeviceConnectionFactory>();
+    // Continuously discovers the ESP32 over UDP and keeps the backend bound to the seat.
+    builder.Services.AddHostedService<ConnectionManager>();
 
     builder.Services.AddDbContext<SpeedseatContext>(options => options.UseSqlite("Data Source=speedseat_dbversion2.sqlite3"));
     // builder.Services.AddHostedService<F12020TelemetryAdaptor>();

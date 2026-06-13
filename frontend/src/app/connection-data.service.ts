@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
-import { combineLatest, distinctUntilChanged, from, Observable, pairwise, scan, Subject, throttleTime } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
 
@@ -13,45 +12,18 @@ export class ConnectionDataService {
   constructor() {
   }
 
-  public async connect(port: string) {
-    return await this.connection.invoke<boolean>("Connect", port);
-  }
-
-  public async disconnect() {
-    await this.connection.invoke("Disconnect");
-  }
-
-  public async getPorts() {
-    return await this.connection.invoke<string[]>("GetPorts");
-  }
-
   public async getIsConnected() {
     return await this.connection.invoke<boolean>("GetIsConnected");
-  }
-
-  public async fakeConnectionConfirmation() {
-    // Here we actually open a new Hub connection, so we don't get blocked by existing pending calls
-    const tempConnection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/connection`).build();
-    await tempConnection.start();
-    await tempConnection.invoke("FakeConnectionConfirmation");
-    await tempConnection.stop();
-  }
-
-  public async cancelConnectionProcess() {
-    // Here we actually open a new Hub connection, so we don't get blocked by existing pending calls
-    const tempConnection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/connection`).build();
-    await tempConnection.start();
-    await tempConnection.invoke("CancelConnectionProcess");
-    await tempConnection.stop();
-  }
-
-  public async deleteEEPROM(port: string) {
-    return await this.connection.invoke<boolean>("DeleteEEPROM", port);
   }
 
   public async init() {
     this.connection = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/connection`).build();
     await this.connection.start();
+  }
+
+  // The backend binds to the seat on its own and pushes every connect/disconnect here.
+  public onConnectionStateChanged(callback: (isConnected: boolean) => void) {
+    this.connection.on('connectionStateChanged', callback);
   }
 
   // Firmware version handshake / OTA progress pushed by the backend after every connect.
@@ -67,4 +39,3 @@ export class ConnectionDataService {
     await this.connection.stop();
   }
 }
-

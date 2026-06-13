@@ -47,7 +47,8 @@ Serial monitor speed: **38400 baud**.
 |---|---|
 | `Program.cs` | App startup, DI registration, SignalR hub mapping, config loading |
 | `Processing/Speedseat.cs` | Core seat logic — converts front/side tilt to motor positions, applies response curves |
-| `Processing/CommandService.cs` | Connection management (serial or UDP), 8-byte protocol read/write, ACK handling |
+| `Processing/CommandService.cs` | Connection management (WiFi/UDP only — no USB), 8-byte protocol read/write, ACK handling. Drops the connection on any transmission failure so the auto-connect loop rebinds |
+| `Processing/ConnectionManager.cs` | Background service that keeps the backend bound to the seat: while disconnected it discovers the ESP32 over UDP every 2s, connects, runs the firmware check, and pushes connect/disconnect to the frontend via the `connectionStateChanged` event |
 | `Processing/UdpConnection.cs` | UDP transport: broadcast discovery of ESP32s (`EspDiscovery`) + `UdpDeviceConnection` implementing `ISerialPortConnection` |
 | `Processing/F12020TelemetryAdaptor.cs` | Receives F1 2020 / F1 25 UDP telemetry (port 20777), maps G-forces to tilt |
 | `F12025Telemetry/F12025Packets.cs` | F1 25 packet structs (29-byte header used since F1 23); motion data is converted to the F1 2020 shape, parsing selected via `TelemetryGameVersion` |
@@ -58,13 +59,15 @@ Serial monitor speed: **38400 baud**.
 | `Api/*.cs` | SignalR hubs: `ManualControlHub`, `ConnectionHub`, `InfoHub`, `ProgramSettingsHub`, `SeatSettingsHub`, `TelemetryHub` |
 | `config.json` | Command definitions (IDs, value ranges, labels). Auto-created from embedded `config_template.json` if missing. |
 
-**DI singletons**: `Speedseat`, `CommandService`, `OutdatedDataDiscardQueue<Command>`, `F12020TelemetryAdaptor`, `SpeedseatSettings`, `FrontendLogger`, `FirmwareUpdateService`, `UpdateCheckService`.
+**DI singletons**: `Speedseat`, `CommandService`, `OutdatedDataDiscardQueue<Command>`, `F12020TelemetryAdaptor`, `SpeedseatSettings`, `FrontendLogger`, `FirmwareUpdateService`, `UpdateCheckService`. **Hosted service**: `ConnectionManager` (auto-connect loop).
+
+**Always-on connection**: there is no manual connect/disconnect/port-select UI. `ConnectionManager` discovers and connects to the ESP32 on its own and reconnects after any failure (seat reboot, WiFi hiccup, OTA restart). The frontend only reflects the pushed `connectionStateChanged` state; while disconnected it shows a "Connecting to seat…" overlay.
 
 **Always-on telemetry**: `F12020TelemetryAdaptor.Start()` is called once in `Program.cs` — telemetry processing runs for the whole backend lifetime, there is no start/stop streaming state. The game is auto-detected per packet from the `packetFormat` header field (= game year); the detected game is pushed to the frontend via the `gameDetected` event on the telemetry hub.
 
 **Self-update** (`Processing/UpdateCheckService.cs`): at boot the backend queries the latest public GitHub release (`ZanyCode/SpeedSeat`) and compares it with its assembly version (set by CI via `-p:Version`); `InfoHub.GetUpdateInfo` exposes the result, the frontend toolbar shows a download button when an update exists.
 
-**Firmware OTA** (`Processing/FirmwareUpdateService.cs`): each release embeds the matching ESP32 `firmware.bin` + `firmware_version.txt` (created by CI next to the csproj, see `.gitignore`). After every successful connect the backend sends a version read request (0x40); on mismatch over UDP it sends 0x41 and the ESP downloads `http://<pc>:5000/firmware.bin`, flashes it (`Update.h`) and restarts. Progress is pushed via the `firmwareUpdateState` event on the connection hub; the frontend auto-reconnects afterwards. Serial connections / pre-OTA firmwares get a message to flash once manually via USB.
+**Firmware OTA** (`Processing/FirmwareUpdateService.cs`): each release embeds the matching ESP32 `firmware.bin` + `firmware_version.txt` (created by CI next to the csproj, see `.gitignore`). After every successful connect the backend sends a version read request (0x40); on mismatch it sends 0x41 and the ESP downloads `http://<pc>:5000/firmware.bin`, flashes it (`Update.h`) and restarts. Progress is pushed via the `firmwareUpdateState` event on the connection hub; the frontend shows a big full-screen overlay during `updating` and `ConnectionManager` reconnects automatically once the seat is back. Pre-OTA firmwares (that NACK the 0x40 handshake) get a message to flash once manually via USB.
 
 ### Frontend (`frontend/src/app/`)
 
@@ -83,7 +86,7 @@ Target: **AZ-Delivery DevKit v4 (ESP32)**. Built with PlatformIO.
 - `src/main.cpp` — setup/loop, dispatches commands to X/Y/Z Axis objects
 - `src/Axis.cpp` + `include/Axis*.h` — stepper axis: homing, movement, EEPROM load/save
 - `src/communication.cpp` + `include/communication.h` — 8-byte protocol implementation (transport-agnostic)
-- `src/transport.cpp` + `include/transport.h` — byte-stream transport abstraction: `SerialTransport` (USB) and `UdpTransport` (WiFi/AsyncUDP + discovery responder)
+- `src/transport.cpp` + `include/transport.h` — byte-stream transport abstraction: `UdpTransport` only (WiFi/AsyncUDP + discovery responder). WiFi is brought up via the WiFiManager captive portal (`lib/WiFiManager`, tzapu). USB-serial transport was removed
 - `src/smoothy.cpp` — motion smoothing/filter
 - `include/configuration.h` — compile-time flags (see below)
 - `include/pins.h` — ESP32 GPIO pin assignments
@@ -100,13 +103,13 @@ Target: **AZ-Delivery DevKit v4 (ESP32)**. Built with PlatformIO.
 
 ---
 
-## Communication Protocol (serial or UDP)
+## Communication Protocol (WiFi/UDP only)
 
-8-byte fixed-length packets, transported over **38400 baud** serial (USB) or **WiFi/UDP**. The packet format, ACK bytes and connection sequence are identical on both transports.
+8-byte fixed-length packets, transported over **WiFi/UDP**. USB-serial is no longer a transport — the backend never opens a COM port, and the ESP only uses USB serial for debug logging. (The MC monitor speed is still 38400 baud for those logs.)
 
-**UDP transport** (default, `USE_UDP` in `configuration.h`):
-- ESP32 connects to WiFi (SSID/password plain text in `configuration.h`) and listens on UDP port **8888** (`SpeedseatUdpProtocol.Port` in backend ↔ `UDP_PORT` in firmware — keep in sync).
-- **Discovery handshake**: backend broadcasts `SPEEDSEAT_DISCOVERY` (to 255.255.255.255 and every interface's directed broadcast); each ESP replies `SPEEDSEAT_ESP32`. `ConnectionHub.GetPorts` lists discovered IPs alongside COM ports; an IP-formatted "port" makes the factory create a `UdpDeviceConnection` instead of a serial one.
+**UDP transport**:
+- The ESP32 obtains WiFi credentials through the **WiFiManager captive portal** (no hard-coded SSID/password): on first boot, or whenever the saved network is unreachable, it opens an open access point named **`SpeedSeat-Setup`**; connect to it and pick your network. After that it auto-connects on every boot. It listens on UDP port **8888** (`SpeedseatUdpProtocol.Port` in backend ↔ `UDP_PORT` in firmware — keep in sync).
+- **Discovery handshake**: backend broadcasts `SPEEDSEAT_DISCOVERY` (to 255.255.255.255 and every interface's directed broadcast); each ESP replies `SPEEDSEAT_ESP32`. `ConnectionManager` discovers IPs this way and connects to the first responder; the `DeviceConnectionFactory` always creates a `UdpDeviceConnection`.
 - After discovery, all traffic is **unicast** (WiFi broadcast frames are slow/unreliable). Each 8-byte command and each ACK byte is one datagram. The ESP replies to the endpoint of the last received protocol datagram.
 - ESP32 quirks: must use **AsyncUDP** (WiFiUDP can't receive broadcasts) and must call **`WiFi.setSleep(false)`** after connecting (modem sleep causes burst latency).
 
@@ -131,7 +134,7 @@ Target: **AZ-Delivery DevKit v4 (ESP32)**. Built with PlatformIO.
 | 0x02 | MC→PC | Init finished (MC signals readiness) |
 | 0x40 | PC→MC read, MC→PC write | Firmware version handshake: PC sends a read request after connect, MC answers with `FW_VERSION_NUMBER` in Value1. Old firmwares NACK → backend treats version as unknown/outdated |
 | 0x41 | PC→MC | Start OTA firmware update; Value1 = HTTP port of the backend (5000). ESP downloads `/firmware.bin` from the sender IP, flashes, restarts (UDP/WiFi builds only) |
-| 0x42 | PC→MC | Reset EEPROM (can be sent without full connection) |
+| 0x42 | PC→MC | Reset EEPROM (still handled by the MC; the backend no longer sends it — the Reset-EEPROM UI was removed) |
 
 **Connection sequence**: PC sends 0x01 → MC performs sync (read/write requests) → MC sends 0x02 → UI unblocks → backend runs the firmware version handshake (0x40, possibly 0x41) in the background.
 
@@ -155,7 +158,7 @@ Each command entry defines:
 
 | Flag | Effect |
 |---|---|
-| `USE_UDP` | Talk to the PC over WiFi/UDP instead of USB-serial; `WIFI_SSID`/`WIFI_PASSWORD`/`UDP_PORT` are defined next to it. Also required for OTA updates |
+| _(WiFi/UDP is always on)_ | The seat always talks to the PC over WiFi/UDP — there is no USB-serial transport and no `USE_UDP` flag. WiFi credentials come from the WiFiManager `SpeedSeat-Setup` captive portal (not hard-coded); `UDP_PORT` is defined in `configuration.h` |
 | `FW_VERSION_NUMBER` | Numeric firmware version reported in the 0x40 handshake. Defaults to 0 (dev build); CI overrides it with the release build number via `PLATFORMIO_BUILD_FLAGS` |
 | `NO_HARDWARE` | Skips real motor control; useful for software-only testing |
 | `USE_EEPROM` | Loads/saves axis settings from ESP32 EEPROM on boot/save command |

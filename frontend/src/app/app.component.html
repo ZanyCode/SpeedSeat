@@ -4,6 +4,15 @@
   <span class="ms-2">{{fatalErrorText}}</span>
 </div>
 
+<!-- Firmware OTA update overlay — big and unmissable while the seat flashes new firmware -->
+<div *ngIf="firmwareState === 'updating'" class="ota-overlay">
+  <mat-spinner [diameter]="90" color="accent"></mat-spinner>
+  <mat-icon class="ota-overlay-icon">system_update</mat-icon>
+  <h1 class="ota-overlay-title">Updating seat firmware</h1>
+  <p class="ota-overlay-message">{{firmwareMessage}}</p>
+  <p class="ota-overlay-warning">Please do not power off the seat. It will reconnect automatically when done.</p>
+</div>
+
 <mat-sidenav-container class="sidenav-container position-relative">
   <!-- side area with links -->
   <mat-sidenav #drawer class="sidenav" fixedInViewport [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
@@ -28,46 +37,6 @@
       </a>
     </mat-nav-list>
 
-    <!-- Card with connection settings -->
-    <mat-card class="example-card mt-3">
-      <mat-card-header>
-        <mat-card-title>Connection</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="row align-items-start">
-          <div class="col-10">
-            <mat-form-field appearance="fill" class="w-100">
-              <mat-label>Select Port</mat-label>
-              <mat-select [(value)]="selectedPort" [disabled]="isConnecting">
-                <mat-option *ngFor="let port of ports" [value]="port">{{port}}</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
-          <div class="col-2">
-            <button (click)="refreshPorts()" mat-icon-button [disabled]="isConnecting">
-              <mat-icon>refresh</mat-icon>
-            </button>
-          </div>
-        </div>
-      </mat-card-content>
-      <mat-divider inset></mat-divider>
-      <!-- Connection card buttons -->
-      <mat-card-actions>
-        <button *ngIf="!isConnected && !isConnecting" [disabled]="!selectedPort || isConnecting" mat-raised-button color="primary"
-          (click)="connect()">Connect</button>
-        <button *ngIf="isConnected" mat-raised-button color="primary" (click)="disconnect()"
-          [disabled]="isConnecting">Disconnect</button>
-
-        <div *ngIf="isConnecting" class="d-flex">
-          <button mat-raised-button color="primary" (click)="fakeConnectionConfirmation()">Fake
-            Confirmation</button>
-          <button mat-raised-button color="warn" (click)="cancelConnectionProcess()">Cancel</button>
-        </div>
-
-        <button *ngIf="!isConnecting" mat-raised-button color="warn" [disabled]="!selectedPort" (click)="resetEEPROM()">Reset EEPROM</button>
-      </mat-card-actions>
-    </mat-card>
-
     <qrcode class="position-absolute bottom-0 start-0" *ngIf="url && !(isHandset$ | async)" [qrdata]="url" [width]="180"
       [errorCorrectionLevel]="'M'"></qrcode>
   </mat-sidenav>
@@ -89,14 +58,13 @@
       </button>
     </mat-toolbar>
 
-    <!-- Firmware update status banner -->
-    <div *ngIf="firmwareMessage" class="firmware-banner"
-      [class.firmware-banner-warn]="firmwareState === 'otaFailed' || firmwareState === 'otaUnavailable' || firmwareState === 'updateRequiresWifi'">
-      <mat-spinner diameter="20" class="me-2"
-        *ngIf="firmwareState === 'checking' || firmwareState === 'updating' || isAutoReconnecting"></mat-spinner>
+    <!-- Firmware update status banner (non-update states: checking / up to date / problems) -->
+    <div *ngIf="firmwareMessage && firmwareState !== 'updating'" class="firmware-banner"
+      [class.firmware-banner-warn]="firmwareState === 'otaFailed' || firmwareState === 'otaUnavailable'">
+      <mat-spinner diameter="20" class="me-2" *ngIf="firmwareState === 'checking'"></mat-spinner>
       <mat-icon class="me-2" *ngIf="firmwareState === 'upToDate'">check_circle</mat-icon>
       <mat-icon class="me-2"
-        *ngIf="firmwareState === 'otaFailed' || firmwareState === 'otaUnavailable' || firmwareState === 'updateRequiresWifi'">warning</mat-icon>
+        *ngIf="firmwareState === 'otaFailed' || firmwareState === 'otaUnavailable'">warning</mat-icon>
       <span>{{firmwareMessage}}</span>
     </div>
     <div class="col overflow-hidden">
@@ -104,16 +72,10 @@
         <!-- Main content -->
         <router-outlet></router-outlet>
 
-        <!-- No-Connection overlay -->
+        <!-- No-Connection overlay — the backend keeps trying to bind to the seat on its own -->
         <div *ngIf="!isConnected" class="no-connection-overlay w-100 h-100 position-absolute top-0 d-flex">
-          <ng-container *ngIf="!isConnecting">
-            <mat-icon class="left-side-element">usb_off</mat-icon>
-            <span class="ms-2">Please Connect to Resume Operation</span>
-          </ng-container>
-          <ng-container *ngIf="isConnecting">
-            <mat-spinner class="left-side-element"></mat-spinner>
-            <span class="ms-2">Waiting for Response...</span>
-          </ng-container>
+          <mat-spinner class="left-side-element"></mat-spinner>
+          <span class="ms-2">Connecting to seat&hellip;</span>
         </div>
       </div>
       <!-- log console  -->

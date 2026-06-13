@@ -27,14 +27,12 @@
 #define FW_VERSION_NUMBER 0
 #endif
 
-//Communicate with the PC over WiFi/UDP instead of USB-serial. The PC finds the ESP via UDP broadcast discovery.
-#define USE_UDP
-#ifdef USE_UDP
-#define WIFI_SSID "Henrys Bude"
-#define WIFI_PASSWORD "Apfelkaugummi"
+//Communication with the PC is always over WiFi/UDP (never USB-serial). WiFi credentials are
+//not hard-coded: on first boot (or when the saved network is unreachable) the ESP opens a
+//"SpeedSeat-Setup" access point with a captive configuration portal (tzapu WiFiManager).
+//The PC then finds the ESP via UDP broadcast discovery.
 //Must match SpeedseatUdpProtocol.Port in backend/Processing/UdpConnection.cs
 #define UDP_PORT 8888
-#endif
 
 
 

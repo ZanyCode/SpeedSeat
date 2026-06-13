@@ -53,7 +53,7 @@ public class FirmwareUpdateService
 
             // Ask the MC for its version. Old firmwares NACK this request -> version stays null.
             var requestResult = await commandService.WriteCommand(new Command(Command.FirmwareVersionCommandId, null, null, null, false, true));
-            if (requestResult == SerialWriteResult.Success)
+            if (requestResult == WriteResult.Success)
             {
                 var deadline = DateTime.Now.AddMilliseconds(3000);
                 while (commandService.ReportedFirmwareVersion == null && DateTime.Now < deadline && commandService.IsConnected)
@@ -74,12 +74,6 @@ public class FirmwareUpdateService
                 return;
             }
 
-            if (!commandService.IsUdpConnection)
-            {
-                await PushState("updateRequiresWifi", $"Seat firmware is outdated (installed: {(reported?.ToString() ?? "unknown")}, available: {BundledFirmwareVersion}). Automatic updates only work over a WiFi/UDP connection — please flash firmware.bin from the release page once via USB (PlatformIO).");
-                return;
-            }
-
             if (reported == null)
             {
                 await PushState("otaUnavailable", $"Seat firmware is too old to update itself (available: {BundledFirmwareVersion}). Please flash firmware.bin from the release page once via USB (PlatformIO) — afterwards all updates happen automatically.");
@@ -92,7 +86,7 @@ public class FirmwareUpdateService
                 new CommandValue(ValueType.Numeric, BackendHttpPort, "", scaleToFullRange: false, min: 0, max: 0xFFFF),
                 null, null, false, false));
 
-            if (updateResult != SerialWriteResult.Success)
+            if (updateResult != WriteResult.Success)
             {
                 await PushState("otaFailed", $"The seat rejected the firmware update command ({updateResult}). Please flash firmware.bin from the release page once via USB (PlatformIO).");
                 return;

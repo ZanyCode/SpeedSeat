@@ -26,11 +26,9 @@ export class AppComponent implements OnInit, OnDestroy {
   logTextareaScrolltop: number | null = null;
   @ViewChild('textarea') textarea: ElementRef | undefined;
 
-  // Connection properties
-  ports: string[] = [];
-  selectedPort: string | undefined = undefined;
+  // The backend discovers the seat over WiFi and (re)connects on its own; we only reflect
+  // the live connection state it pushes to us.
   isConnected = false;
-  isConnecting = false;
 
   // Backend update check (GitHub releases)
   updateInfo: UpdateInfo | undefined = undefined;
@@ -38,7 +36,6 @@ export class AppComponent implements OnInit, OnDestroy {
   // Firmware version handshake / OTA status
   firmwareState: string | undefined = undefined;
   firmwareMessage: string | undefined = undefined;
-  isAutoReconnecting = false;
 
 
   isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset)
@@ -63,14 +60,15 @@ export class AppComponent implements OnInit, OnDestroy {
         this.data.getUpdateInfo().then(info => this.updateInfo = info);
 
         this.connectionService.init().then(async () => {
+          this.connectionService.onConnectionStateChanged(isConnected => this.onConnectionStateChanged(isConnected));
           this.connectionService.onFirmwareUpdateState((state, message) => this.onFirmwareUpdateState(state, message));
-          this.ports = await this.connectionService.getPorts();
-          this.selectedPort = this.ports.length > 0 ? this.ports[0] : undefined;
-          this.isConnected = await this.connectionService.getIsConnected();
-          if (this.isConnected)
-            this.events.signalConnectionStateChanged(true);
-          else if (this.selectedPort)
-            await this.connect();
+
+          // Pick up whatever the backend is doing right now (it may already be connected
+          // or mid firmware update when this page (re)loads).
+          this.onConnectionStateChanged(await this.connectionService.getIsConnected());
+          const firmware = await this.connectionService.getFirmwareUpdateState();
+          if (firmware?.state && firmware.state !== 'unknown')
+            this.onFirmwareUpdateState(firmware.state, firmware.message);
         });
       }
     });
@@ -81,16 +79,27 @@ export class AppComponent implements OnInit, OnDestroy {
       window.open(this.updateInfo.downloadUrl, '_blank');
   }
 
+  onConnectionStateChanged(isConnected: boolean) {
+    this.isConnected = isConnected;
+    this.events.signalConnectionStateChanged(isConnected);
+
+    // A successful (re)connect ends any visible OTA update flow.
+    if (isConnected && this.firmwareState === 'updating') {
+      this.firmwareState = undefined;
+      this.firmwareMessage = undefined;
+    }
+  }
+
   onFirmwareUpdateState(state: string, message: string) {
     this.firmwareState = state;
     this.firmwareMessage = message;
 
     if (state === 'updating') {
-      // The seat flashes the new firmware and restarts — reflect the lost connection
-      // and try to get it back automatically.
+      // The seat flashes the new firmware and restarts — reflect the lost connection.
+      // The backend keeps rediscovering and reconnects automatically afterwards, which
+      // clears this state again (see onConnectionStateChanged).
       this.isConnected = false;
       this.events.signalConnectionStateChanged(false);
-      this.autoReconnect();
     }
 
     if (state === 'upToDate') {
@@ -101,34 +110,6 @@ export class AppComponent implements OnInit, OnDestroy {
           this.firmwareMessage = undefined;
         }
       }, 10000);
-    }
-  }
-
-  private async autoReconnect() {
-    if (this.isAutoReconnecting)
-      return;
-
-    this.isAutoReconnecting = true;
-    try {
-      // Give the seat time to download/flash/restart, then retry for up to two minutes.
-      await new Promise(resolve => setTimeout(resolve, 10000));
-      for (let attempt = 0; attempt < 22 && !this.isConnected; attempt++) {
-        try {
-          await this.refreshPorts();
-          if (this.selectedPort)
-            await this.connect();
-        } catch { /* seat not back yet, keep trying */ }
-
-        if (!this.isConnected)
-          await new Promise(resolve => setTimeout(resolve, 5000));
-      }
-
-      if (!this.isConnected) {
-        this.firmwareState = 'otaFailed';
-        this.firmwareMessage = 'The seat did not come back after the firmware update. Please check the seat and reconnect manually.';
-      }
-    } finally {
-      this.isAutoReconnecting = false;
     }
   }
 
@@ -149,35 +130,6 @@ export class AppComponent implements OnInit, OnDestroy {
     this.connectionService.destroy();
   }
 
-  async connect() {
-    if (this.selectedPort) {
-      this.isConnecting = true;
-      this.isConnected = await this.connectionService.connect(this.selectedPort);
-      this.isConnecting = false;
-      if (this.isConnected)
-        this.events.signalConnectionStateChanged(true);
-    }
-  }
-
-  async disconnect() {
-    await this.connectionService.disconnect();
-    this.isConnected = false;
-    this.events.signalConnectionStateChanged(false);
-  }
-
-  async refreshPorts() {
-    this.ports = await this.connectionService.getPorts();
-    this.selectedPort = this.ports.length > 0 ? this.ports[0] : undefined;
-  }
-
-  async fakeConnectionConfirmation() {
-    await this.connectionService.fakeConnectionConfirmation();
-  }
-
-  async cancelConnectionProcess() {
-    await this.connectionService.cancelConnectionProcess();
-  }
-
   clearLog() {
     this.logMessages = [{ id: 0, msg: '[LOG]' }];
     this.currentLogMessageId = 1;
@@ -185,20 +137,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
   identifyLogItem(_index: number, item: { id: number, msg: string }) {
     return item.id;
-  }
-
-  resetEEPROM() {
-    const dialogRef = this.dialog.open(YesNoDialogComponent, {
-      width: '250px',
-      data: { title: "Delete EEPROM", content: "Do you really want to delete stored EEPROM-values?" },
-    });
-
-    dialogRef.afterClosed().subscribe(async result => {
-      if (result && this.selectedPort) {
-        await this.disconnect();
-        await this.connectionService.deleteEEPROM(this.selectedPort);
-      }
-    });
   }
 }
 
