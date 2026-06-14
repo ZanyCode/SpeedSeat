@@ -26,6 +26,12 @@ namespace F12020Telemetry
         public event Action<ushort?> OnDetectedPacketFormatChanged;
 
         /// <summary>
+        /// Raised for every raw datagram received from the game, before any parsing.
+        /// Used to forward the unmodified telemetry stream to other consumers (e.g. a steering wheel).
+        /// </summary>
+        public event Action<byte[]> OnRawPacketReceive;
+
+        /// <summary>
         /// Time required to time out in MS.
         /// </summary>
         private const float TIMEOUT_IN_MS = 500.0f;
@@ -115,6 +121,9 @@ namespace F12020Telemetry
 
             // Start receiving again.
             _client.BeginReceive(new AsyncCallback(ReceiveCallback), null);
+
+            // Forward the unmodified datagram to any extra consumers before we parse it.
+            OnRawPacketReceive?.Invoke(data);
 
             GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
 

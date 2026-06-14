@@ -1,4 +1,6 @@
 using System;
+using System.Net;
+using System.Net.Sockets;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using F12020Telemetry;
@@ -11,6 +13,12 @@ public class F12020TelemetryAdaptor
     private readonly IHubContext<TelemetryHub> telemetryHubContext;
 
     private F12020TelemetryClient client;
+
+    // Forwards the raw game telemetry to a second UDP port so other tools (e.g. a steering
+    // wheel) can consume the same stream alongside SpeedSeat.
+    private const int ForwardPort = 20778;
+    private readonly UdpClient forwardClient = new UdpClient();
+    private readonly IPEndPoint forwardEndpoint = new IPEndPoint(IPAddress.Loopback, ForwardPort);
 
     private ISubject<PacketMotionData> updateRequestSubject = new Subject<PacketMotionData>();
 
@@ -65,6 +73,7 @@ public class F12020TelemetryAdaptor
                 newClient.OnDetectedPacketFormatChanged += format =>
                     this.telemetryHubContext.Clients.All.SendAsync("gameDetected", (int?)format);
                 newClient.OnMotionDataReceive += (data) => updateRequestSubject.OnNext(data);
+                newClient.OnRawPacketReceive += ForwardRawPacket;
                 client = newClient;
                 Console.WriteLine("Listening for F1 telemetry on UDP port 20777.");
             }
@@ -73,6 +82,20 @@ public class F12020TelemetryAdaptor
                 Console.WriteLine($"Could not open telemetry port 20777 ({e.Message}), retrying in 5 seconds.");
                 await Task.Delay(5000);
             }
+        }
+    }
+
+    // Re-sends each datagram untouched to ForwardPort. Best effort: a failed forward must never
+    // disrupt seat control, so swallow any send error.
+    private void ForwardRawPacket(byte[] data)
+    {
+        try
+        {
+            forwardClient.Send(data, data.Length, forwardEndpoint);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Could not forward telemetry packet to port {ForwardPort}: {e.Message}");
         }
     }
 
