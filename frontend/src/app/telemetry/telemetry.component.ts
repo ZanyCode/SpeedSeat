@@ -40,7 +40,7 @@ export class TelemetryComponent implements OnInit, OnDestroy {
   public get frontTiltGForceMultiplierDisplay(): number {
     return Math.round((this._frontTiltGForceMultiplier ?? 0.3) * 100);
   }
-  public set frontTiltGForceMultiplierDisplay(value: number) {
+  public set frontTiltGForceMultiplierDisplay(value: number | null) {
     this.frontTiltGForceMultiplier = (value ?? 30) / 100;
   }
 
@@ -55,7 +55,7 @@ export class TelemetryComponent implements OnInit, OnDestroy {
   public get frontTiltOutputCapDisplay(): number {
     return Math.round((this._frontTiltOutputCap ?? 1.0) * 100);
   }
-  public set frontTiltOutputCapDisplay(value: number) {
+  public set frontTiltOutputCapDisplay(value: number | null) {
     this.frontTiltOutputCap = (value ?? 100) / 100;
   }
 
@@ -79,7 +79,7 @@ export class TelemetryComponent implements OnInit, OnDestroy {
   public get sideTiltGForceMultiplierDisplay(): number {
     return Math.round((this._sideTiltGForceMultiplier ?? 0.3) * 100);
   }
-  public set sideTiltGForceMultiplierDisplay(value: number) {
+  public set sideTiltGForceMultiplierDisplay(value: number | null) {
     this.sideTiltGForceMultiplier = (value ?? 30) / 100;
   }
 
@@ -94,7 +94,7 @@ export class TelemetryComponent implements OnInit, OnDestroy {
   public get sideTiltOutputCapDisplay(): number {
     return Math.round((this._sideTiltOutputCap ?? 1.0) * 100);
   }
-  public set sideTiltOutputCapDisplay(value: number) {
+  public set sideTiltOutputCapDisplay(value: number | null) {
     this.sideTiltOutputCap = (value ?? 100) / 100;
   }
 
