@@ -28,20 +28,32 @@
                     <div class="col-3">
                         G-Force Multiplier:
                     </div>
+                    <div class="col-auto">
+                        <mat-form-field appearance="outline">
+                            <input matInput type="number" min="0" max="100" step="1"
+                                [(ngModel)]="frontTiltGForceMultiplierDisplay">
+                        </mat-form-field>
+                    </div>
                     <div class="col">
-                        <mat-slider min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
-                            (input)="frontTiltGForceMultiplier = $event.value"
-                            [value]="frontTiltGForceMultiplier"></mat-slider>     
+                        <mat-slider min="0" max="100" aria-label="Percentage (%)" class="w-100" step="1"
+                            (input)="frontTiltGForceMultiplierDisplay = $event.value"
+                            [value]="frontTiltGForceMultiplierDisplay"></mat-slider>
                     </div>
                 </div>
                 <div class="row align-items-center">
                     <div class="col-3">
                         Output Cap:
                     </div>
+                    <div class="col-auto">
+                        <mat-form-field appearance="outline">
+                            <input matInput type="number" min="0" max="100" step="1"
+                                [(ngModel)]="frontTiltOutputCapDisplay">
+                        </mat-form-field>
+                    </div>
                     <div class="col">
-                        <mat-slider min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
-                            (input)="frontTiltOutputCap = $event.value"
-                            [value]="frontTiltOutputCap"></mat-slider>     
+                        <mat-slider min="0" max="100" aria-label="Percentage (%)" class="w-100" step="1"
+                            (input)="frontTiltOutputCapDisplay = $event.value"
+                            [value]="frontTiltOutputCapDisplay"></mat-slider>
                     </div>
                 </div>
                 <!-- <div class="row align-items-center">
@@ -73,20 +85,32 @@
                     <div class="col-3">
                         G-Force Multiplier:
                     </div>
+                    <div class="col-auto">
+                        <mat-form-field appearance="outline">
+                            <input matInput type="number" min="0" max="100" step="1"
+                                [(ngModel)]="sideTiltGForceMultiplierDisplay">
+                        </mat-form-field>
+                    </div>
                     <div class="col">
-                        <mat-slider min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
-                            (input)="sideTiltGForceMultiplier = $event.value"
-                            [value]="sideTiltGForceMultiplier"></mat-slider>     
+                        <mat-slider min="0" max="100" aria-label="Percentage (%)" class="w-100" step="1"
+                            (input)="sideTiltGForceMultiplierDisplay = $event.value"
+                            [value]="sideTiltGForceMultiplierDisplay"></mat-slider>
                     </div>
                 </div>
                 <div class="row align-items-center">
                     <div class="col-3">
                         Output Cap:
                     </div>
+                    <div class="col-auto">
+                        <mat-form-field appearance="outline">
+                            <input matInput type="number" min="0" max="100" step="1"
+                                [(ngModel)]="sideTiltOutputCapDisplay">
+                        </mat-form-field>
+                    </div>
                     <div class="col">
-                        <mat-slider min="0" max="1" aria-label="Percentage (%)" class="w-100" step="0.00001" 
-                            (input)="sideTiltOutputCap = $event.value"
-                            [value]="sideTiltOutputCap"></mat-slider>     
+                        <mat-slider min="0" max="100" aria-label="Percentage (%)" class="w-100" step="1"
+                            (input)="sideTiltOutputCapDisplay = $event.value"
+                            [value]="sideTiltOutputCapDisplay"></mat-slider>
                     </div>
                 </div>
                 <!-- <div class="row align-items-center">

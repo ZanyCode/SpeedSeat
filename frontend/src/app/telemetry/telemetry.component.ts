@@ -37,6 +37,12 @@ export class TelemetryComponent implements OnInit, OnDestroy {
     this._frontTiltGForceMultiplier = value;
     this.data.setFrontTiltGForceMultiplier(value ?? 0.3);
   }
+  public get frontTiltGForceMultiplierDisplay(): number {
+    return Math.round((this._frontTiltGForceMultiplier ?? 0.3) * 100);
+  }
+  public set frontTiltGForceMultiplierDisplay(value: number) {
+    this.frontTiltGForceMultiplier = (value ?? 30) / 100;
+  }
 
   private _frontTiltOutputCap: number | null = 1.0;
   public get frontTiltOutputCap(): number | null {
@@ -45,6 +51,12 @@ export class TelemetryComponent implements OnInit, OnDestroy {
   public set frontTiltOutputCap(value: number | null) {
     this._frontTiltOutputCap = value;
     this.data.setFrontTiltOutputCap(value ?? 1.0);
+  }
+  public get frontTiltOutputCapDisplay(): number {
+    return Math.round((this._frontTiltOutputCap ?? 1.0) * 100);
+  }
+  public set frontTiltOutputCapDisplay(value: number) {
+    this.frontTiltOutputCap = (value ?? 100) / 100;
   }
 
   private _frontTiltSmoothing: number | null = 0;
@@ -64,6 +76,12 @@ export class TelemetryComponent implements OnInit, OnDestroy {
     this._sideTiltGForceMultiplier = value;
     this.data.setSideTiltGForceMultiplier(value ?? 0.3);
   }
+  public get sideTiltGForceMultiplierDisplay(): number {
+    return Math.round((this._sideTiltGForceMultiplier ?? 0.3) * 100);
+  }
+  public set sideTiltGForceMultiplierDisplay(value: number) {
+    this.sideTiltGForceMultiplier = (value ?? 30) / 100;
+  }
 
   private _sideTiltOutputCap: number | null = 1.0;
   public get sideTiltOutputCap(): number | null {
@@ -72,6 +90,12 @@ export class TelemetryComponent implements OnInit, OnDestroy {
   public set sideTiltOutputCap(value: number | null) {
     this._sideTiltOutputCap = value;
     this.data.setSideTiltOutputCap(value ?? 1.0);
+  }
+  public get sideTiltOutputCapDisplay(): number {
+    return Math.round((this._sideTiltOutputCap ?? 1.0) * 100);
+  }
+  public set sideTiltOutputCapDisplay(value: number) {
+    this.sideTiltOutputCap = (value ?? 100) / 100;
   }
 
   private _sideTiltSmoothing: number | null = 0;
