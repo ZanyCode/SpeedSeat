@@ -27,6 +27,7 @@ public class FrontendLogger : IFrontendLogger
 
     public void Log(string message)
     {
+        ConnectionDiagnostics.Event("LOG", message);
         this.messagesSubject.OnNext(message);
     }
 }

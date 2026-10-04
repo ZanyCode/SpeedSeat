@@ -25,6 +25,8 @@ else if (IsPortInUse(5000))
 
 try
 {
+    ConnectionDiagnostics.Start(); // no-op unless SPEEDSEAT_DIAG_DIR is set
+
     var builder = WebApplication.CreateBuilder(args);
 
     builder.Configuration.AddJsonStream(GetConfigJSONStream());

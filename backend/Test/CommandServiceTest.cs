@@ -85,11 +85,34 @@ public class CommandServiceTest
         SetupPortResponses(alwaysSendAckByte: false);
 
         // Act
-        await sut.WriteCommand(new Command(0, value1: null, value2: null, value3: null, false, false, "Fetter Command"));
+        await sut.WriteCommand(new Command(4, value1: null, value2: null, value3: null, false, false, "Fetter Command"));
 
         // Assert
         // 2 writes from Connect (Initiate-Connection command + ack byte) and 3 unanswered send attempts
         portConnectionMock.Verify(x => x.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Exactly(5));
+    }
+
+    [TestMethod]
+    public async Task CommandServiceShouldNotResendUnansweredMotorPosition()
+    {
+        // Arrange
+        SetupPortResponses(new Dictionary<byte, Func<byte[], byte[]>>
+        {
+            [Command.InitiateConnectionCommandId] = x => new Command(Command.ConnectionInitiatedCommandId, null, null, null, false, false).ToByteArray()
+        });
+
+        await sut.Connect("");
+        SetupPortResponses(alwaysSendAckByte: false);
+
+        // Act
+        var result = await sut.WriteCommand(new Command(Command.MotorPositionCommandId, value1: null, value2: null, value3: null, false, false, "Position"));
+
+        // Assert
+        // 2 writes from Connect and a single send attempt — a lost position is replaced by the
+        // next one instead of being resent, and one lost datagram must not drop the connection.
+        portConnectionMock.Verify(x => x.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Exactly(3));
+        Assert.AreEqual(WriteResult.Timeout, result);
+        Assert.IsTrue(sut.IsConnected);
     }
 
     [TestMethod]

@@ -87,7 +87,7 @@ public class SpeedseatSettings : ISpeedseatSettings
     /* Definition of Telemetry Stream Settings */
     [JsonIgnore]
     public IObservable<double> FrontTiltGforceMultiplierObs => GetObservable<double>(nameof(FrontTiltGforceMultiplier), FrontTiltGforceMultiplier);
-    public double FrontTiltGforceMultiplier { get => GetValue<double>(0.3); set => SetValue(value); }
+    public double FrontTiltGforceMultiplier { get => GetValue<double>(0.07); set => SetValue(value); }
 
     [JsonIgnore]
     public IObservable<double> FrontTiltOutputCapObs => GetObservable<double>(nameof(FrontTiltOutputCap), FrontTiltOutputCap);
@@ -99,7 +99,7 @@ public class SpeedseatSettings : ISpeedseatSettings
 
     [JsonIgnore]
     public IObservable<double> SideTiltGforceMultiplierObs => GetObservable<double>(nameof(SideTiltGforceMultiplier), SideTiltGforceMultiplier);
-    public double SideTiltGforceMultiplier { get => GetValue<double>(0.3); set => SetValue(value); }
+    public double SideTiltGforceMultiplier { get => GetValue<double>(0.34); set => SetValue(value); }
 
     [JsonIgnore]
     public IObservable<double> SideTiltOutputCapObs => GetObservable<double>(nameof(SideTiltOutputCap), SideTiltOutputCap);

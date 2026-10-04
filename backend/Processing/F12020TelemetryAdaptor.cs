@@ -72,7 +72,11 @@ public class F12020TelemetryAdaptor
                 var newClient = new F12020TelemetryClient(20777);
                 newClient.OnDetectedPacketFormatChanged += format =>
                     this.telemetryHubContext.Clients.All.SendAsync("gameDetected", (int?)format);
-                newClient.OnMotionDataReceive += (data) => updateRequestSubject.OnNext(data);
+                newClient.OnMotionDataReceive += (data) =>
+                {
+                    ConnectionDiagnostics.TelemetryPacket();
+                    updateRequestSubject.OnNext(data);
+                };
                 newClient.OnRawPacketReceive += ForwardRawPacket;
                 client = newClient;
                 Console.WriteLine("Listening for F1 telemetry on UDP port 20777.");

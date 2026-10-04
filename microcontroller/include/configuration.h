@@ -21,6 +21,10 @@
 //define to spit out Serial information about state of the loop. Usefull when micocontroller crashes.
 //#define DEBUG
 
+//WiFi link debugging: the ESP pings the WiFi gateway in the background and prints slow/lost
+//replies, RSSI and WiFi disconnects to the USB serial log (lines starting with "DIAG").
+//#define LINK_DIAGNOSTICS
+
 //Numeric firmware version reported to the PC for the OTA update handshake.
 //CI overrides this via build flag (-DFW_VERSION_NUMBER=<release build number>); 0 = local dev build.
 #ifndef FW_VERSION_NUMBER

@@ -7,6 +7,7 @@
 #include "Beeping.h"
 #include "compileChecker.h"
 #include "ota.h"
+#include "linkdiag.h"
 
 
 #ifdef DEBUG
@@ -44,6 +45,9 @@ void setup()
     ;
   delay(500);
   transport.begin(UDP_PORT);
+#ifdef LINK_DIAGNOSTICS
+  startLinkDiagnostics();
+#endif
 #ifdef USE_EEPROM
   EEPROM.begin(512);
   X_Axis.loadEEPROM();

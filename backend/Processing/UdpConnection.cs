@@ -189,6 +189,7 @@ public class UdpDeviceConnection : IDeviceConnection
                 try
                 {
                     var result = await udpClient.ReceiveAsync(token);
+                    ConnectionDiagnostics.Event("RX", Convert.ToHexString(result.Buffer));
                     foreach (var b in result.Buffer)
                         receivedBytes.Enqueue(b);
 
