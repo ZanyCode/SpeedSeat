@@ -267,6 +267,20 @@ void Axis::_move()
     if (accelerating)
     {
         processorCylcesPerSpeedChange = processorCylcesPerSpeedChangeAC;
+        // accelerate more gently when the target is very close -> small position changes don't jerk the seat.
+        // Only the acceleration is reduced; the deceleration (and with it the breaking distance) stays untouched.
+        // Can be switched off; a distance or a minimum of 0 switches it off as well.
+        unsigned long fullAccelerationDistance = closeTargetDistance;
+        unsigned long minAccelerationPercent = closeTargetMinAccelerationPercent;
+        if (closeTargetEnabled && movementType == _POSITIONING && minAccelerationPercent > 0 && minAccelerationPercent < 100)
+        {
+            unsigned long distanceToTarget = currentPosition > targetPosition ? currentPosition - targetPosition : targetPosition - currentPosition;
+            if (distanceToTarget < fullAccelerationDistance)
+            {
+                unsigned long accelerationPercent = minAccelerationPercent + (unsigned long long)(100 - minAccelerationPercent) * distanceToTarget / fullAccelerationDistance;
+                processorCylcesPerSpeedChange = (unsigned long long)processorCylcesPerSpeedChange * 100 / accelerationPercent;
+            }
+        }
     }
     else
     {
@@ -468,4 +482,3 @@ unsigned int Axis::getFilterConstant()
 {
     return smoothy->getBuffer();
 }
-

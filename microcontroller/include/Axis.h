@@ -148,6 +148,10 @@ public:
     volatile bool positionHasBeenChanged;
     volatile bool blockInterrupt = false;
     volatile DIRECTION currentDirection = _STANDSTILL;
+    // gentler acceleration when the target is close (see _move); distance in steps
+    volatile unsigned long closeTargetDistance;
+    volatile unsigned long closeTargetMinAccelerationPercent;
+    volatile bool closeTargetEnabled = true;
 
     void setAcceleration(unsigned long, PARAMETER_MODE parameterMode = _MC_PERMANENT);
     void setSpeed(unsigned long);
@@ -157,6 +161,10 @@ public:
     void setHomingAcceleration(unsigned long);
     void setStepsPerMillimeter(unsigned long);
     void setFilterConstant(int);
+    void setCloseTargetAcceleration(unsigned long distance, unsigned long minAccelerationPercent, bool enabled);
+    unsigned long getCloseTargetDistance();
+    unsigned long getCloseTargetMinAccelerationPercent();
+    bool getCloseTargetEnabled();
 
     bool isRunningMaxSpeed();
     bool isActive();

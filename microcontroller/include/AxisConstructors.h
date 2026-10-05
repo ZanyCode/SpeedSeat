@@ -51,6 +51,9 @@ void Axis::loadDefaultValues()
     accelerationWhileHoming = 1000ul * STEPS_PER_MM;
     maxPosition = 299 * STEPS_PER_MM;
     homingOffset = 40 * STEPS_PER_MM;
+    closeTargetDistance = CLOSE_TARGET_DISTANCE_MM * STEPS_PER_MM;
+    closeTargetMinAccelerationPercent = CLOSE_TARGET_MIN_ACCELERATION_PERCENT;
+    closeTargetEnabled = true;
 }
 
 void Axis::verifyData()

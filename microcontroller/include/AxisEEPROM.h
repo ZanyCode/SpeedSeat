@@ -19,6 +19,9 @@ void Axis::saveData()
     writeEEPROM(speedWhileHoming / STEPS_PER_MM);
     writeEEPROM(accelerationWhileHoming / STEPS_PER_MM);
     writeEEPROM(smoothy->getBuffer());
+    writeEEPROM(closeTargetDistance / STEPS_PER_MM);
+    writeEEPROM((unsigned int)closeTargetMinAccelerationPercent);
+    writeEEPROM((unsigned int)closeTargetEnabled);
     EEPROM.commit();
 }
 
@@ -36,6 +39,27 @@ void Axis::readData()
     unsigned int bufferSize;
     readEEPROM(bufferSize);
     smoothy->setBuffer(bufferSize);
+
+    // These were added later: an EEPROM written by an older firmware holds no valid values here,
+    // so anything out of range keeps the default.
+    unsigned long distance = closeTargetDistance;
+    readEEPROM(distance);
+    if (distance <= CLOSE_TARGET_MAX_DISTANCE_MM * STEPS_PER_MM)
+    {
+        closeTargetDistance = distance;
+    }
+    unsigned int minAccelerationPercent = closeTargetMinAccelerationPercent;
+    readEEPROM(minAccelerationPercent);
+    if (minAccelerationPercent <= 100)
+    {
+        closeTargetMinAccelerationPercent = minAccelerationPercent;
+    }
+    unsigned int enabled = closeTargetEnabled;
+    readEEPROM(enabled);
+    if (enabled <= 1)
+    {
+        closeTargetEnabled = enabled;
+    }
 
     calculateValues();
 }

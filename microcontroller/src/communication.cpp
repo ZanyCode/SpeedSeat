@@ -224,6 +224,7 @@ void communication::readNewCommand()
     case SAVE_SETTINGS:
     case RESET_EEPROM:
     case FILTER_CONSTANT:
+    case CLOSE_TARGET_ACCELERATION:
     case FIRMWARE_VERSION:
     case START_FIRMWARE_UPDATE:
         if (reading)
@@ -335,6 +336,7 @@ void communication::addAllCommandsToRequestLine()
     addCommandToRequestLine(INIT_SUCCESSFUL);
     addCommandToRequestLine(STATE_UPDATE_INTERVALL);
     addCommandToRequestLine(FILTER_CONSTANT);
+    addCommandToRequestLine(CLOSE_TARGET_ACCELERATION);
 }
 
 void communication::addCommandToRequestLine(CMD command)

@@ -18,6 +18,15 @@
 
 #define AUTO_RETURN_TO_ZERO
 
+//Reduce the acceleration of positioning moves when the target is very close. Below the distance
+//the acceleration is scaled linearly with the remaining distance, from 100% at that distance down to
+//the minimum percentage right at the target. These are only the defaults: both values are settings
+//(command CLOSE_TARGET_ACCELERATION, stored in the EEPROM) together with an on/off switch (on by default).
+#define CLOSE_TARGET_DISTANCE_MM 5
+#define CLOSE_TARGET_MIN_ACCELERATION_PERCENT 25
+//Upper limit of the distance setting. Must match the max of command 24 in backend/config.json
+#define CLOSE_TARGET_MAX_DISTANCE_MM 50
+
 //define to spit out Serial information about state of the loop. Usefull when micocontroller crashes.
 //#define DEBUG
 

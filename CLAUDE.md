@@ -169,6 +169,7 @@ Each command entry defines:
 | `NO_HARDWARE` | Skips real motor control; useful for software-only testing |
 | `USE_EEPROM` | Loads/saves axis settings from ESP32 EEPROM on boot/save command |
 | `AUTO_RETURN_TO_ZERO` | Seat returns to centre when telemetry FPS drops to 0 for 200 ms |
+| `CLOSE_TARGET_DISTANCE_MM` / `CLOSE_TARGET_MIN_ACCELERATION_PERCENT` | Defaults (5 mm / 25 %) of the "Gentle acceleration near target" seat setting (command ID 24: Value1 = distance in mm, Value2 = minimum acceleration in %, Value3 = enabled toggle, one value for all axes, stored in the EEPROM). Positioning moves accelerate more gently when the target is close: below the distance the acceleration scales linearly with the remaining distance down to the minimum at the target. Switching the toggle off (or setting either value to 0) restores the old behaviour. Deceleration is unchanged. Applied in `Axis::_move()` (`AxisMove.h`). `CLOSE_TARGET_MAX_DISTANCE_MM` (50) is the upper limit and must match the `max` in `config.json` |
 | `AUTO_SAVE` | Auto-saves to EEPROM on every change (off by default) |
 | `ANALYZE_MOTION_CERNEL` | Sends random move commands for stress-testing |
 | `DEBUG` | Enables `printPosition()` serial debug output |
