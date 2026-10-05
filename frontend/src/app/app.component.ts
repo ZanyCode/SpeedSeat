@@ -42,6 +42,8 @@ export class AppComponent implements OnInit, OnDestroy {
   updateInstallState: string | undefined = undefined;
   updateInstallMessage: string | undefined = undefined;
   private updateFallbackDone = false;
+  private reloadPollStarted = false;
+  private static readonly RELOAD_POLL_TIMEOUT_MS = 120000;
 
   // First-time-setup / USB-flash help, shown after the seat stays disconnected for a while
   showFlashHelp = false;
@@ -128,8 +130,29 @@ export class AppComponent implements OnInit, OnDestroy {
   private scheduleReloadAfterRestart() {
     this.updateInstallState = 'restarting';
     this.updateInstallMessage = this.updateInstallMessage ?? 'Update installed. Restarting SpeedSeat…';
-    // Give the new backend time to start and bind port 5000, then reload this tab onto it.
-    setTimeout(() => window.location.reload(), 9000);
+    if (this.reloadPollStarted)
+      return;
+    this.reloadPollStarted = true;
+    this.reloadOntoNewBackend();
+  }
+
+  // Reload this tab once the *new* backend answers. A fixed delay isn't enough: the old
+  // backend can still be serving for several seconds (a freshly downloaded exe is slow to
+  // launch), and reloading onto it shows the old version with no way back to the new one.
+  private async reloadOntoNewBackend() {
+    const oldVersion = this.updateInfo?.currentVersion;
+    const deadline = Date.now() + AppComponent.RELOAD_POLL_TIMEOUT_MS;
+
+    while (Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        if (await this.data.probeBackendVersion() !== oldVersion)
+          break;
+      } catch {
+        // No backend reachable yet — the old one is gone and the new one is still starting.
+      }
+    }
+    window.location.reload();
   }
 
   private fallbackToManualDownload() {

@@ -19,7 +19,7 @@
   <mat-icon class="ota-overlay-icon">{{updateInstallState === 'restarting' ? 'restart_alt' : 'download'}}</mat-icon>
   <h1 class="ota-overlay-title">{{updateInstallState === 'restarting' ? 'Restarting SpeedSeat' : 'Installing update'}}</h1>
   <p class="ota-overlay-message">{{updateInstallMessage}}</p>
-  <p class="ota-overlay-warning" *ngIf="updateInstallState === 'restarting'">This page reloads automatically in a few seconds.</p>
+  <p class="ota-overlay-warning" *ngIf="updateInstallState === 'restarting'">This page reloads automatically once the new version is running.</p>
 </div>
 
 <!-- USB flash overlay — shown while the bundled firmware is flashed to a USB-connected seat -->

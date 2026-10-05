@@ -47,6 +47,19 @@ export class AppDataService {
     this.connection.on('updateInstallState', callback);
   }
 
+  // Asks whichever backend currently answers on the port for its version, over a throwaway
+  // connection (the main one dies with the old backend during a self-update). Rejects while
+  // no backend is reachable.
+  public async probeBackendVersion(): Promise<string> {
+    const probe = new HubConnectionBuilder().withUrl(`${environment.backendUrl}hub/info`).build();
+    try {
+      await probe.start();
+      return (await probe.invoke<UpdateInfo>("GetUpdateInfo")).currentVersion;
+    } finally {
+      probe.stop().catch(() => { });
+    }
+  }
+
   public subscribeToLogs(): Observable<string> {
     let subject = new Subject<string>();
     this.connection.stream("LogMessages").subscribe(subject);
