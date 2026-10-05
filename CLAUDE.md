@@ -196,8 +196,6 @@ All persisted in SQLite. Properties expose `IObservable<T>` variants (`*Obs`) fo
 
 Backend, frontend and firmware must always be released together — the update chain (GitHub release check → exe download → firmware OTA on next connect) assumes their versions match.
 
-`publish_release.ps1` (legacy) just bumps and pushes a tag; the workflow no longer triggers on tags.
-
 ---
 
 ## Debugging connection hiccups (findings from 2026-10-04)
