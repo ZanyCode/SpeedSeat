@@ -81,6 +81,8 @@ public class CommandService
 
                 byte[] data = new byte[currentConnection.BytesToRead];
                 currentConnection.Read(data, 0, data.Length);
+                if (data.Length > 0)
+                    positionsSinceLastReceive = 0;
                 foreach (var dataByte in data)
                 {
                     if (!isReadingCommand && (dataByte == 0xFF || dataByte == 0xFE))
@@ -94,9 +96,9 @@ public class CommandService
                         }
                         else
                         {
-                            // Usually the late ack of a motor position whose short ack window
-                            // already expired — expected on WiFi, so keep it out of the UI log.
-                            ConnectionDiagnostics.Event("LATEACK", $"{dataByte:X2}");
+                            // The ack of a motor position (those are never waited on), or the
+                            // late ack of a command that already timed out.
+                            ConnectionDiagnostics.Event("POSACK", $"{dataByte:X2}");
                         }
                     }
                     else
@@ -252,15 +254,23 @@ public class CommandService
         }
     }
 
-    // Motor positions are streamed at telemetry rate and are stale within milliseconds, so a
-    // lost datagram must not stall the stream: wait only briefly for the ack and never resend
-    // — the next (newer) position replaces it. With the regular 1s retry interval a single
-    // dropped WiFi packet froze the seat for a full second.
-    private const int PositionAckTimeoutMs = 60;
+    // Motor positions are streamed the way games stream state: each one is sent the moment it
+    // exists and is never waited on or resent, because the next (newer) position replaces a
+    // lost one anyway. Waiting for the ack of every position turned each lost WiFi packet into
+    // a pause (1s with the generic retry interval, still 60ms+ with a short ack window), which
+    // added up to visible hiccups whenever the link dropped several packets in a row.
+    // The microcontroller still acks every position; those acks only prove the link is alive.
 
-    // Only this many position datagrams in a row without any ack count as a dead link (~1.5s).
-    private const int MaxConsecutivePositionTimeouts = 25;
-    private int consecutivePositionTimeouts = 0;
+    // This many positions in a row without receiving anything from the microcontroller count
+    // as a dead link (~1.5s at telemetry rate).
+    private const int MaxPositionsWithoutReply = 60;
+    private int positionsSinceLastReceive = 0;
+
+    // Acks carry no ID, so the ack of a just-sent position could be mistaken for the ack of a
+    // reliable command sent right after it. Reliable commands therefore wait until the acks of
+    // the last positions have had this long to arrive (positions pause meanwhile).
+    private const int PositionAckSettleMs = 80;
+    private double lastPositionSentAtMs = double.MinValue;
 
     public async Task<WriteResult> WriteCommand(Command command)
     {
@@ -282,9 +292,26 @@ public class CommandService
             await writeDataSemaphore.WaitAsync();
             acquiredSemaphore = true;
 
-            int maxAttempts = isPositionStream ? 1 : 3;
-            int ackTimeoutMs = isPositionStream ? PositionAckTimeoutMs : options.CurrentValue.CommandSendRetryIntervalMs;
-            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            if (isPositionStream)
+            {
+                if (++positionsSinceLastReceive > MaxPositionsWithoutReply)
+                {
+                    positionsSinceLastReceive = 0;
+                    throw new Exception($"No response from controller for {MaxPositionsWithoutReply} motor position commands in a row.");
+                }
+
+                ConnectionDiagnostics.Event("TX", Convert.ToHexString(data));
+                this.connection.Write(data, 0, data.Length);
+                lastPositionSentAtMs = ConnectionDiagnostics.NowMs;
+                writeDataSemaphore.Release();
+                return WriteResult.Success;
+            }
+
+            double settleMs = PositionAckSettleMs - (ConnectionDiagnostics.NowMs - lastPositionSentAtMs);
+            if (settleMs > 0)
+                await Task.Delay((int)settleMs + 1);
+
+            for (int attempt = 1; attempt <= 3; attempt++)
             {
                 // Discard an ack that arrived after its command already timed out, so it
                 // can't be mistaken for the ack of the datagram we're about to send.
@@ -293,26 +320,8 @@ public class CommandService
                 double sentAtMs = ConnectionDiagnostics.NowMs;
                 ConnectionDiagnostics.Event("TX", $"{Convert.ToHexString(data)} attempt={attempt}");
                 this.connection.Write(data, 0, data.Length);
-                receivedResponse = await responseReceivedSemaphore.WaitAsync(ackTimeoutMs);
+                receivedResponse = await responseReceivedSemaphore.WaitAsync(options.CurrentValue.CommandSendRetryIntervalMs);
                 ConnectionDiagnostics.Event(receivedResponse ? "ACK" : "TIMEOUT", $"{Convert.ToHexString(data)} attempt={attempt} rttMs={ConnectionDiagnostics.NowMs - sentAtMs:F1} result={currentWriteResult}");
-
-                if (isPositionStream)
-                {
-                    if (receivedResponse)
-                    {
-                        consecutivePositionTimeouts = 0;
-                    }
-                    else if (++consecutivePositionTimeouts < MaxConsecutivePositionTimeouts)
-                    {
-                        writeDataSemaphore.Release();
-                        return WriteResult.Timeout;
-                    }
-                    else
-                    {
-                        consecutivePositionTimeouts = 0;
-                    }
-                    break;
-                }
 
                 if (!receivedResponse)
                 {
@@ -333,9 +342,7 @@ public class CommandService
 
             if (!receivedResponse)
             {
-                throw new Exception(isPositionStream
-                    ? $"No response from controller for {MaxConsecutivePositionTimeouts} motor position commands in a row."
-                    : $"Value wasn't written since no response from controller was received after 3 attempts.");
+                throw new Exception($"Value wasn't written since no response from controller was received after 3 attempts.");
             }
 
             if ((DateTime.Now - latestPerformaceUpdate).TotalMilliseconds > 1000)

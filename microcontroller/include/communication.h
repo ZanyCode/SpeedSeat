@@ -53,8 +53,6 @@ enum CMD
     ERROR_ID = 21,
     DRIVE_STATE =22,
     FILTER_CONSTANT =23,
-    // Value1 = distance in mm below which the acceleration is reduced, Value2 = minimum acceleration in percent, Value3 = enabled
-    CLOSE_TARGET_ACCELERATION = 24,
     // PC sends a read request, MC answers with its numeric firmware version in Value1
     FIRMWARE_VERSION = 0x40,
     // PC requests an OTA update; Value1 = HTTP port on the PC serving /firmware.bin
@@ -102,7 +100,7 @@ class communication
     void sendBuffer();
     void addAllCommandsToRequestLine();
     void calculateCycleTime();
-    void addDataToRecivedBuffer();
+    void handleAnswer(bool okay);
     void acknowledge(ANSWER);
     void sendValue(CMD command, unsigned value1, unsigned value2, unsigned value3);
 

@@ -153,29 +153,6 @@ void Axis::setSpeed(unsigned long maxSpeed)
     SAVE_DATA
 }
 
-void Axis::setCloseTargetAcceleration(unsigned long distance, unsigned long minAccelerationPercent, bool enabled)
-{
-    closeTargetDistance = constrain(distance, 0, CLOSE_TARGET_MAX_DISTANCE_MM) * stepsPerMillimeter;
-    closeTargetMinAccelerationPercent = constrain(minAccelerationPercent, 0, 100);
-    closeTargetEnabled = enabled;
-    SAVE_DATA
-}
-
-unsigned long Axis::getCloseTargetDistance()
-{
-    return closeTargetDistance / stepsPerMillimeter;
-}
-
-unsigned long Axis::getCloseTargetMinAccelerationPercent()
-{
-    return closeTargetMinAccelerationPercent;
-}
-
-bool Axis::getCloseTargetEnabled()
-{
-    return closeTargetEnabled;
-}
-
 bool Axis::isHomed() SAVE_DATA
 {
     return AxisIsHomed;

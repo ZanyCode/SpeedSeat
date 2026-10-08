@@ -10,6 +10,7 @@ export interface SpeedseatSettings
   sideMotorResponseCurve: ResponseCurvePoint[];
 
   frontTiltGforceMultiplier: number;
+  frontTiltAccelerationBoost: number;
   frontTiltOutputCap: number;
   frontTiltSmoothing: number;
   frontTiltReverse: boolean;

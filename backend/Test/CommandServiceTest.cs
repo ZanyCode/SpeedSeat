@@ -108,10 +108,11 @@ public class CommandServiceTest
         var result = await sut.WriteCommand(new Command(Command.MotorPositionCommandId, value1: null, value2: null, value3: null, false, false, "Position"));
 
         // Assert
-        // 2 writes from Connect and a single send attempt — a lost position is replaced by the
-        // next one instead of being resent, and one lost datagram must not drop the connection.
+        // 2 writes from Connect and a single send — positions are streamed without waiting for
+        // the ack: a lost one is replaced by the next instead of being resent, and one lost
+        // datagram must not drop the connection.
         portConnectionMock.Verify(x => x.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()), Times.Exactly(3));
-        Assert.AreEqual(WriteResult.Timeout, result);
+        Assert.AreEqual(WriteResult.Success, result);
         Assert.IsTrue(sut.IsConnected);
     }
 

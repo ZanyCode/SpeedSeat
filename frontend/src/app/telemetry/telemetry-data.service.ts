@@ -32,6 +32,10 @@ export class TelemetryDataService {
     await this.connection.invoke("SetFrontTiltGForceMultiplier", multiplier);
   }
 
+  public async setFrontTiltAccelerationBoost(boost: number) {
+    await this.connection.invoke("SetFrontTiltAccelerationBoost", boost);
+  }
+
   public async setFrontTiltOutputCap(cap: number) {
     await this.connection.invoke("SetFrontTiltOutputCap", cap);
   }

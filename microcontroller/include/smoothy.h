@@ -10,6 +10,8 @@ private:
 
 public:
   float filter(float);
+  // Fills the whole buffer with one value, so filtering continues from there without a jump.
+  void reset(float value);
   Smoothy(int bufferSize);
   ~Smoothy();
   void setBuffer(unsigned int);

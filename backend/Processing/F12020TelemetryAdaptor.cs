@@ -53,8 +53,9 @@ public class F12020TelemetryAdaptor
                 settings.FrontTiltReverseObs,
                 settings.SideTiltGforceMultiplierObs,
                 settings.SideTiltOutputCapObs,
-                settings.SideTiltReverseObs)
-            .Subscribe(x => UpdateSeatPosition(x.First, x.Second, x.Third, x.Fourth, x.Fifth, x.Sixth, x.Seventh));
+                settings.SideTiltReverseObs,
+                settings.FrontTiltAccelerationBoostObs)
+            .Subscribe(x => UpdateSeatPosition(x.First, x.Second, x.Third, x.Fourth, x.Fifth, x.Sixth, x.Seventh, x.Eighth));
 
         _ = CreateClientWithRetry();
     }
@@ -110,14 +111,19 @@ public class F12020TelemetryAdaptor
         bool frontTiltReverse,
         double sideTiltGForceMultiplier,
         double sideTiltOutputCap,
-        bool sideTiltReverse)
+        bool sideTiltReverse,
+        double frontTiltAccelerationBoost)
     {
         // Never let an exception escape: this runs inside an Rx Subscribe callback, and a
         // single throw would permanently kill the subscription (telemetry stops forever).
         try
         {
             var first = motion.carMotionData.ElementAt(motion.header.playerCarIndex);
-            var frontTilt = Math.Clamp(first.gForceLongitudinal * frontTiltGForceMultiplier, -frontTiltOutputCap, frontTiltOutputCap) * (frontTiltReverse? -1 : 1);
+            // Positive longitudinal G is accelerating, negative is braking. Braking forces are
+            // several times stronger than acceleration in an F1 car, so acceleration can be
+            // boosted on its own without making braking any harsher.
+            var longitudinalGForce = first.gForceLongitudinal > 0 ? first.gForceLongitudinal * frontTiltAccelerationBoost : first.gForceLongitudinal;
+            var frontTilt = Math.Clamp(longitudinalGForce * frontTiltGForceMultiplier, -frontTiltOutputCap, frontTiltOutputCap) * (frontTiltReverse? -1 : 1);
             var sideTilt = Math.Clamp(first.gForceLateral * sideTiltGForceMultiplier, -sideTiltOutputCap, sideTiltOutputCap) * (sideTiltReverse? -1 : 1);
             seat.SetTilt(frontTilt, sideTilt);
             SendTelemetryToFrontend(frontTilt, sideTilt);

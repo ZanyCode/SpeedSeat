@@ -29,6 +29,14 @@ float Smoothy::filter(float input)
     return temp;
 }
 
+void Smoothy::reset(float value)
+{
+    for (int i = 0; i < bufferSize; i++)
+    {
+        buffer[i] = value;
+    }
+}
+
 void Smoothy::setBuffer(unsigned int bufferSize)
 {
     bufferSize = constrain(bufferSize, 3, 99);
@@ -44,7 +52,7 @@ void Smoothy::setBuffer(unsigned int bufferSize)
     }
     this->bufferSize = bufferSize;
     this->buffer = new float[bufferSize];
-    for (int i = 0; i < bufferSize-1; i++)
+    for (int i = 0; i < bufferSize; i++)
     {
         buffer[i] = lastValueOfBuffer;
     }

@@ -31,13 +31,47 @@
                     <div class="col-auto">
                         <mat-form-field appearance="outline">
                             <input matInput type="number" min="0" max="100" step="1"
-                                [(ngModel)]="frontTiltGForceMultiplierDisplay">
+                                [disabled]="!unlocked.frontTiltGForceMultiplier" [(ngModel)]="frontTiltGForceMultiplierDisplay">
                         </mat-form-field>
                     </div>
                     <div class="col">
                         <mat-slider min="0" max="100" aria-label="Percentage (%)" class="w-100" step="1"
                             (input)="frontTiltGForceMultiplierDisplay = $event.value"
+                            [disabled]="!unlocked.frontTiltGForceMultiplier"
                             [value]="frontTiltGForceMultiplierDisplay"></mat-slider>
+                    </div>
+                    <div class="col-auto">
+                        <button (click)="unlocked.frontTiltGForceMultiplier = false" *ngIf="unlocked.frontTiltGForceMultiplier" mat-icon-button color="primary" aria-label="Lock setting">
+                            <mat-icon>lock</mat-icon>
+                        </button>
+                        <button (click)="unlocked.frontTiltGForceMultiplier = true" *ngIf="!unlocked.frontTiltGForceMultiplier" mat-icon-button color="primary" aria-label="Unlock setting">
+                            <mat-icon>lock_open</mat-icon>
+                        </button>
+                    </div>
+                </div>
+                <div class="row align-items-center">
+                    <div class="col-3">
+                        Acceleration Boost (%):
+                    </div>
+                    <div class="col-auto">
+                        <mat-form-field appearance="outline">
+                            <input matInput type="number" min="100" max="1000" step="10"
+                                [disabled]="!unlocked.frontTiltAccelerationBoost" [(ngModel)]="frontTiltAccelerationBoostDisplay">
+                        </mat-form-field>
+                    </div>
+                    <div class="col">
+                        <mat-slider min="100" max="1000" aria-label="Percentage (%)" class="w-100" step="10"
+                            (input)="frontTiltAccelerationBoostDisplay = $event.value"
+                            [disabled]="!unlocked.frontTiltAccelerationBoost"
+                            [value]="frontTiltAccelerationBoostDisplay"></mat-slider>
+                    </div>
+                    <div class="col-auto">
+                        <button (click)="unlocked.frontTiltAccelerationBoost = false" *ngIf="unlocked.frontTiltAccelerationBoost" mat-icon-button color="primary" aria-label="Lock setting">
+                            <mat-icon>lock</mat-icon>
+                        </button>
+                        <button (click)="unlocked.frontTiltAccelerationBoost = true" *ngIf="!unlocked.frontTiltAccelerationBoost" mat-icon-button color="primary" aria-label="Unlock setting">
+                            <mat-icon>lock_open</mat-icon>
+                        </button>
                     </div>
                 </div>
                 <div class="row align-items-center">
@@ -47,13 +81,22 @@
                     <div class="col-auto">
                         <mat-form-field appearance="outline">
                             <input matInput type="number" min="0" max="100" step="1"
-                                [(ngModel)]="frontTiltOutputCapDisplay">
+                                [disabled]="!unlocked.frontTiltOutputCap" [(ngModel)]="frontTiltOutputCapDisplay">
                         </mat-form-field>
                     </div>
                     <div class="col">
                         <mat-slider min="0" max="100" aria-label="Percentage (%)" class="w-100" step="1"
                             (input)="frontTiltOutputCapDisplay = $event.value"
+                            [disabled]="!unlocked.frontTiltOutputCap"
                             [value]="frontTiltOutputCapDisplay"></mat-slider>
+                    </div>
+                    <div class="col-auto">
+                        <button (click)="unlocked.frontTiltOutputCap = false" *ngIf="unlocked.frontTiltOutputCap" mat-icon-button color="primary" aria-label="Lock setting">
+                            <mat-icon>lock</mat-icon>
+                        </button>
+                        <button (click)="unlocked.frontTiltOutputCap = true" *ngIf="!unlocked.frontTiltOutputCap" mat-icon-button color="primary" aria-label="Unlock setting">
+                            <mat-icon>lock_open</mat-icon>
+                        </button>
                     </div>
                 </div>
                 <!-- <div class="row align-items-center">
@@ -88,13 +131,22 @@
                     <div class="col-auto">
                         <mat-form-field appearance="outline">
                             <input matInput type="number" min="0" max="100" step="1"
-                                [(ngModel)]="sideTiltGForceMultiplierDisplay">
+                                [disabled]="!unlocked.sideTiltGForceMultiplier" [(ngModel)]="sideTiltGForceMultiplierDisplay">
                         </mat-form-field>
                     </div>
                     <div class="col">
                         <mat-slider min="0" max="100" aria-label="Percentage (%)" class="w-100" step="1"
                             (input)="sideTiltGForceMultiplierDisplay = $event.value"
+                            [disabled]="!unlocked.sideTiltGForceMultiplier"
                             [value]="sideTiltGForceMultiplierDisplay"></mat-slider>
+                    </div>
+                    <div class="col-auto">
+                        <button (click)="unlocked.sideTiltGForceMultiplier = false" *ngIf="unlocked.sideTiltGForceMultiplier" mat-icon-button color="primary" aria-label="Lock setting">
+                            <mat-icon>lock</mat-icon>
+                        </button>
+                        <button (click)="unlocked.sideTiltGForceMultiplier = true" *ngIf="!unlocked.sideTiltGForceMultiplier" mat-icon-button color="primary" aria-label="Unlock setting">
+                            <mat-icon>lock_open</mat-icon>
+                        </button>
                     </div>
                 </div>
                 <div class="row align-items-center">
@@ -104,13 +156,22 @@
                     <div class="col-auto">
                         <mat-form-field appearance="outline">
                             <input matInput type="number" min="0" max="100" step="1"
-                                [(ngModel)]="sideTiltOutputCapDisplay">
+                                [disabled]="!unlocked.sideTiltOutputCap" [(ngModel)]="sideTiltOutputCapDisplay">
                         </mat-form-field>
                     </div>
                     <div class="col">
                         <mat-slider min="0" max="100" aria-label="Percentage (%)" class="w-100" step="1"
                             (input)="sideTiltOutputCapDisplay = $event.value"
+                            [disabled]="!unlocked.sideTiltOutputCap"
                             [value]="sideTiltOutputCapDisplay"></mat-slider>
+                    </div>
+                    <div class="col-auto">
+                        <button (click)="unlocked.sideTiltOutputCap = false" *ngIf="unlocked.sideTiltOutputCap" mat-icon-button color="primary" aria-label="Lock setting">
+                            <mat-icon>lock</mat-icon>
+                        </button>
+                        <button (click)="unlocked.sideTiltOutputCap = true" *ngIf="!unlocked.sideTiltOutputCap" mat-icon-button color="primary" aria-label="Unlock setting">
+                            <mat-icon>lock_open</mat-icon>
+                        </button>
                     </div>
                 </div>
                 <!-- <div class="row align-items-center">

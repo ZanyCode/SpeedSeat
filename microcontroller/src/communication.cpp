@@ -13,55 +13,26 @@ communication::communication(Transport *transport)
 
 void communication::execute()
 {
-    while (transport->available() != 0)
+    // Frame the incoming byte stream by content: an answer is a single 0xFF/0xFE byte that can
+    // only stand between two commands (no command ID byte has that value), everything else is
+    // an 8-byte command. Only one command is taken out per pass; the rest stays in the transport
+    // buffer for the next pass. The PC streams motor positions without waiting for our OKAY, so
+    // several commands can arrive back to back (always after a WiFi stall) — reading them all at
+    // once used to count as a buffer overflow and threw every one of them away.
+    while (transport->available() != 0 && bytesRecived < PROTOCOL_LENGTH)
     {
-        addDataToRecivedBuffer();
-    }
-
-    // waiting for acknowledgement of previous send command
-    if (waiting_for_okay && bytesRecived >= 1)
-    {
-        // check if first or last byte is OKAY
-        if (recived_buffer[0] == 0xFF || (bytesRecived == PROTOCOL_LENGTH + 1 && recived_buffer[PROTOCOL_LENGTH] == 0xFF))
+        int c = transport->read();
+        if (c < 0)
         {
-            waiting_for_okay = false;
-            valuesHavBeenFilled = false;
-            resendAttempts = 0;
-            bytesRecived--;
-            int x = 0;
-
-            // if more value request are queued shift them to position zero to let the main loop fill them with fitting values
-            while (request_buffer[x] != IDLE)
-            {
-                request_buffer[x] = request_buffer[x + 1];
-                x++;
-            }
-
-            // shift the recived buffer one slot to delete the okay and retain the command. Do not do that if okay(0xFF) was at the end of the buffer.
-            if (recived_buffer[0] == 0xFF)
-            {
-                for (int i = 0; i != PROTOCOL_LENGTH; i++)
-                {
-                    recived_buffer[i] = recived_buffer[i + 1];
-                }
-            }
+            break;
         }
-        else if (recived_buffer[0] == 0xFE || (bytesRecived == PROTOCOL_LENGTH + 1 && recived_buffer[PROTOCOL_LENGTH] == 0xFE))
+        if (bytesRecived == 0 && (c == 0xFF || c == 0xFE))
         {
-            failedCommands++;
-            sendBuffer();
+            handleAnswer(c == 0xFF);
+            continue;
         }
-    }
-
-    // if notOkay(0xFE) was recived without waiting for an okay just delete that byte
-    if (bytesRecived > 0 && recived_buffer[0] == 0xFE)
-    {
-        failedCommands++;
-        bytesRecived--;
-        for (int i = 0; i != PROTOCOL_LENGTH; i++)
-        {
-            recived_buffer[i] = recived_buffer[i + 1];
-        }
+        recived_buffer[bytesRecived] = (unsigned short)c;
+        bytesRecived++;
     }
 
     // sending Value of requested command
@@ -224,7 +195,6 @@ void communication::readNewCommand()
     case SAVE_SETTINGS:
     case RESET_EEPROM:
     case FILTER_CONSTANT:
-    case CLOSE_TARGET_ACCELERATION:
     case FIRMWARE_VERSION:
     case START_FIRMWARE_UPDATE:
         if (reading)
@@ -336,7 +306,6 @@ void communication::addAllCommandsToRequestLine()
     addCommandToRequestLine(INIT_SUCCESSFUL);
     addCommandToRequestLine(STATE_UPDATE_INTERVALL);
     addCommandToRequestLine(FILTER_CONSTANT);
-    addCommandToRequestLine(CLOSE_TARGET_ACCELERATION);
 }
 
 void communication::addCommandToRequestLine(CMD command)
@@ -387,18 +356,32 @@ void communication::calculateCycleTime()
     }
 }
 
-void communication::addDataToRecivedBuffer()
+void communication::handleAnswer(bool okay)
 {
-    if (bytesRecived == PROTOCOL_LENGTH + 1)
+    if (!okay)
     {
-        acknowledge(NOT_OKAY);
+        failedCommands++;
+        if (waiting_for_okay)
+        {
+            sendBuffer();
+        }
         return;
     }
 
-    int c = transport->read();
-    if (c >= 0)
+    // an OKAY nobody waits for (e.g. it arrived after the resend limit) is simply dropped
+    if (!waiting_for_okay)
     {
-        recived_buffer[bytesRecived] = (unsigned short)c;
-        bytesRecived++;
+        return;
+    }
+    waiting_for_okay = false;
+    valuesHavBeenFilled = false;
+    resendAttempts = 0;
+
+    // if more value request are queued shift them to position zero to let the main loop fill them with fitting values
+    int x = 0;
+    while (request_buffer[x] != IDLE)
+    {
+        request_buffer[x] = request_buffer[x + 1];
+        x++;
     }
 }

@@ -77,7 +77,7 @@ Angular SPA with Angular Material UI. Main views:
 - **ManualControl** — direct slider control of motor positions
 - **SeatSettings** — per-command settings read from `config.json` (numeric/boolean/action widgets)
 - **ProgramSettings** — response curve editor, telemetry multipliers/caps, motor index mapping
-- **Telemetry** — live Plotly chart of front/side tilt; the source game (F1 2020–2025) is detected automatically from the incoming packets and shown as a status, streaming is always on (no buttons)
+- **Telemetry** — live Plotly chart of front/side tilt; the source game (F1 2020–2025) is detected automatically from the incoming packets and shown as a status, streaming is always on (no buttons). Its numeric settings (multipliers, caps, acceleration boost) are locked until their lock button is clicked, like the seat settings
 
 All backend communication is over SignalR (not REST). Hub URLs: `/hub/manual`, `/hub/connection`, `/hub/info`, `/hub/programSettings`, `/hub/seatSettings`, `/hub/telemetry`.
 
@@ -138,9 +138,11 @@ Target: **AZ-Delivery DevKit v4 (ESP32)**. Built with PlatformIO.
 | 0x41 | PC→MC | Start OTA firmware update; Value1 = HTTP port of the backend (5000). ESP downloads `/firmware.bin` from the sender IP, flashes, restarts (UDP/WiFi builds only) |
 | 0x42 | PC→MC | Reset EEPROM (still handled by the MC; the backend no longer sends it — the Reset-EEPROM UI was removed) |
 
-**Motor position stream (0x00) is best-effort**: `CommandService` waits only `PositionAckTimeoutMs` (60 ms) for the ack of a motor position and never resends it — the next, newer position replaces a lost one (a 1 s retry used to freeze the seat for a second per lost WiFi packet). 25 unanswered positions in a row drop the connection. All other commands keep the 3-attempt retry with `commandSendRetryIntervalMs`.
+**Motor position stream (0x00) is fire-and-forget**: `CommandService` sends every motor position the moment it exists and neither waits for its ack nor resends it — the next, newer position replaces a lost one (the way games stream state). The MC still acks each position; the backend only uses "anything received" as a liveness signal and drops the connection after 60 positions in a row without any reply (~1.5 s). All other commands keep the 3-attempt retry with `commandSendRetryIntervalMs`; because acks carry no ID they wait 80 ms after the last position so a position ack can't be mistaken for theirs.
 
-**Connection debugger** (`Processing/ConnectionDiagnostics.cs`): set the env var `SPEEDSEAT_DIAG_DIR` to a directory and the backend writes a timestamped event log there (every TX/ACK/timeout with round-trip time, every RX datagram, connects/disconnects, telemetry rate, ICMP ping to seat + gateway, PC WiFi state, process stalls). `SPEEDSEAT_DIAG_GATEWAY` overrides the pinged gateway IP. Without the env var it is a no-op. `tools/serial-log.ps1` captures the ESP's USB debug output with matching timestamps.
+**MC receive framing**: `communication::execute()` frames the byte stream by content — a lone `0xFF`/`0xFE` between commands is an answer (no command ID byte has that value), anything else is an 8-byte command — and takes one command per pass. Commands therefore may arrive back to back (they do after every WiFi stall); the old "read everything, then count bytes" logic treated that as overflow and discarded them.
+
+**Connection debugger** (`Processing/ConnectionDiagnostics.cs`): set the env var `SPEEDSEAT_DIAG_DIR` to a directory and the backend writes a timestamped event log there (every TX/ACK/timeout with round-trip time, every RX datagram, connects/disconnects, telemetry rate, ICMP ping to seat + gateway, PC WiFi state, process stalls). `SPEEDSEAT_DIAG_GATEWAY` overrides the pinged gateway IP. Without the env var it is a no-op. `tools/serial-log.ps1` captures the ESP's USB debug output with matching timestamps. The seat's position reports (`RX` of command 12, mm per axis) can be compared against the commanded positions (`TX` of command 0) to tell a motion bug from a network or telemetry problem.
 
 **Connection sequence**: PC sends 0x01 → MC performs sync (read/write requests) → MC sends 0x02 → UI unblocks → backend runs the firmware version handshake (0x40, possibly 0x41) in the background.
 
@@ -169,7 +171,6 @@ Each command entry defines:
 | `NO_HARDWARE` | Skips real motor control; useful for software-only testing |
 | `USE_EEPROM` | Loads/saves axis settings from ESP32 EEPROM on boot/save command |
 | `AUTO_RETURN_TO_ZERO` | Seat returns to centre when telemetry FPS drops to 0 for 200 ms |
-| `CLOSE_TARGET_DISTANCE_MM` / `CLOSE_TARGET_MIN_ACCELERATION_PERCENT` | Defaults (5 mm / 25 %) of the "Gentle acceleration near target" seat setting (command ID 24: Value1 = distance in mm, Value2 = minimum acceleration in %, Value3 = enabled toggle, one value for all axes, stored in the EEPROM). Positioning moves accelerate more gently when the target is close: below the distance the acceleration scales linearly with the remaining distance down to the minimum at the target. Switching the toggle off (or setting either value to 0) restores the old behaviour. Deceleration is unchanged. Applied in `Axis::_move()` (`AxisMove.h`). `CLOSE_TARGET_MAX_DISTANCE_MM` (50) is the upper limit and must match the `max` in `config.json` |
 | `AUTO_SAVE` | Auto-saves to EEPROM on every change (off by default) |
 | `ANALYZE_MOTION_CERNEL` | Sends random move commands for stress-testing |
 | `DEBUG` | Enables `printPosition()` serial debug output |
@@ -184,6 +185,7 @@ All persisted in SQLite. Properties expose `IObservable<T>` variants (`*Obs`) fo
 - `FrontLeftMotorIdx` / `FrontRightMotorIdx` / `BackMotorIdx` — which array slot (0/1/2) maps to which motor
 - `BackMotorResponseCurve` / `SideMotorResponseCurve` — piecewise-linear curves applied before sending positions
 - `FrontTiltPriority` — how much front tilt reduces side tilt when both are at max
+- `FrontTiltAccelerationBoost` — extra factor on positive longitudinal G (accelerating) only, applied before the multiplier; braking is unaffected. 1 = off. Shown as "Acceleration Boost (%)" (100–1000) in the Telemetry view
 - `FrontTilt/SideTilt GforceMultiplier`, `OutputCap`, `Smoothing`, `Reverse` — telemetry scaling. Default multipliers are 0.07 (front) and 0.34 (side); the former 0.3/0.3 was far too aggressive on the front axis
 
 (The former `TelemetryGameVersion` setting is gone — the game is auto-detected from the telemetry packets.)
@@ -202,7 +204,7 @@ Backend, frontend and firmware must always be released together — the update c
 
 **Symptom**: while driving, the seat froze for about a second every 10–20 s and drifted to centre.
 
-**Cause 1 — protocol (fixed)**: motor positions were sent stop-and-wait with the generic 1000 ms retry interval. One lost or late WiFi datagram (measured ~0.2 % of packets) blocked every newer position for a full second, and after 200 ms without commands the firmware's `AUTO_RETURN_TO_ZERO` moved the seat to centre. Fix: positions are best-effort with a 60 ms ack window and no resend (see "Motor position stream" above). Measured over ~2 min of driving each: before, 3 freezes of ~1000 ms in 39 s; after, none ≥ 500 ms, longest gap 362 ms.
+**Cause 1 — protocol (fixed)**: motor positions were sent stop-and-wait with the generic 1000 ms retry interval. One lost or late WiFi datagram (measured ~0.2 % of packets) blocked every newer position for a full second, and after 200 ms without commands the firmware's `AUTO_RETURN_TO_ZERO` moved the seat to centre. First fix (2026-10-04): 60 ms ack window, no resend — freezes of ~1000 ms disappeared. Second step (2026-10-08): positions are not waited on at all (see "Motor position stream" above), because during a half-broken link each lost packet still cost 60 ms+ and added up to 150–310 ms gaps.
 
 **Cause 2 — network (not fixable in code)**: the remaining late packets came from the WiFi access point, here an Android phone hotspot. Every ~10.7 s it stalled for ~0.8 s, raising latency for *all* clients from 4–8 ms to 30–70 ms (occasionally 100–360 ms). Proven by elimination:
 - PC → access point ping alone shows the bursts (seat not involved).
@@ -211,6 +213,13 @@ Backend, frontend and firmware must always be released together — the update c
 - Nothing on the ESP serial log (no reboot/brownout), RSSI ≈ -43 dBm, PC signal 91 %.
 
 A phone hotspot is one radio doing two jobs; it leaves the hotspot channel when the phone scans for networks. A dedicated router (no internet needed) for PC + seat is the proper setup. The hotspot also sat on 2.4 GHz channel 10, overlapping neighbours on 6/7.
+
+**Cause 3 — PC on the hotspot's 5 GHz band (2026-10-08)**: with the PC on the hotspot's 5 GHz access point (channel 161) the PC ↔ phone link dropped out for ~3.5 s at a time, at spacings that are multiples of ~62 s (about half the packets lost, felt as a series of ~250 ms hiccups). During one such outage the ESP's own pings to the phone (2.4 GHz) were normal, so the failing hop is PC ↔ phone on 5 GHz; whether the PC's Intel 3160 card or the phone's 5 GHz radio is at fault is not determined. No such outages were seen with the PC on 2.4 GHz. `tools/wifi-connect-bssid.ps1 -Profile <ssid> -Band 2.4` pins the PC to the 2.4 GHz access point without admin rights (only for the current connection).
+
+**Firmware motion bugs found with the same logs (fixed 2026-10-08)**:
+- *One corner hangs for up to a second* (`Axis::_move`, `AxisMove.h`): the accelerate/decelerate decision was only taken when a step was made. An axis that had braked to a crawl has its next step up to 1 s away and ignored a new, distant target until then. It now switches back to accelerating between steps as soon as the target lies beyond the braking distance.
+- *Kick shortly after telemetry starts* (`Axis::moveAbsoluteSteps` / `Smoothy`): the smoothing filter is only used while `gamingActive` (more than 5 commands/s, evaluated once per second). While bypassed its buffer kept the positions of the previous session (zeros after boot), so the first filtered outputs lunged toward those. The buffer now follows the unfiltered position while the filter is bypassed.
+- The "Gentle acceleration near target" setting (command 24) was removed again.
 
 **How to repeat the investigation**:
 1. Run the backend with `SPEEDSEAT_DIAG_DIR=<dir>` (and `SPEEDSEAT_DIAG_GATEWAY=<AP IP>` when the AP is not the IPv4 default gateway, as with phone hotspots). Look for `TIMEOUT` lines and for gaps between `ACK` lines; compare `PING seat` against `PING gateway` — both slow at once means PC/AP side, only the seat slow means seat side.

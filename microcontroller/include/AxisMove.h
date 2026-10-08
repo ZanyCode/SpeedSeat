@@ -263,24 +263,34 @@ void Axis::_move()
         }
     }
 
+    // The accelerate/decelerate decision above is only taken when a step is made. At crawl speed
+    // steps are far apart (a full second at 1 step/s), so an axis that had braked for a near
+    // target ignored a new, distant target until its next step and the seat hung on one corner
+    // for up to a second. Switch back to accelerating as soon as the target lies beyond the
+    // braking distance; the speed update below then shortens the wait for the next step.
+    if (!makeOneStep && decelerating && movementType == _POSITIONING && currentDirection != _STANDSTILL && currentDirection == targetDirection)
+    {
+        bool targetBeyondBrakingDistance;
+        if (currentDirection == _POSITIVE)
+        {
+            targetBeyondBrakingDistance = targetPosition > currentPosition + breakingDistance;
+        }
+        else
+        {
+            targetBeyondBrakingDistance = currentPosition > breakingDistance && targetPosition < currentPosition - breakingDistance;
+        }
+        if (targetBeyondBrakingDistance)
+        {
+            decelerating = false;
+            accelerating = true;
+            positionHasBeenChanged = false;
+        }
+    }
+
     unsigned long processorCylcesPerSpeedChange;
     if (accelerating)
     {
         processorCylcesPerSpeedChange = processorCylcesPerSpeedChangeAC;
-        // accelerate more gently when the target is very close -> small position changes don't jerk the seat.
-        // Only the acceleration is reduced; the deceleration (and with it the breaking distance) stays untouched.
-        // Can be switched off; a distance or a minimum of 0 switches it off as well.
-        unsigned long fullAccelerationDistance = closeTargetDistance;
-        unsigned long minAccelerationPercent = closeTargetMinAccelerationPercent;
-        if (closeTargetEnabled && movementType == _POSITIONING && minAccelerationPercent > 0 && minAccelerationPercent < 100)
-        {
-            unsigned long distanceToTarget = currentPosition > targetPosition ? currentPosition - targetPosition : targetPosition - currentPosition;
-            if (distanceToTarget < fullAccelerationDistance)
-            {
-                unsigned long accelerationPercent = minAccelerationPercent + (unsigned long long)(100 - minAccelerationPercent) * distanceToTarget / fullAccelerationDistance;
-                processorCylcesPerSpeedChange = (unsigned long long)processorCylcesPerSpeedChange * 100 / accelerationPercent;
-            }
-        }
     }
     else
     {
@@ -355,7 +365,17 @@ void Axis::enableStepping()
 
 void Axis::moveAbsoluteSteps(unsigned long newPosition, bool filter)
 {
-    newPosition = filter?smoothy->filter(newPosition):newPosition;
+    if (filter)
+    {
+        newPosition = smoothy->filter(newPosition);
+    }
+    else
+    {
+        // Keep the filter's history at the unfiltered position. Otherwise it still holds the
+        // positions from the last time it was active (or zeros after boot), and the moment
+        // filtering starts the axis lunges toward those stale values before it recovers.
+        smoothy->reset(newPosition);
+    }
     newPosition = constrain(newPosition, 0 , maxPosition);
     float secondsSinceLastMoveSteps;
     if (acceleration != defaultAcceleration || deceleration != defaultDeceleration)
@@ -482,3 +502,4 @@ unsigned int Axis::getFilterConstant()
 {
     return smoothy->getBuffer();
 }
+

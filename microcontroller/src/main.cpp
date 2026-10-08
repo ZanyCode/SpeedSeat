@@ -273,10 +273,6 @@ void writeRequestedValue()
     com.fillValueBuffer(X_Axis.getFilterConstant(), 0, 0);
     break;
 
-  case CLOSE_TARGET_ACCELERATION:
-    com.fillValueBuffer(X_Axis.getCloseTargetDistance(), X_Axis.getCloseTargetMinAccelerationPercent(), X_Axis.getCloseTargetEnabled());
-    break;
-
   case FIRMWARE_VERSION:
     com.fillValueBuffer(FW_VERSION_NUMBER, 0, 0);
     break;
@@ -379,12 +375,6 @@ void readNewCommand()
     X_Axis.setFilterConstant(com.recived_value.as_int16[0]);
     Y_Axis.setFilterConstant(com.recived_value.as_int16[0]);
     Z_Axis.setFilterConstant(com.recived_value.as_int16[0]);
-    break;
-
-  case CLOSE_TARGET_ACCELERATION:
-    X_Axis.setCloseTargetAcceleration(com.recived_value.as_int16[0], com.recived_value.as_int16[1], com.recived_value.as_bool[2]);
-    Y_Axis.setCloseTargetAcceleration(com.recived_value.as_int16[0], com.recived_value.as_int16[1], com.recived_value.as_bool[2]);
-    Z_Axis.setCloseTargetAcceleration(com.recived_value.as_int16[0], com.recived_value.as_int16[1], com.recived_value.as_bool[2]);
     break;
 
   case START_FIRMWARE_UPDATE:

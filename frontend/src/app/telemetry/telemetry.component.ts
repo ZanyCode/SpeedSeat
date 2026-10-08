@@ -29,6 +29,16 @@ export class TelemetryComponent implements OnInit, OnDestroy {
     },
   };
 
+  // Sliders and inputs are locked until their lock button is clicked (same as the seat
+  // settings), so a stray touch while driving can't change a value. Locked again on reload.
+  public unlocked = {
+    frontTiltGForceMultiplier: false,
+    frontTiltAccelerationBoost: false,
+    frontTiltOutputCap: false,
+    sideTiltGForceMultiplier: false,
+    sideTiltOutputCap: false,
+  };
+
   private _frontTiltGForceMultiplier: number | null = 0.3;
   public get frontTiltGForceMultiplier(): number | null {
     return this._frontTiltGForceMultiplier;
@@ -42,6 +52,21 @@ export class TelemetryComponent implements OnInit, OnDestroy {
   }
   public set frontTiltGForceMultiplierDisplay(value: number | null) {
     this.frontTiltGForceMultiplier = (value ?? 30) / 100;
+  }
+
+  private _frontTiltAccelerationBoost: number | null = 1.0;
+  public get frontTiltAccelerationBoost(): number | null {
+    return this._frontTiltAccelerationBoost;
+  }
+  public set frontTiltAccelerationBoost(value: number | null) {
+    this._frontTiltAccelerationBoost = value;
+    this.data.setFrontTiltAccelerationBoost(value ?? 1.0);
+  }
+  public get frontTiltAccelerationBoostDisplay(): number {
+    return Math.round((this._frontTiltAccelerationBoost ?? 1.0) * 100);
+  }
+  public set frontTiltAccelerationBoostDisplay(value: number | null) {
+    this.frontTiltAccelerationBoost = (value ?? 100) / 100;
   }
 
   private _frontTiltOutputCap: number | null = 1.0;
@@ -133,6 +158,7 @@ export class TelemetryComponent implements OnInit, OnDestroy {
       const settings = await this.data.getCurrentState();
       this.detectedGame = await this.data.getDetectedGame();
       this._frontTiltGForceMultiplier = settings.frontTiltGforceMultiplier;
+      this._frontTiltAccelerationBoost = settings.frontTiltAccelerationBoost;
       this._frontTiltOutputCap = settings.frontTiltOutputCap;
       this._frontTiltSmoothing = settings.frontTiltSmoothing;
       this._sideTiltGForceMultiplier = settings.sideTiltGforceMultiplier;

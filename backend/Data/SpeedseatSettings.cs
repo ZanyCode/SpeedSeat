@@ -23,6 +23,8 @@ public interface ISpeedseatSettings
     double FrontTiltPriority { get; set; }
     IObservable<double> FrontTiltGforceMultiplierObs { get; }
     double FrontTiltGforceMultiplier { get; set; }
+    IObservable<double> FrontTiltAccelerationBoostObs { get; }
+    double FrontTiltAccelerationBoost { get; set; }
     IObservable<double> FrontTiltOutputCapObs { get; }
     double FrontTiltOutputCap { get; set; }
     IObservable<double> FrontTiltSmoothingObs { get; }
@@ -88,6 +90,12 @@ public class SpeedseatSettings : ISpeedseatSettings
     [JsonIgnore]
     public IObservable<double> FrontTiltGforceMultiplierObs => GetObservable<double>(nameof(FrontTiltGforceMultiplier), FrontTiltGforceMultiplier);
     public double FrontTiltGforceMultiplier { get => GetValue<double>(0.07); set => SetValue(value); }
+
+    // Extra factor on positive longitudinal G (accelerating) only; braking keeps the plain
+    // multiplier. 1 = no boost.
+    [JsonIgnore]
+    public IObservable<double> FrontTiltAccelerationBoostObs => GetObservable<double>(nameof(FrontTiltAccelerationBoost), FrontTiltAccelerationBoost);
+    public double FrontTiltAccelerationBoost { get => GetValue<double>(1.0); set => SetValue(value); }
 
     [JsonIgnore]
     public IObservable<double> FrontTiltOutputCapObs => GetObservable<double>(nameof(FrontTiltOutputCap), FrontTiltOutputCap);

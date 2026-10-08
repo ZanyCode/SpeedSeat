@@ -19,6 +19,11 @@ public class TelemetryHub : Hub
         this.settings.FrontTiltGforceMultiplier = value;
     }
 
+    public void SetFrontTiltAccelerationBoost(double value)
+    {
+        this.settings.FrontTiltAccelerationBoost = value;
+    }
+
     public void SetFrontTiltOutputCap(double value)
     {
         this.settings.FrontTiltOutputCap = value;
