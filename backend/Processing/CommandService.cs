@@ -185,8 +185,12 @@ public class CommandService
                 var command = options.CurrentValue.Commands.SingleOrDefault(x => x.Id == id);
                 if (command == null)
                 {
-                    frontendLogger.Log($"Error: Received command with id {id}, but this command does not exist in config.json. Responding with 0xFE.");
-                    await SendAcknowledgeByteToMicrocontroller(false);
+                    // A firmware from another release may report a setting this backend doesn't
+                    // know (added later, or removed again). Accept and ignore it: answering 0xFE
+                    // makes the microcontroller resend it forever, which blocks everything queued
+                    // behind it — including its firmware version, without which no update starts.
+                    frontendLogger.Log($"Warning: Received command with id {id}, which does not exist in config.json. Ignoring it.");
+                    await SendAcknowledgeByteToMicrocontroller(true);
                 }
                 else
                 {

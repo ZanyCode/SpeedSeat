@@ -245,6 +245,40 @@ public class CommandServiceTest
     }
 
     [TestMethod]
+    public async Task CommandServiceShouldAcknowledgeUnknownCommandFromMicrocontroller()
+    {
+        // Arrange
+        SetupPortResponses(new Dictionary<byte, Func<byte[], byte[]>>
+        {
+            [Command.InitiateConnectionCommandId] = x => new Command(Command.ConnectionInitiatedCommandId, null, null, null, false, false).ToByteArray()
+        });
+        await sut.Connect("");
+        await Task.Delay(50); // let the background ack write from Connect finish before re-mocking the port
+
+        var writtenBytes = new List<byte[]>();
+        portConnectionMock.Setup(x => x.Write(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())).Callback<byte[], int, int>((buffer, offset, count) => writtenBytes.Add(buffer));
+
+        // A setting only another firmware release knows (config.json has no command 24)
+        var unknownCommandBytes = new Command(24, null, null, null, false, false, "").ToByteArray();
+        configOptionsMock.SetupGet(x => x.CurrentValue).Returns(new Config { Commands = new Command[0] });
+        portConnectionMock.SetupGet(x => x.BytesToRead).Returns(unknownCommandBytes.Length);
+        portConnectionMock.Setup(x => x.Read(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())).Callback<byte[], int, int>((buffer, offset, count) =>
+        {
+            Array.Copy(unknownCommandBytes.Skip(offset).ToArray(), buffer, count);
+        });
+
+        // Act
+        portConnectionMock.Raise(x => x.DataReceived += null, EventArgs.Empty);
+        await Task.Delay(50);
+
+        // Assert
+        // 0xFE would make the microcontroller resend the command forever and block its
+        // firmware version report, so an unknown command must be accepted and ignored.
+        Assert.AreEqual(1, writtenBytes.Count);
+        Assert.AreEqual(0xFF, writtenBytes[0][0]);
+    }
+
+    [TestMethod]
     public void ToStringShouldCorrectlyPrintRawAndDoubleRepresentation()
     {
         var commandValue = new CommandValue(ValueType.Numeric, 0, "", false, 20, 1500);

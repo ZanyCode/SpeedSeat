@@ -45,6 +45,10 @@ public class FirmwareUpdateService
         }
     }
 
+    // Guards the "version unknown" update below against looping: if the seat still doesn't
+    // report a version after that update, don't flash it again on every reconnect.
+    private bool updatedWithUnknownVersion = false;
+
     public async Task CheckFirmwareAfterConnect()
     {
         try
@@ -76,11 +80,18 @@ public class FirmwareUpdateService
 
             if (reported == null)
             {
-                await PushState("otaUnavailable", $"Seat firmware is too old to update itself (available: {BundledFirmwareVersion}). Please flash firmware.bin from the release page once via USB (PlatformIO) — afterwards all updates happen automatically.");
-                return;
+                // Every firmware in the field can update itself, so an unanswered version
+                // request means the handshake got lost or stuck, not that the seat is too old.
+                // Try the update anyway (once): a seat that really can't do it rejects the command.
+                if (updatedWithUnknownVersion)
+                {
+                    await PushState("otaUnavailable", $"The seat still doesn't report its firmware version after an update attempt (available: {BundledFirmwareVersion}). Please use \"Flash via USB\" once — afterwards all updates happen automatically.");
+                    return;
+                }
+                updatedWithUnknownVersion = true;
             }
 
-            await PushState("updating", $"Updating seat firmware from version {reported} to {BundledFirmwareVersion}. The seat downloads the new firmware and restarts — reconnecting automatically afterwards...");
+            await PushState("updating", $"Updating seat firmware from version {(reported?.ToString() ?? "unknown")} to {BundledFirmwareVersion}. The seat downloads the new firmware and restarts — reconnecting automatically afterwards...");
             var updateResult = await commandService.WriteCommand(new Command(
                 Command.StartFirmwareUpdateCommandId,
                 new CommandValue(ValueType.Numeric, BackendHttpPort, "", scaleToFullRange: false, min: 0, max: 0xFFFF),

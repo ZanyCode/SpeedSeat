@@ -361,7 +361,26 @@ void communication::handleAnswer(bool okay)
     if (!okay)
     {
         failedCommands++;
-        if (waiting_for_okay)
+        if (!waiting_for_okay)
+        {
+            return;
+        }
+        // A rejected value is resent, but not forever: a PC that will never accept it (e.g. a
+        // backend release that doesn't know this command) must not block everything queued
+        // behind it. After the resend limit the request is dropped like an unanswered one.
+        if (++resendAttempts > MAX_RESEND_ATTEMPTS)
+        {
+            waiting_for_okay = false;
+            valuesHavBeenFilled = false;
+            resendAttempts = 0;
+            int x = 0;
+            while (request_buffer[x] != IDLE)
+            {
+                request_buffer[x] = request_buffer[x + 1];
+                x++;
+            }
+        }
+        else
         {
             sendBuffer();
         }
